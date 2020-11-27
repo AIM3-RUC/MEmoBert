@@ -1,1 +1,7 @@
 # MEmoBert
+
+## Preprocess 
+
+## Training 
+
+## Inference
