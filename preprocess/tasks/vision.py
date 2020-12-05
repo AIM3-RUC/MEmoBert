@@ -129,8 +129,14 @@ class DensefaceExtractor(BaseWorker):
                 self.model.images: img,
                 self.model.is_training: False
             }
-            ft = self.model.sess.run(self.model.end_points['fc'], feed_dict=feed_dict)
-        return ft
+
+            # emo index
+            # fer_idx_to_class = ['neu', 'hap', 'sur', 'sad', 'ang', 'dis', 'fea', 'con']
+
+            ft, soft_label = \
+                self.model.sess.run([self.model.end_points['fc'], 
+                                     self.model.end_points['preds']], feed_dict=feed_dict)
+        return ft, soft_label
 
 class ActiveSpeakerSelector(BaseWorker):
     def __init__(self, diff_threshold=4, logger=None):

@@ -51,7 +51,8 @@ class ComParEExtractor(BaseWorker):
         self.no_tmp = no_tmp
     
     def __call__(self, wav):
-        save_path = os.path.join(self.tmp_dir, get_basename(wav)+".csv")
+        utt_id = wav.split('/')[-2]
+        save_path = os.path.join(self.tmp_dir, utt_id+'_'+get_basename(wav)+".csv")
         # if not os.path.exists(save_path):
         cmd = 'SMILExtract -C ~/opensmile-2.3.0/config/ComParE_2016.conf \
             -appendcsvlld 0 -timestampcsvlld 1 -headercsvlld 1 \

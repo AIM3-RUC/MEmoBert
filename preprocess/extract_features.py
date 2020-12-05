@@ -3,9 +3,11 @@ import h5py
 import numpy as np
 import json
 from tqdm import tqdm
+from functools import partial
+from toolz.sandbox import unzip
 from utils import get_basename, mkdir
 from tasks.audio import *
-# from tasks.vision import *
+from tasks.vision import *
 from tasks.text import *
 from tools.get_emo_words import EmoLexicon
 
@@ -25,7 +27,12 @@ def extract_features_h5(extract_func, get_input_func, utt_ids, save_path, multi_
     for utt_id in tqdm(utt_ids):
         input_param = get_input_func(utt_id)
         feature = extract_func(input_param)
-        h5f[utt_id] = feature
+        if isinstance(feature, dict):
+            utt_data = h5f.create_group(utt_id)
+            for k, v in feature.items():
+                utt_data[k] = v
+        else:
+            h5f[utt_id] = feature
     h5f.close()
 
 def get_utt_id_files(meta_dir, file_name):
@@ -58,6 +65,15 @@ def process_emo_word(utt_ids, emol, save_path, multiprocessing=False):
 
     json.dump(all_word2affect, open(save_path, 'w'), indent=4)
 
+def extract_denseface_dir(dir_path, denseface_model, face_selector):
+    active_spk = open(os.path.join(dir_path, 'activate_spk.txt')).read().strip()
+    assert active_spk != "None", dir_path
+    active_spk = int(active_spk)
+    imgs = face_selector(dir_path, active_spk)
+    feats, pred = map(list, unzip([denseface_model(x) for x in imgs]))
+    feats = np.concatenate(feats, axis=0)
+    pred = np.concatenate(pred, axis=0)
+    return {'feat': feats, 'pred': pred}
 
 if __name__ == '__main__':
     import sys
@@ -71,15 +87,20 @@ if __name__ == '__main__':
     audio_dir = 'data/audio_clips'
     transcript_dir = 'data/transcripts/json'
     tmp_dir = 'data/.tmp'
-    extract_comparE = ComParEExtractor(tmp_dir=tmp_dir)
-    extract_vggish = VggishExtractor(device=device)
-    lexicon_dir = '/data2/zjm/tools/EmoLexicons'
-    lexicon_name = 'LIWC2015Dictionary.dic'
-    utterance = "Because you're going to get us all fucking pinched. What are you, so stupid?".lower()
-    bert_vocab_filepath = '/data2/zjm/tools/LMs/bert_base_en/vocab.txt'
-    emol = EmoLexicon(lexicon_dir, lexicon_name, is_bert_token=True, bert_vocab_filepath=bert_vocab_filepath)
+    # extract_comparE = ComParEExtractor(tmp_dir=tmp_dir)
+    # extract_vggish = VggishExtractor(device=device)
+    # lexicon_dir = '/data2/zjm/tools/EmoLexicons'
+    # lexicon_name = 'LIWC2015Dictionary.dic'
+    # utterance = "Because you're going to get us all fucking pinched. What are you, so stupid?".lower()
+    # bert_vocab_filepath = '/data2/zjm/tools/LMs/bert_base_en/vocab.txt'
+    # emol = EmoLexicon(lexicon_dir, lexicon_name, is_bert_token=True, bert_vocab_filepath=bert_vocab_filepath)
         
-    # extract_denseface = DensefaceExtractor(device=device)
+    denseface = DensefaceExtractor(device=device, mean=48.85351, std=45.574123)
+    face_selector = FaceSelector()
+    extract_denseface = partial(extract_denseface_dir, denseface_model=denseface, face_selector=face_selector)
+    # data = extract_denseface('data/faces/0052.October.Sky/1473')
+    # print(data)
+    # input()
     all_utt_files, movie_names = get_utt_id_files(meta_dir, utt_file_name)
     length = len(all_utt_files)
     start = int(part_no * length / total)
@@ -103,28 +124,28 @@ if __name__ == '__main__':
         mkdir(feature_dir)
         utt_ids = open(utt_file).readlines()
         utt_ids = list(map(lambda x: x.strip(), utt_ids))
-        # comparE
-        print('[Main]: processing comparE')
-        save_path = os.path.join(feature_dir, f'{utt_file_name}_comparE.h5')
-        extract_features_h5(extract_comparE, lambda x: os.path.join(audio_dir, x+'.wav'), 
-                    utt_ids, save_path)
-        print(f'[ComparE]: {movie_name} saved in {save_path}')
-        # vggish
-        print('[Main]: processing vggish')
-        save_path = os.path.join(feature_dir, f'{utt_file_name}_vggish.h5')
-        extract_features_h5(extract_vggish, lambda x: os.path.join(audio_dir, x+'.wav'), 
-                    utt_ids, save_path)
-        print(f'[Vggish]: {movie_name} saved in {save_path}')
-        # # denseface
-        # save_path = os.path.join(feature_dir, f'{utt_file_name}_vggish.h5')
-        # extract_features_h5(extract_denseface, lambda x: os.path.join(audio_dir, x+'.wav'), 
+        if len(utt_ids) == 0:
+            continue
+        # # comparE
+        # print('[Main]: processing comparE')
+        # save_path = os.path.join(feature_dir, f'{utt_file_name}_comparE.h5')
+        # extract_features_h5(extract_comparE, lambda x: os.path.join(audio_dir, x+'.wav'), 
         #             utt_ids, save_path)
+        # print(f'[ComparE]: {movie_name} saved in {save_path}')
+        # # vggish
+        # print('[Main]: processing vggish')
+        # save_path = os.path.join(feature_dir, f'{utt_file_name}_vggish.h5')
+        # extract_features_h5(extract_vggish, lambda x: os.path.join(audio_dir, x+'.wav'), 
+        #             utt_ids, save_path)
+        # print(f'[Vggish]: {movie_name} saved in {save_path}')
 
-        # emo_word
-        save_path = os.path.join(feature_dir, f'{utt_file_name}_emoword.json')
-        process_emo_word(utt_ids, emol, save_path, multiprocessing=False)
-        print(f'[EmoWord]: {movie_name} saved in {save_path}')
+        # denseface
+        save_path = os.path.join(feature_dir, f'{utt_file_name}_denseface.h5')
+        extract_features_h5(extract_denseface, lambda x: os.path.join(face_dir, x), 
+                    utt_ids, save_path)
+
+        # # emo_word
+        # save_path = os.path.join(feature_dir, f'{utt_file_name}_emoword.json')
+        # process_emo_word(utt_ids, emol, save_path, multiprocessing=False)
+        # print(f'[EmoWord]: {movie_name} saved in {save_path}')
         
-
-
-    

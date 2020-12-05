@@ -1,16 +1,16 @@
 import os, glob
 import shutil
 import h5py
+import json
 import numpy as np
-import tools.istarmap
 import multiprocessing
 from tqdm import tqdm
-from utils import get_basename, mkdir
-from tasks.audio import *
-from tasks.vision import *
-from tasks.text import *
-from tasks.common import *
- 
+from .utils import get_basename, mkdir
+from .tasks.audio import *
+from .tasks.vision import *
+from .tasks.text import *
+from. tasks.common import *
+
 def save_h5(feature, lengths, save_path):
     h5f = h5py.File(save_path, 'w')
     h5f['feature'] = feature
