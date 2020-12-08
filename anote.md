@@ -1,3 +1,4 @@
+## For all code, you must
 export PYTHONPATH=/data7/MEmoBert
 
 ## 构建LMDB 特征数据库

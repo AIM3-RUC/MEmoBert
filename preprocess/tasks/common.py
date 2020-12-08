@@ -4,8 +4,8 @@ import datetime
 import h5py
 import numpy as np
 from tqdm import tqdm
-from utils import get_basename, mkdir
-from tasks.base_worker import BaseWorker
+from preprocess.utils import get_basename, mkdir
+from preprocess.tasks.base_worker import BaseWorker
 
 class VideoCutter(BaseWorker):
     ''' 按句子的timestamp切分视频

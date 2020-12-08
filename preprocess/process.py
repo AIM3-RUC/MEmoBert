@@ -1,20 +1,17 @@
 import os, glob
 import h5py
-import numpy as np
 import json
 import multiprocessing
-import sys
 import gc
 from tqdm import tqdm
 from collections import Counter
+from preprocess.tools import istarmap
 from preprocess.utils import get_basename, mkdir
 from preprocess.tasks.audio import AudioSplitor
 from preprocess.tasks.vision import Video2Frame, VideoFaceTracker, ActiveSpeakerSelector, FaceSelector
 from preprocess.tasks.text import TranscriptExtractor, TranscriptPackager
 from preprocess.tasks.common import VideoCutterOneClip, FilterTranscrips, pool_filter
-from preprocess.scheduler.gpu_scheduler import init_model_on_gpus
-from preprocess.scheduler.multiprocess_scheduler import simple_processer
-import preprocess.preprocess_config as path_config
+import preprocess.process_config as path_config
 
 def save_h5(feature, lengths, save_path):
     h5f = h5py.File(save_path, 'w')
@@ -82,10 +79,10 @@ def find_exists(movie_name):
     return True if os.path.exists(act_spk_file) else False
 
 if __name__ == '__main__':
-    start_movie_index = 0
-    end_movie_index = 50
+    start_movie_index = 1
+    end_movie_index = 120
     num_worker = 24
-    chunk_size = 50
+    chunk_size = 20
     print()
     print('----------------Preprocessing Start---------------- ')
     print('process movies from No.{} to No.{} '.format(start_movie_index, end_movie_index))
@@ -115,7 +112,7 @@ if __name__ == '__main__':
 
         # 视觉
         get_frames = Video2Frame(save_root=frame_dir)
-        get_faces = VideoFaceTracker(save_root=face_dir)
+        get_faces = VideoFaceTracker(openface_dir=path_config.openface_dir, save_root=face_dir)
         get_activate_spk = ActiveSpeakerSelector()
         select_faces = FaceSelector()
 
@@ -123,8 +120,12 @@ if __name__ == '__main__':
             'No_transcripts': []
         }
 
-        for movie_index in enumerate(range(start_movie_index, end_movie_index)):
-            movie = glob.glob('{}/No{:04d}*'.format(raw_movies_dir, movie_index))
+        for movie_index in range(start_movie_index, end_movie_index, 1):
+            movies = []
+            for _format in ['mkv', 'mp4', 'rmvb', 'avi', 'wmv', 'rm', 'ram']:
+                movies += glob.glob('{}/No{:04d}*.{}'.format(raw_movies_dir, movie_index, _format))
+            assert len(movies) == 1
+            movie = movies[0]
             print('[Main]: Processing', movie)
             movie_name = get_basename(movie)
             if find_exists(movie_name):
