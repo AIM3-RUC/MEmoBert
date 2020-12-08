@@ -69,11 +69,18 @@ def extract_denseface_dir(dir_path, denseface_model, face_selector):
     active_spk = open(os.path.join(dir_path, 'activate_spk.txt')).read().strip()
     assert active_spk != "None", dir_path
     active_spk = int(active_spk)
-    imgs = face_selector(dir_path, active_spk)
-    feats, pred = map(list, unzip([denseface_model(x) for x in imgs]))
+    infos = face_selector(dir_path, active_spk)
+    imgs = [x['img'] for x in infos]
+    frame_nums = [x['frame_num'] for x in infos]
+    confidence = [x['confidence'] for x in infos]
+    feat_pred = [denseface_model(x) for x in imgs]
+    all_info = [(x[0], x[1], frame_nums[i], confidence[i]) for i, x in enumerate(feat_pred) if x is not None]
+    feats, pred, frame_nums, confidence = map(list, unzip(all_info))
     feats = np.concatenate(feats, axis=0)
     pred = np.concatenate(pred, axis=0)
-    return {'feat': feats, 'pred': pred}
+    frame_nums = np.array(frame_nums)
+    confidence = np.array(confidence)
+    return {'feat': feats, 'pred': pred, 'frame_idx':frame_nums, 'confidence': confidence}
 
 if __name__ == '__main__':
     import sys

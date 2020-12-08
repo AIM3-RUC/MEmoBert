@@ -29,23 +29,20 @@ class AudioSplitor(BaseWorker):
         if not os.path.exists(save_path):
             _cmd = "ffmpeg -i {} -vn -f wav -acodec pcm_s16le -ac 1 -ar 16000 {} -y > /dev/null 2>&1".format(video_path, save_path)
             os.system(_cmd)
-        #     self.print('Get audio from {}, save to {}'.format(video_path, save_path))
-        # else:
-        #     self.print('Found in {}, skip'.format(save_path))
-
         return save_path
 
         
 class ComParEExtractor(BaseWorker):
     ''' 抽取comparE特征, 输入音频路径, 输出npy数组, 每帧130d
     '''
-    def __init__(self, downsample=10, tmp_dir='.tmp', no_tmp=False):
+    def __init__(self, opensmile_tool_dir, downsample=10, tmp_dir='.tmp', no_tmp=False):
         ''' Extract ComparE feature
             tmp_dir: where to save opensmile csv file
             no_tmp: if true, delete tmp file
         '''
         super().__init__()
         mkdir(tmp_dir)
+        self.opensmile_tool_dir = opensmile_tool_dir
         self.tmp_dir = tmp_dir
         self.downsample = downsample
         self.no_tmp = no_tmp
@@ -53,11 +50,10 @@ class ComParEExtractor(BaseWorker):
     def __call__(self, wav):
         utt_id = wav.split('/')[-2]
         save_path = os.path.join(self.tmp_dir, utt_id+'_'+get_basename(wav)+".csv")
-        # if not os.path.exists(save_path):
-        cmd = 'SMILExtract -C ~/opensmile-2.3.0/config/ComParE_2016.conf \
+        cmd = 'SMILExtract -C {}/config/ComParE_2016.conf \
             -appendcsvlld 0 -timestampcsvlld 1 -headercsvlld 1 \
             -I {} -lldcsvoutput {} -instname xx -O ? -noconsoleoutput 1'
-        os.system(cmd.format(wav, save_path))
+        os.system(cmd.format(self.opensmile_tool_dir, wav, save_path))
         
         df = pd.read_csv(save_path, delimiter=';')
         # timestamp = np.array(df['frameTime'])
@@ -67,7 +63,6 @@ class ComParEExtractor(BaseWorker):
             # self.print(f'Extract comparE from {wav}: {wav_data.shape}')
             if self.no_tmp:
                 os.remove(save_path) 
-            
         else:
             wav_data = None
             self.print(f'Error in {wav}, no feature extracted')
@@ -138,15 +133,14 @@ class Wav2vecExtractor(BaseWorker):
     ''' Wav2vec feature extractor
         downsample: downsample rate. Raw feature has 10ms step 
     '''
-    def __init__(self, device=0, downsample=10, seg_len=0.25, step_size=0.1,
-            pretrained_path="tools/wav2vec/pretrained_model/wav2vec_large.pt"):
+    def __init__(self, pretrained_path, device=0, downsample=10, seg_len=0.25, step_size=0.1):
         super().__init__()
         self.downsample = downsample
         self.pretrained_path = pretrained_path
         self.device = torch.device(f'cuda:{device}')
         self.model = self.get_pretrained_model()
     
-    def get_pretrained_model():
+    def get_pretrained_model(self,):
         cp = torch.load(self.pretrained_path)
         model = Wav2VecModel.build_model(cp['args'], task=None)
         model.load_state_dict(cp['model'])

@@ -2,6 +2,7 @@ import os, glob
 import cv2
 import numpy as np
 from tqdm import tqdm
+from preprocess.FileOps import read_file, write_pkl
 
 def select_pics(num_per_video=4000):
     root = 'data/faces'

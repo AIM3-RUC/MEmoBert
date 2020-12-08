@@ -1,9 +1,9 @@
 #!/usr/bin/bash
-
+# bash extract_features.sh 12 has_active_spk
 split_num=$1
 file_name=$2
 screen_name=MEmoBert_feature
-gpus=(0 0 1 1 2 2 3 3 4 4 5 5)
+gpus=(0 0 1 1 2 2 3 3 5 5 6 6)
 for i in `seq 0 1 $(($split_num-1))`; 
     do
     {   

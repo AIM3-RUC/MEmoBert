@@ -7,13 +7,11 @@ Step3: 根据时间戳进行视频和音频信息的抽取.
 --- 保存目录结构，你设计一下
 '''
 import torch
-import os, glob
+import os
 import subprocess
-import h5py
 import json
 import re, time
 import numpy as np
-import codecs
 import chardet
 from collections import OrderedDict
 from typing import List
@@ -23,8 +21,8 @@ from transformers import (
     BertTokenizer, TransfoXLTokenizer, AlbertTokenizer
 )
 
-from tasks.base_worker import BaseWorker
-from utils import get_basename, mkdir
+from preprocess.tasks.base_worker import BaseWorker
+from preprocess.utils import get_basename, mkdir
 
 class TranscriptExtractor(BaseWorker):
     def __init__(self, save_root, logger=None):
@@ -69,16 +67,6 @@ class TranscriptExtractor(BaseWorker):
         else:
             self.print(f'Found in {save_path_ass}, skip')
             return save_path_ass
-        
-    
-# class DetectLanguage(BaseWorker):
-#     def __init__(self, logger=None):
-#         super().__init__(logger=logger)   
-
-#     def __call__(self, sentence):
-#         ans = detect(sentence)
-#         self.print(f'{ans}: {sentence}')
-#         return ans
 
 class TranscriptPackager(BaseWorker):
     ''' 从ass或srt文件中读取文本的结构化数据

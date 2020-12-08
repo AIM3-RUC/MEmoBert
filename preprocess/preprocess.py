@@ -1,20 +1,20 @@
 import os, glob
-import shutil
 import h5py
 import numpy as np
-import tools.istarmap
+import json
 import multiprocessing
-import copy
+import sys
 import gc
 from tqdm import tqdm
 from collections import Counter
-from utils import get_basename, mkdir
-from tasks.audio import *
-from tasks.vision import *
-from tasks.text import *
-from tasks.common import *
-from scheduler.gpu_scheduler import init_model_on_gpus
-from scheduler.multiprocess_scheduler import simple_processer
+from preprocess.utils import get_basename, mkdir
+from preprocess.tasks.audio import AudioSplitor
+from preprocess.tasks.vision import Video2Frame, VideoFaceTracker, ActiveSpeakerSelector, FaceSelector
+from preprocess.tasks.text import TranscriptExtractor, TranscriptPackager
+from preprocess.tasks.common import VideoCutterOneClip, FilterTranscrips, pool_filter
+from preprocess.scheduler.gpu_scheduler import init_model_on_gpus
+from preprocess.scheduler.multiprocess_scheduler import simple_processer
+import preprocess.preprocess_config as path_config
 
 def save_h5(feature, lengths, save_path):
     h5f = h5py.File(save_path, 'w')
@@ -76,37 +76,40 @@ def filter_face_longest_spk(uttid):
     return return_value
 
 def find_exists(movie_name):
-    root = '/data6/zjm/emobert/preprocess/data/meta/'
-    _dir = os.path.join(root, movie_name)
+    # if there has has_active_spk.txt, which denotes the movie is preprocess done.
+    _dir = os.path.join(path_config.meta_root, movie_name)
     act_spk_file = os.path.join(_dir, 'has_active_spk.txt')
     return True if os.path.exists(act_spk_file) else False
 
 if __name__ == '__main__':
-    import sys
+    start_movie_index = 0
+    end_movie_index = 50
     num_worker = 24
-    chunk_size = 1
+    chunk_size = 50
     print()
     print('----------------Preprocessing Start---------------- ')
-    print()
-
+    print('process movies from No.{} to No.{} '.format(start_movie_index, end_movie_index))
+    print('process {} and chunk size {}'.format(num_worker, chunk_size))
+    
     all_positive_clips = []
     with multiprocessing.Manager() as MG:
-        transcripts_dir = './data/transcripts/raw'
-        transcript_json_dir = './data/transcripts/json'
-        video_clip_dir = './data/video_clips'
-        audio_dir = './data/audio_clips'
-        frame_dir = './data/frames'
-        face_dir = './data/faces'
-        comparE_tmp = './data/.tmp'
-        feature_dir = './feature'
-        meta_root = 'data/meta'
+        raw_movies_dir = path_config.raw_movies_dir
+        transcripts_dir =  path_config.transcripts_dir
+        transcript_json_dir = path_config.transcript_json_dir
+        video_clip_dir = path_config.video_clip_dir
+        audio_dir = path_config.audio_dir
+        frame_dir = path_config.frame_dir
+        face_dir = path_config.face_dir
+        meta_root = path_config.meta_root
+        check_data_dir= path_config.check_data_dir
 
         # 流程
         extract_text = TranscriptExtractor(save_root=transcripts_dir)
         package_transcript = TranscriptPackager(save_root=transcript_json_dir)
         cut_video = VideoCutterOneClip(save_root=video_clip_dir) # VideoCutter(save_root=video_clip_dir)
-        filter_transcript = FilterTranscrips(1)
+        filter_transcript = FilterTranscrips(threshold=1)
         device = 0
+
         # 语音
         extract_audio = AudioSplitor(save_root=audio_dir)
 
@@ -120,23 +123,15 @@ if __name__ == '__main__':
             'No_transcripts': []
         }
 
-        all_movies = []
-        for _format in ['mkv', 'mp4', 'rmvb', 'avi', 'wmv', 'rm', 'ram']:
-            all_movies += glob.glob(f'/data6/zjm/emobert/resources/raw_movies/*.{_format}')
-
-        for i, movie in enumerate(all_movies):
+        for movie_index in enumerate(range(start_movie_index, end_movie_index)):
+            movie = glob.glob('{}/No{:04d}*'.format(raw_movies_dir, movie_index))
             print('[Main]: Processing', movie)
             movie_name = get_basename(movie)
-            # if movie_name != 'No0081.The.Wolf.of.Wall.Street':
-            #     continue
             if find_exists(movie_name):
                 print('[Main]: {} exists skip'.format(movie_name))
                 continue
-        
             meta_dir = os.path.join(meta_root, movie_name)
             mkdir(meta_dir)
-            movie_feature_dir = os.path.join(feature_dir, movie_name)
-            mkdir(movie_feature_dir)
             count = {
                 'no_sentence': [],
                 'too_short': [],
@@ -144,16 +139,15 @@ if __name__ == '__main__':
                 'face_too_less': [], 
                 'no_active_spk': [],
             }
-            pool = multiprocessing.Pool(num_worker)
+            # judge if there are transcripts info of this movie
             transcript_path = extract_text(movie)
             transcript_info = package_transcript(transcript_path)
             if transcript_info == None:
                 all_count['No_transcripts'].append(movie)
                 continue
         
-            # transcript_info = transcript_info[:100]
             sentences = list(map(lambda  x: x['content'], transcript_info))
-            # 检查是否句子长度>1
+            # 检查是否句子长度>=1
             _have_sentence = []
             for i, transcript in enumerate(transcript_info):
                 if len(transcript['content']) > 0:
@@ -163,6 +157,7 @@ if __name__ == '__main__':
 
             transcript_info = _have_sentence
 
+            pool = multiprocessing.Pool(num_worker)
             # 过滤时间小于1s的句子
             print('[Main]: Start filtering Transcipts')
             is_long_enough = list(tqdm(pool.imap(filter_transcript, transcript_info, chunksize=chunk_size), total=len(transcript_info)))
@@ -192,9 +187,9 @@ if __name__ == '__main__':
             # 抽帧抽脸 
             print('[Main]: Start extracting frames')
             frame_dirs = list(tqdm(pool.imap(get_frames, all_video_clip, chunksize=chunk_size), total=len(all_video_clip)))
-            print('[Main]: Start extracting faces')
-            face_dirs = list(tqdm(pool.imap(get_faces, frame_dirs, chunksize=chunk_size), total=len(frame_dirs)))
-            # assert len(utt_ids) == len(face_dirs)
+            print('[Main]: Start extracting faces') 
+            # modify to imap imap_unordered and increase the chunk-size
+            face_dirs = list(tqdm(pool.imap_unordered(get_faces, frame_dirs, chunksize=chunk_size), total=len(frame_dirs)))
             # 先去除完全没有人脸的片段, 保存成一个json
             print('[Main]: Filtering out clip with no faces')
             _utt_ids = pool_filter(has_face, utt_ids, pool)
@@ -211,7 +206,7 @@ if __name__ == '__main__':
             save_uttid(utt_ids, os.path.join(meta_dir, 'longest_spk_0.2.txt'))
             print('[Main]: Total clips found with longest face > 0.2*frames:', len(utt_ids))
 
-            # 删掉小于出现时长小于总时长20%的人脸再做检测
+            # 删掉小于出现时长小于总时长20%的人脸再做检测，看是否有说话人
             print('[Main]: Active speaker detection')
             active_spks = list(tqdm(
                 pool.istarmap(get_activate_spk, 
@@ -230,17 +225,17 @@ if __name__ == '__main__':
             print('[Main]: Total clips found with active speaker:', len(utt_ids))
 
             # 统计数据
-            mkdir("./data/check_data")
-            save_path = os.path.join('./data/check_data', movie_name + '.txt')
+            mkdir(check_data_dir)
+            save_path = os.path.join(check_data_dir, movie_name + '.txt')
             all_count[movie_name] = dict(count)
-            json_path = os.path.join('./data/check_data', movie_name + '.json')
+            json_path = os.path.join(check_data_dir, movie_name + '.json')
             json.dump(dict(count), open(json_path, 'w'), indent=4)
             gc.collect()
-            print('----------------------------------------------------------------------------\n')
+            print('-------------------- Done and Next One --------------------------------\n')
 
-    # dump all negative count
-    json_path = "data/check_data/negative_count.json"
-    for key, value in all_count.items():
-        if isinstance(value, multiprocessing.managers.DictProxy):
-            all_count[key] = dict(value)
-    json.dump(dict(all_count), open(json_path, 'w'), indent=4)
+    # # dump all negative count
+    # json_path = os.path.join(check_data_dir, "/negative_count.json")
+    # for key, value in all_count.items():
+    #     if isinstance(value, multiprocessing.managers.DictProxy):
+    #         all_count[key] = dict(value)
+    # json.dump(dict(all_count), open(json_path, 'w'), indent=4)

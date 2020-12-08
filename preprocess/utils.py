@@ -8,6 +8,7 @@ def get_basename(path):
 
 def mkdir(path):
     try:
-        os.makedirs(path)
+        if not os.path.exists(path):
+            os.makedirs(path)
     except FileExistsError:
         pass

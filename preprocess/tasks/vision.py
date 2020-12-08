@@ -3,15 +3,13 @@ import cv2
 import numpy as np
 import tensorflow as tf
 import collections
-
-from utils import get_basename, mkdir
-from tasks.base_worker import BaseWorker
-from tools.denseface.vision_network.models.dense_net import DenseNet
-
-from tools.VAD import VAD
-from FileOps import read_csv
+import pandas as pd
+from preprocess.utils import get_basename, mkdir
+from preprocess.tasks.base_worker import BaseWorker
+from preprocess.tools.denseface.vision_network.models.dense_net import DenseNet
+from preprocess.tools.VAD import VAD
+from preprocess.FileOps import read_csv
 import math
-
 
 class Video2Frame(BaseWorker):
     def __init__(self, fps=10, save_root='./test', logger=None):
@@ -32,8 +30,7 @@ class Video2Frame(BaseWorker):
         return save_dir
 
 class VideoFaceTracker(BaseWorker):
-    def __init__(self, save_root='test/track',
-            openface_dir='/root/tools/openface_tool/OpenFace/build/bin', logger=None):
+    def __init__(self, openface_dir, save_root='test/track', logger=None):
         super().__init__(logger=logger)
         self.save_root = save_root
         self.openface_dir = openface_dir
@@ -54,7 +51,7 @@ class VideoFaceTracker(BaseWorker):
         save_dir = os.path.join(self.save_root, basename)
         if not self.check_exists(save_dir):
             mkdir(save_dir)
-            cmd = '{}/FaceLandmarkVidMulti -fdir {} -mask -out_dir {} > /dev/null 2>&1'.format(
+            cmd = '{}/FaceLandmarkVidMulti -nomask -fdir {} -out_dir {} > /dev/null 2>&1'.format(
                         self.openface_dir, frames_dir, save_dir
                     )
             os.system(cmd)
@@ -62,14 +59,13 @@ class VideoFaceTracker(BaseWorker):
         return save_dir
 
 class DensefaceExtractor(BaseWorker):
-    def __init__(self, mean=96.3801, std=53.615868, device=0, smooth=False, logger=None):
+    def __init__(self, restore_path, mean=96.3801, std=53.615868, device=0, smooth=False, logger=None):
         """ extract densenet feature
             Parameters:
             ------------------------
             model: model class returned by function 'load_model'
         """
         super().__init__(logger=logger)
-        restore_path = '/data2/zjm/tools/FER_models/denseface/DenseNet-BC_growth-rate12_depth100_FERPlus/model/epoch-200'
         self.model = self.load_model(restore_path)
         self.mean = mean
         self.std = std
@@ -107,6 +103,10 @@ class DensefaceExtractor(BaseWorker):
     def __call__(self, img_path):
         if os.path.exists(img_path):
             img = cv2.imread(img_path)
+            if not isinstance(img, np.ndarray):
+                print(f'Warning: Error in {img_path}')
+                return None
+            
             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             img = cv2.resize(img, (64, 64))
             if self.smooth:
@@ -122,7 +122,7 @@ class DensefaceExtractor(BaseWorker):
             return feat
         
         img = (img - self.mean) / self.std
-        img = np.expand_dims(img, 3) # channel = 1
+        img = np.expand_dims(img, -1) # channel = 1
         img = np.expand_dims(img, 0) # batch_size=1
         with tf.device('/gpu:{}'.format(self.device)):
             feed_dict = {
@@ -365,7 +365,21 @@ class FaceSelector(BaseWorker):
         face_img_dir = os.path.join(face_dir, basename + '_aligned')
         face_list = glob.glob(os.path.join(face_img_dir, f'*_det_{active_spk_id:02d}_*.bmp'))
         face_list = sorted(face_list, key=lambda x:int(x.split('/')[-1].split('.')[0].split('_')[-1]))
-        return face_list
+        data_frame = pd.read_csv(os.path.join(face_dir, basename+'.csv'))
+        data_frame = data_frame[data_frame[' face_id']==active_spk_id]
+        ans = []
+        for face_img in face_list:
+            frame_num = int(face_img.split('/')[-1].split('.')[0].split('_')[-1])
+            row = data_frame[data_frame['frame']==frame_num]
+            confidence = float(row[' confidence']) if len(row) else 0
+            ans.append(
+                {
+                    'img': face_img,
+                    'confidence': confidence,
+                    'frame_num': frame_num
+                }
+            )
+        return ans
 
 if __name__ == '__main__':
     # get_frame = Video2Frame()
@@ -380,13 +394,30 @@ if __name__ == '__main__':
     # feature = get_denseface(face_path)
     # print(feature.shape)
     # import time
-    select_activate_spk = ActiveSpeakerSelector()
+    # select_activate_spk = ActiveSpeakerSelector()
     # # select_faces = FaceSelector()
     # start = time.time()
-    active_spkid = select_activate_spk("/data6/zjm/emobert/preprocess/data/faces/No0001.The.Shawshank.Redemption/17", "/data6/zjm/emobert/preprocess/data/audio_clips/No0001.The.Shawshank.Redemption/17.wav")
-    print(active_spkid)
+    # active_spkid = select_activate_spk("/data6/zjm/emobert/preprocess/data/faces/No0001.The.Shawshank.Redemption/17", "/data6/zjm/emobert/preprocess/data/audio_clips/No0001.The.Shawshank.Redemption/17.wav")
+    # print(active_spkid)
     # # face_lists = select_faces("test/track/output1", active_spkid)
     # end = time.time()
     # print(end-start)
     # print(active_spkid)
     # # print(face_lists)
+    # img = '/data7/MEmoBert/preprocess/data/faces/No0009.The.Truman.Show/42/42_aligned/frame_det_00_000038.bmp'
+    # img = '/data7/MEmoBert/preprocess/data/frames/No0009.The.Truman.Show/42/0038.jpg'
+    
+    # frame_dir = 'data/frames/No0009.The.Truman.Show/42'
+    # face_track = VideoFaceTracker(save_root='mask')
+    # a = face_track(frame_dir)
+    # print(a)
+
+    # img = '/data7/MEmoBert/preprocess/test_track/No0009.The.Truman.Show/42/42_aligned/frame_det_00_000020.bmp'
+    # detector = Detector('/root/tools/insightface/RetinaFace/pretrained', 7)
+    # bbox, landmark = detector.detect(img)
+    # print(bbox)
+    # detector.draw_detection(img)
+    a = FaceSelector()
+    ans = a('/data7/MEmoBert/preprocess/data/faces/No0011.American.Beauty/20', 0)
+    print(ans)
+   

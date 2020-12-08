@@ -33,15 +33,15 @@ class VideoCutter(BaseWorker):
         basename = get_basename(video_path)
         save_dir = os.path.join(self.save_root, basename)
         mkdir(save_dir)
-        _cmd = 'ffmpeg -ss {} -t {} -i {} -vcodec copy -acodec copy {} -y > /dev/null 2>&1' # -vcodec copy -acodec copy
+        _cmd = 'ffmpeg -i {}-ss {} -t {} -vcodec copy -acodec copy {} -y > /dev/null 2>&1' # -vcodec copy -acodec copy
         for i, info in enumerate(transcripts):
             save_path = os.path.join(save_dir, f"{i}.mkv")
             start = info["start"]
             end = info["end"]
             duration = self.calc_time(end) - self.calc_time(start)
             duration = self.strptime(duration)
-            print(_cmd.format(start, duration, video_path, save_path))
-            os.system(_cmd.format(start, duration, video_path, save_path))
+            # print(_cmd.format(video_path, start, duration, save_path))
+            os.system(_cmd.format(video_path, start, duration, save_path))
             # self.print(f"[{i}/{len(transcripts)}]From {video_path}, cut video of {start}->{end}")
         return save_dir
 
