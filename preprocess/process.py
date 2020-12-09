@@ -124,7 +124,10 @@ if __name__ == '__main__':
             movies = []
             for _format in ['mkv', 'mp4', 'rmvb', 'avi', 'wmv', 'rm', 'ram']:
                 movies += glob.glob('{}/No{:04d}*.{}'.format(raw_movies_dir, movie_index, _format))
-            assert len(movies) == 1
+            if len(movies) == 0:
+                print('[Warning]: No {} movie index'.format(movie_index))
+                continue
+            assert len(movies) == 1, print(movies)
             movie = movies[0]
             print('[Main]: Processing', movie)
             movie_name = get_basename(movie)

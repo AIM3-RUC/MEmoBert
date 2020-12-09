@@ -33,7 +33,7 @@ class VideoCutter(BaseWorker):
         basename = get_basename(video_path)
         save_dir = os.path.join(self.save_root, basename)
         mkdir(save_dir)
-        _cmd = 'ffmpeg -i {}-ss {} -t {} -vcodec copy -acodec copy {} -y > /dev/null 2>&1' # -vcodec copy -acodec copy
+        _cmd = 'ffmpeg -i {} -ss {} -t {} -vcodec copy -acodec copy {} -y > /dev/null 2>&1' # -vcodec copy -acodec copy
         for i, info in enumerate(transcripts):
             save_path = os.path.join(save_dir, f"{i}.mkv")
             start = info["start"]
@@ -71,16 +71,12 @@ class VideoCutterOneClip(BaseWorker):
         basename = get_basename(video_path)
         save_dir = os.path.join(self.save_root, basename)
         mkdir(save_dir)
-        # _cmd = 'ffmpeg -ss {} -t {} -i {} -c copy {} -y > /dev/null 2>&1' # -vcodec copy -acodec copy
-        _cmd = "ffmpeg -ss {} -to {} -accurate_seek -i {} -codec copy -avoid_negative_ts 1 -y {} > /dev/null 2>&1"
+        _cmd = 'ffmpeg -ss {} -i {} -to {} -c copy -copyts {} -y > /dev/null 2>&1'
         save_path = os.path.join(save_dir, f"{transcript_info['index']}.mkv")
         if not os.path.exists(save_path):
             start = transcript_info["start"]
             end = transcript_info["end"]
-            # duration = self.calc_time(end) - self.calc_time(start)
-            # duration = self.strptime(duration)
-            os.system(_cmd.format(start, end, video_path, save_path))
-            # self.print(f"[{name}] From {video_path}, cut video of {start}->{end}")
+            os.system(_cmd.format(start, video_path, end, save_path))
         return save_dir
 
 class SaverPerVideo(BaseWorker):
