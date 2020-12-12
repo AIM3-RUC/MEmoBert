@@ -60,15 +60,15 @@ class MrfrDataset(DetectFeatTxtTokDataset):
         input_ids = example['input_ids']
         input_ids = self.txt_db.combine_inputs(input_ids)
 
-        # image input features
-        img_feat, img_pos_feat, num_bb = self._get_img_feat(
+        # image input features Jinming remove the norm-bbx fts
+        img_feat, num_bb = self._get_img_feat(
             example['img_fname'])
         img_mask = _get_img_mask(self.mask_prob, num_bb)
         img_mask_tgt = _get_img_tgt_mask(img_mask, len(input_ids))
 
         attn_masks = torch.ones(len(input_ids) + num_bb, dtype=torch.long)
 
-        return (input_ids, img_feat, img_pos_feat,
+        return (input_ids, img_feat,
                 attn_masks, img_mask, img_mask_tgt)
 
 
@@ -79,12 +79,12 @@ def mrfr_collate(inputs):
     - position_ids : (n, max_L)
     - txt_lens     : list of [input_len]
     - img_feat     : (n, max_num_bb, d)
-    - img_pos_feat : (n, max_num_bb, 7)
+    - img_position_ids : (n, max_num_bb)
     - num_bbs      : list of [num_bb]
     - attn_masks   : (n, max_{L + num_bb}), ie., [1, 1, ..., 0, 0, 1, 1]
     - img_masks    : (n, max_num_bb) between {0, 1}
     """
-    (input_ids, img_feats, img_pos_feats, attn_masks, img_masks, img_mask_tgts,
+    (input_ids, img_feats, attn_masks, img_masks, img_mask_tgts,
      ) = map(list, unzip(inputs))
 
     txt_lens = [i.size(0) for i in input_ids]
@@ -95,7 +95,8 @@ def mrfr_collate(inputs):
 
     num_bbs = [f.size(0) for f in img_feats]
     img_feat = pad_tensors(img_feats, num_bbs)
-    img_pos_feat = pad_tensors(img_pos_feats, num_bbs)
+    img_position_ids = torch.arange(0, max(num_bbs), dtype=torch.long
+                                ).unsqueeze(0)
 
     # mask features
     img_masks = pad_sequence(img_masks, batch_first=True, padding_value=0)
@@ -112,7 +113,7 @@ def mrfr_collate(inputs):
     batch = {'input_ids': input_ids,
              'position_ids': position_ids,
              'img_feat': img_feat,
-             'img_pos_feat': img_pos_feat,
+             'img_position_ids': img_position_ids,
              'attn_masks': attn_masks,
              'gather_index': gather_index,
              'feat_targets': feat_targets,
@@ -138,14 +139,12 @@ class MrcDataset(DetectFeatTxtTokDataset):
         img_dump = self.img_db.get_dump(fname)
         num_bb = self.img_db.name2nbb[fname]
         img_feat = torch.tensor(img_dump['features'])
-        bb = torch.tensor(img_dump['norm_bb'])
-        img_bb = torch.cat([bb, bb[:, 4:5]*bb[:, 5:]], dim=-1)
         img_soft_label = torch.tensor(img_dump['soft_labels'])
-        return img_feat, img_bb, img_soft_label, num_bb
+        return img_feat, img_soft_label, num_bb
 
     def __getitem__(self, i):
         example = super().__getitem__(i)
-        img_feat, img_pos_feat, img_soft_labels, num_bb = self._get_img_feat(
+        img_feat, img_soft_labels, num_bb = self._get_img_feat(
             example['img_fname'])
 
         # image input features
@@ -158,12 +157,12 @@ class MrcDataset(DetectFeatTxtTokDataset):
 
         attn_masks = torch.ones(len(input_ids) + num_bb, dtype=torch.long)
 
-        return (input_ids, img_feat, img_pos_feat,
+        return (input_ids, img_feat,
                 img_soft_labels, attn_masks, img_mask, img_mask_tgt)
 
 
 def mrc_collate(inputs):
-    (input_ids, img_feats, img_pos_feats, img_soft_labels,
+    (input_ids, img_feats, img_soft_labels,
      attn_masks, img_masks, img_mask_tgts) = map(list, unzip(inputs))
 
     txt_lens = [i.size(0) for i in input_ids]
@@ -174,7 +173,8 @@ def mrc_collate(inputs):
                                 ).unsqueeze(0)
 
     img_feat = pad_tensors(img_feats, num_bbs)
-    img_pos_feat = pad_tensors(img_pos_feats, num_bbs)
+    img_position_ids = torch.arange(0, img_feat.size(1), dtype=torch.long
+                                ).unsqueeze(0)
     img_soft_label = pad_tensors(img_soft_labels, num_bbs)
     img_masks = pad_sequence(img_masks, batch_first=True, padding_value=0)
     label_targets = _get_targets(img_masks, img_soft_label)
@@ -191,7 +191,7 @@ def mrc_collate(inputs):
     batch = {'input_ids': input_ids,
              'position_ids': position_ids,
              'img_feat': img_feat,
-             'img_pos_feat': img_pos_feat,
+             'img_position_ids': img_position_ids,
              'attn_masks': attn_masks,
              'gather_index': gather_index,
              'img_masks': img_masks,

@@ -3,7 +3,7 @@ import nltk
 import os
 import liwc
 from collections import Counter
-from emobert.preprocess.tools.bert_tokenization import load_vocab, WordpieceTokenizer
+from preprocess.tools.bert_tokenization import load_vocab, WordpieceTokenizer
 
 '''
 根据情感词典，获取句子中的情感词，三个不同的词典

@@ -79,13 +79,13 @@ def find_exists(movie_name):
     return True if os.path.exists(act_spk_file) else False
 
 if __name__ == '__main__':
-    start_movie_index = 1
-    end_movie_index = 120
+    movie_indexs = list(range(0, 120))
+    # movie_indexs = [71,92,93,94,95,96,98,100,102,103,104,106,107]
     num_worker = 24
     chunk_size = 20
     print()
     print('----------------Preprocessing Start---------------- ')
-    print('process movies from No.{} to No.{} '.format(start_movie_index, end_movie_index))
+    print('process movies {} '.format(movie_indexs))
     print('process {} and chunk size {}'.format(num_worker, chunk_size))
     
     all_positive_clips = []
@@ -120,7 +120,7 @@ if __name__ == '__main__':
             'No_transcripts': []
         }
 
-        for movie_index in range(start_movie_index, end_movie_index, 1):
+        for movie_index in movie_indexs:
             movies = []
             for _format in ['mkv', 'mp4', 'rmvb', 'avi', 'wmv', 'rm', 'ram']:
                 movies += glob.glob('{}/No{:04d}*.{}'.format(raw_movies_dir, movie_index, _format))

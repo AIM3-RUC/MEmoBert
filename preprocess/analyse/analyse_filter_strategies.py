@@ -1,5 +1,7 @@
 import h5py
 import os
+import numpy as np
+from numpy.lib.function_base import append
 
 from numpy.testing._private.utils import assert_raises
 from preprocess.FileOps import read_json, read_file, write_file
@@ -15,16 +17,26 @@ has_active_spk.txt: 是否包含说话人，说话人的条件比较严格。
 统计平均的句子长度 以及 平均的脸的帧数
 '''
 
-ori_info_dir = '/data7/emobert/data/transcripts/json'
-meta_data_dir = '/data7/emobert/data/meta'
+ori_info_dir = '/data7/emobert/data_nomask/transcripts/json'
+meta_data_dir = '/data7/emobert/data_nomask/meta'
 feature_dir = '/data7/emobert/feature'
-fileter_details_path = '/data7/emobert/data/analyse/fileter_details.txt'
+fileter_details_path = '/data7/emobert/data_nomask/analyse/fileter_details.txt'
+movie_names_path = '/data7/emobert/data_nomask/movies_v1/movie_names.npy'
 
 total_lines = 0 
 final_lines = 0
-total_words_len = 0
-total_faces_len = 0
+total_words_lens = []
+total_faces_lens = []
 details_lines = []
+valid_movies = []
+
+def compute_stastic_info(lens):
+    # 返回长度的中位数和80%分位点
+    lens.sort()
+    avg_len = sum(lens) / len(lens)
+    mid_len = lens[int(len(lens)/2)]
+    m80_len = lens[int(len(lens)*0.8)]
+    return avg_len, mid_len, m80_len
 
 movie_list = os.listdir(ori_info_dir)
 print('there are total {} movies'.format(len(movie_list)))
@@ -51,8 +63,23 @@ for filename in movie_list:
     if len(has_face_lines) == 0:
         print('{} movie is empty, Please Check this'.format(movie_name))
         continue
+    # get the face frames info
+    movie_faces_lens = []
+    denseface_ft_path = os.path.join(feature_dir, movie_name, 'has_active_spk_denseface.h5')
+    if not os.path.exists(denseface_ft_path):
+        print('We ignore this moive {}'.format(movie_name))
+        continue
     total_lines += len(ori_segments2info)
     final_lines += len(active_spk_lines)
+
+    denseface_ft = h5py.File(denseface_ft_path)
+    for segment_index in denseface_ft[movie_name].keys():
+        _len = denseface_ft[movie_name][segment_index]['pred'].shape[0]
+        movie_faces_lens.append(_len)
+    total_faces_lens.extend(movie_faces_lens)
+    assert len(active_spk_lines) == len(movie_faces_lens)
+    avg_len, min_len, m80_len = compute_stastic_info(movie_faces_lens)
+    details_lines.append('\t Face {} Avg {:.2f} Mid {:.2f} Mid80 {:.2f}'.format(len(movie_faces_lens), avg_len, min_len, m80_len) + '\n')
     # get the content words info
     movie_words_lens = []
     for line in active_spk_lines:
@@ -61,19 +88,16 @@ for filename in movie_list:
         text = ori_segments2info[segment_index]['content']
         _len = len(text.split(' '))
         movie_words_lens.append(_len)
+    total_words_lens.extend(movie_words_lens)
     assert len(active_spk_lines) == len(movie_words_lens)
-    total_words_len += sum(movie_words_lens)
-    details_lines.append('\t Average words {} \t {:.2f}'.format(len(movie_words_lens), sum(movie_words_lens)/len(movie_words_lens))+ '\n')
-    # get the face frames info
-    movie_faces_lens = []
-    denseface_ft_path = os.path.join(feature_dir, movie_name, 'has_active_spk_denseface.h5')
-    denseface_ft = h5py.File(denseface_ft_path)
-    for segment_index in denseface_ft[movie_name].keys():
-        _len = denseface_ft[movie_name][segment_index]['pred'].shape[0]
-        movie_faces_lens.append(_len)
-    assert len(active_spk_lines) == len(movie_faces_lens)
-    total_faces_len += sum(movie_faces_lens)
-    details_lines.append('\t Average faces {} \t {:.2f}'.format(len(movie_faces_lens), sum(movie_faces_lens)/len(movie_faces_lens))+ '\n')
-details_lines.append('Toal {} {} and {:.2f} and avg words {:.2f} avg faces {:.2f}'.format(total_lines, final_lines, final_lines / total_lines, \
-                 total_words_len/final_lines, total_faces_len/final_lines))
+    avg_len, min_len, m80_len = compute_stastic_info(movie_faces_lens)
+    details_lines.append('\t Sents {} Avg {:.2f} Mid {:.2f} Mid80 {:.2f}'.format(len(movie_words_lens), avg_len, min_len, m80_len) + '\n')
+    valid_movies.append(movie_name)
+details_lines.append('total vilid {} movies'.format(len(valid_movies)))
+details_lines.append('Toal {} and valid {}'.format(total_lines, final_lines))
+avg_len, min_len, m80_len = compute_stastic_info(total_faces_lens)
+details_lines.append('Face {} avg {:.2f} mid {:.2f} mid80 {:.2f}'.format(len(total_faces_lens), avg_len, min_len, m80_len))
+avg_len, min_len, m80_len = compute_stastic_info(total_words_lens)
+details_lines.append('Sents {} avg {:.2f} mid {:.2f} mid80 {:.2f}'.format(len(total_words_lens), avg_len, min_len, m80_len))
 write_file(fileter_details_path, details_lines)
+np.save(movie_names_path, valid_movies)

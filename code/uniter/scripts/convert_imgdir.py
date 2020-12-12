@@ -5,6 +5,7 @@ Licensed under the MIT license.
 convert image npz to LMDB
 """
 import argparse
+from ast import dump
 import glob
 import io
 import json
@@ -22,38 +23,39 @@ import msgpack_numpy
 msgpack_numpy.patch()
 
 
-def _compute_nbb(img_dump, conf_th, max_bb, min_bb, num_bb):
-    num_bb = max(min_bb, (img_dump['conf'] > conf_th).sum())
-    num_bb = min(max_bb, num_bb)
-    return int(num_bb)
+def _compute_valid_nbb(img_dump, conf_th, max_bb):
+    # 由于不同于bbx, 这里的 face 是有顺序的, 所以需要返回具体的index.
+    valid_indexs = []
+    for index in range(len(img_dump['confidence'])):
+        if img_dump['confidence'][index] > conf_th:
+            valid_indexs.append(index)
+    if len(valid_indexs) > max_bb:
+        valid_indexs = valid_indexs[:max_bb]
+    return valid_indexs
 
 
 @curry
-def load_npz(conf_th, max_bb, min_bb, num_bb, fname, keep_all=False):
+def load_npz(conf_th, max_bb, fname):
     try:
         img_dump = np.load(fname, allow_pickle=True)
-        if keep_all:
-            nbb = None
-        else:
-            nbb = _compute_nbb(img_dump, conf_th, max_bb, min_bb, num_bb)
+        valid_indexs = _compute_valid_nbb(img_dump, conf_th, max_bb)
         dump = {}
         for key, arr in img_dump.items():
             if arr.dtype == np.float32:
                 arr = arr.astype(np.float16)
             if arr.ndim == 2:
-                dump[key] = arr[:nbb, :]
+                dump[key] = arr[valid_indexs, :]
             elif arr.ndim == 1:
-                dump[key] = arr[:nbb]
+                dump[key] = arr[valid_indexs]
             else:
                 raise ValueError('wrong ndim')
     except Exception as e:
         # corrupted file
         print(f'corrupted file {fname}', e)
         dump = {}
-        nbb = 0
-
+        valid_indexs = []
     name = basename(fname)
-    return name, dump, nbb
+    return name, dump, len(valid_indexs)
 
 
 def dumps_npz(dump, compress=False):
@@ -73,14 +75,8 @@ def main(opts):
     if opts.img_dir[-1] == '/':
         opts.img_dir = opts.img_dir[:-1]
     split = basename(opts.img_dir)
-    if opts.keep_all:
-        db_name = 'all'
-    else:
-        if opts.conf_th == -1:
-            db_name = f'feat_numbb{opts.num_bb}'
-        else:
-            db_name = (f'feat_th{opts.conf_th}_max{opts.max_bb}'
-                       f'_min{opts.min_bb}')
+    db_name = (f'feat_th{opts.conf_th}_max{opts.max_bb}'
+                    f'_min{opts.min_bb}')
     if opts.compress:
         db_name += '_compressed'
     if not exists(f'{opts.output}/{split}'):
@@ -88,8 +84,7 @@ def main(opts):
     env = lmdb.open(f'{opts.output}/{split}/{db_name}', map_size=1024**4)
     txn = env.begin(write=True)
     files = glob.glob(f'{opts.img_dir}/*.npz')
-    load = load_npz(opts.conf_th, opts.max_bb, opts.min_bb, opts.num_bb,
-                    keep_all=opts.keep_all)
+    load = load_npz(opts.conf_th, opts.max_bb)
     name2nbb = {}
     with mp.Pool(opts.nproc) as pool, tqdm(total=len(files)) as pbar:
         for i, (fname, features, nbb) in enumerate(
@@ -110,11 +105,10 @@ def main(opts):
                 value=json.dumps(list(name2nbb.keys())).encode('utf-8'))
         txn.commit()
         env.close()
-    if opts.conf_th != -1 and not opts.keep_all:
-        with open(f'{opts.output}/{split}/'
-                  f'nbb_th{opts.conf_th}_'
-                  f'max{opts.max_bb}_min{opts.min_bb}.json', 'w') as f:
-            json.dump(name2nbb, f)
+    with open(f'{opts.output}/{split}/'
+                f'nbb_th{opts.conf_th}_'
+                f'max{opts.max_bb}_min{opts.min_bb}.json', 'w') as f:
+        json.dump(name2nbb, f)
 
 
 if __name__ == '__main__':
@@ -127,11 +121,8 @@ if __name__ == '__main__':
                         help='number of cores used')
     parser.add_argument('--compress', action='store_true',
                         help='compress the tensors')
-    parser.add_argument('--keep_all', action='store_true',
-                        help='keep all features, overrides all following args')
-    parser.add_argument('--conf_th', type=float, default=0.2,
-                        help='threshold for dynamic bounding boxes '
-                             '(-1 for fixed)')
+    parser.add_argument('--conf_th', type=float, default=0.0,
+                        help='threshold for face detection confidence')
     parser.add_argument('--max_bb', type=int, default=100,
                         help='max number of bounding boxes')
     parser.add_argument('--min_bb', type=int, default=10,

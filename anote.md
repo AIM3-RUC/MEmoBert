@@ -6,14 +6,17 @@ Step1 将抽取的Denseface特征进行 segmentId = movie_name + '_' + segment_i
     build_lmdb/trans2npz.py
 Step2 基于npz数据，构建视觉的 LMDB 数据库
     code/uniter/scripts/create_imgdb.sh
+Step3 基本英文的 bert-base-uncased 模型构建 txt_db
+    build_lmdb/mk_txtdb_by_faces.py
+---Manual Check OK 
+## 模型转换，采用 bert-base-uncased
+code/uniter/scripts/convert_ckpt.py
+
+## Bugs
 
 
-## bug1 
-有四部电影的数据是空的
-## bug2
-目前特征数据总数是 89314 /data7/emobert/ft_npzs/movie110_v1
-但是 active_spk 中统计的结果只有 88137 条记录。preprocess/data/analyse/fileter_details.txt
-## bug3
-如果想获取一个视频中的脸是否连续，每一张脸对应的index有没有？
-## bug4
-目前ffmped对于每张脸的置信度有多少？ 比如有的脸特别模糊或者只能看到脸的一部分，这种的脸要不要根据阈值过滤？
+## 修改记录
+1. 由于Faces之间也是有顺序的，所以需要进行 name2nbb 简单的取多少个，而是应该根据阈值过滤相应位置的数据, 重写数据获取的代码,
+不用，因为构建img-db的时候已经过滤了，所有 img2nbb的个数跟保存的特征是一致的.
+
+2. 同样由于Faces之间是连续的，所以需要图片应该也要有 position 的概念, 加上 position embedding.

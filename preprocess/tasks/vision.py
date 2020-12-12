@@ -95,7 +95,6 @@ class DensefaceExtractor(BaseWorker):
                         total_blocks=total_blocks, keep_prob=keep_prob, reduction=reduction,
                         bc_mode=bc_mode, dataset=dataset)
 
-        end_points = model.end_points
         model.saver.restore(model.sess, model_path)
         self.print("Successfully load model from model path: {}".format(model_path))
         return model

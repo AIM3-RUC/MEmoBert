@@ -13,7 +13,6 @@ from apex.normalization.fused_layer_norm import FusedLayerNorm as LayerNorm
 
 from .layer import GELU, BertOnlyMLMHead
 from .model import UniterModel, UniterPreTrainedModel
-from .ot import optimal_transport_dist
 
 
 class RegionFeatureRegression(nn.Module):
@@ -63,54 +62,50 @@ class UniterForPretraining(UniterPreTrainedModel):
         self.apply(self.init_weights)
 
     def forward(self, batch, task, compute_loss=True):
+        '''
+        input_ids torch.Size([8, 18]) = batch['input_ids'] 
+        position_ids torch.Size([1, 18]) = batch['position_ids']
+        img_feat torch.Size([8, 53, 2048]) = batch['img_feat']
+        img_position_ids torch.Size([8, 53])  = batch['img_pos_feat']
+        attention_mask torch.Size([8, 64]) = batch['attn_masks']
+        attn_masks_txt = batch['attn_masks_txt']
+        attn_masks_img = batch['attn_masks_img']
+        gather_index torch.Size([8, 64]) = batch['gather_index']
+        '''
         batch = defaultdict(lambda: None, batch)
-        input_ids = batch['input_ids']
-        position_ids = batch['position_ids']
-        img_feat = batch['img_feat']
-        img_pos_feat = batch['img_pos_feat']
-        attention_mask = batch['attn_masks']
-        gather_index = batch['gather_index']
         if task == 'mlm':
             txt_labels = batch['txt_labels']
-            return self.forward_mlm(input_ids, position_ids,
-                                    img_feat, img_pos_feat,
-                                    attention_mask, gather_index,
-                                    txt_labels, compute_loss)
+            return self.forward_mlm(batch, txt_labels, compute_loss)
         elif task == 'mrfr':
             img_mask_tgt = batch['img_mask_tgt']
             img_masks = batch['img_masks']
             mrfr_feat_target = batch['feat_targets']
-            return self.forward_mrfr(input_ids, position_ids,
-                                     img_feat, img_pos_feat,
-                                     attention_mask, gather_index,
-                                     img_masks, img_mask_tgt,
+            return self.forward_mrfr(batch, img_masks, img_mask_tgt,
                                      mrfr_feat_target, compute_loss)
         elif task == 'itm':
             targets = batch['targets']
             ot_inputs = batch['ot_inputs']
-            return self.forward_itm(input_ids, position_ids,
-                                    img_feat, img_pos_feat,
-                                    attention_mask, gather_index,
-                                    targets, ot_inputs, compute_loss)
+            return self.forward_itm(batch, targets, ot_inputs, compute_loss)
         elif task.startswith('mrc'):
             img_mask_tgt = batch['img_mask_tgt']
             img_masks = batch['img_masks']
             mrc_label_target = batch['label_targets']
-            return self.forward_mrc(input_ids, position_ids,
-                                    img_feat, img_pos_feat,
-                                    attention_mask, gather_index,
-                                    img_masks, img_mask_tgt,
+            return self.forward_mrc(batch, img_masks, img_mask_tgt,
                                     mrc_label_target, task, compute_loss)
+        elif task.startswith('caption'):
+            # caption task
+            txt_labels = batch['txt_labels']
+            return self.forward_caption(batch, txt_labels, compute_loss)
         else:
             raise ValueError('invalid task')
 
-    def forward_mlm(self, input_ids, position_ids, img_feat, img_pos_feat,
-                    attention_mask, gather_index,
-                    txt_labels, compute_loss=True):
-        sequence_output = self.uniter(input_ids, position_ids,
-                                      img_feat, img_pos_feat,
-                                      attention_mask, gather_index,
-                                      output_all_encoded_layers=False)
+    def forward_mlm(self, batch, txt_labels, compute_loss=True):
+        '''
+        利用encoder最后一层的输出进行预测, 
+        '''
+        input_ids = batch['input_ids']
+        # (batch, max-len, dim)
+        sequence_output = self.uniter(batch, output_all_encoded_layers=False)
         # get only the text part
         sequence_output = sequence_output[:, :input_ids.size(1), :]
         # only compute masked tokens for better efficiency
@@ -132,13 +127,9 @@ class UniterForPretraining(UniterPreTrainedModel):
         hidden_masked = hidden[mask].contiguous().view(-1, hidden.size(-1))
         return hidden_masked
 
-    def forward_mrfr(self, input_ids, position_ids, img_feat, img_pos_feat,
-                     attention_mask, gather_index, img_masks, img_mask_tgt,
+    def forward_mrfr(self, batch, img_masks, img_mask_tgt,
                      feat_targets, compute_loss=True):
-        sequence_output = self.uniter(input_ids, position_ids,
-                                      img_feat, img_pos_feat,
-                                      attention_mask, gather_index,
-                                      output_all_encoded_layers=False,
+        sequence_output = self.uniter(batch, output_all_encoded_layers=False,
                                       img_masks=img_masks)
 
         # only compute masked tokens for better efficiency
@@ -153,44 +144,13 @@ class UniterForPretraining(UniterPreTrainedModel):
         else:
             return prediction_feat
 
-    def forward_itm(self, input_ids, position_ids, img_feat, img_pos_feat,
-                    attention_mask, gather_index, targets, ot_inputs,
+    def forward_itm(self, batch, targets, ot_inputs,
                     compute_loss=True):
-        sequence_output = self.uniter(input_ids, position_ids,
-                                      img_feat, img_pos_feat,
-                                      attention_mask, gather_index,
-                                      output_all_encoded_layers=False)
+        sequence_output = self.uniter(batch, output_all_encoded_layers=False)
         pooled_output = self.uniter.pooler(sequence_output)
         itm_scores = self.itm_output(pooled_output)
 
-        # OT loss
-        if ot_inputs is not None:
-            ot_scatter = ot_inputs['ot_scatter']
-
-            b = sequence_output.size(0)
-            tl = input_ids.size(1)
-            il = img_feat.size(1)
-            max_l = max(ot_inputs['scatter_max'] + 1, tl+il)
-
-            ot_scatter = ot_scatter.unsqueeze(-1).expand_as(sequence_output)
-            ctx_emb = torch.zeros(b, max_l, self.config.hidden_size,
-                                  dtype=sequence_output.dtype,
-                                  device=sequence_output.device
-                                  ).scatter_(dim=1, index=ot_scatter,
-                                             src=sequence_output)
-            txt_emb = ctx_emb[:, :tl, :]
-            img_emb = ctx_emb[:, tl:tl+il, :]
-
-            txt_pad = ot_inputs['txt_pad']
-            img_pad = ot_inputs['img_pad']
-            # NOTE: run in fp32 for stability
-            ot_dist = optimal_transport_dist(txt_emb.float(), img_emb.float(),
-                                             txt_pad, img_pad).to(txt_emb)
-            ot_pos_dist = ot_dist.masked_select(targets == 1)
-            ot_neg_dist = ot_dist.masked_select(targets == 0)
-            ot_loss = (ot_pos_dist, ot_neg_dist)
-        else:
-            ot_loss = None
+        ot_loss = None
 
         if compute_loss:
             itm_loss = F.cross_entropy(itm_scores, targets, reduction='none')
@@ -198,13 +158,9 @@ class UniterForPretraining(UniterPreTrainedModel):
         else:
             return itm_scores, ot_loss
 
-    def forward_mrc(self, input_ids, position_ids, img_feat, img_pos_feat,
-                    attention_mask, gather_index, img_masks, img_mask_tgt,
+    def forward_mrc(self, batch, img_masks, img_mask_tgt,
                     label_targets, task, compute_loss=True):
-        sequence_output = self.uniter(input_ids, position_ids,
-                                      img_feat, img_pos_feat,
-                                      attention_mask, gather_index,
-                                      output_all_encoded_layers=False,
+        sequence_output = self.uniter(batch, output_all_encoded_layers=False,
                                       img_masks=img_masks)
 
         # only compute masked regions for better efficiency

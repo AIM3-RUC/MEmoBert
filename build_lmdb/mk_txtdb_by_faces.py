@@ -5,13 +5,15 @@ Licensed under the MIT license.
 preprocess json raw input to lmdb
 """
 import argparse
+import os
 from collections import defaultdict
 import json
-from os.path import exists
-
 from cytoolz import curry
 from tqdm import tqdm
 from pytorch_pretrained_bert import BertTokenizer
+import sys
+sys.path.append('/data7/MEmoBert/code/uniter')
+from data.data import open_lmdb
 
 def bert_tokenize(tokenizer, text):
     ids = []
@@ -28,15 +30,10 @@ def bert_id2token(tokenizer, ids):
     tokens = list(map(lambda x: '@@'+x if not x.isalpha() else x, tokens))
     return tokens
 
-
-def process_jsonl(jsonf, db, toker, dataset_name="", split="", filter_path=None, num_samples=0):
+def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_samples=0):
     '''
     {
         "segmentId": [
-            "the white vase is holding various purple flowers .",
-            "purple flowers in a white vase with handles .",
-            "a white vase with purple flowers inside on a table .",
-            "the cream colored vase holds dainty purple flowers .",
             "a white vase filled with purple flowers sitting on top of a table ."
         ]
     }
@@ -52,8 +49,8 @@ def process_jsonl(jsonf, db, toker, dataset_name="", split="", filter_path=None,
     contents = json.load(open(jsonf))
     count_img = 0
     _id = 0
-    for img_file_path, value in tqdm(contents.items(), desc='building txtdb', total=len(contents.keys())):
-        img_fname = img_file_path.lower().split('/')[-1].split('.')[0] + '.npz'
+    for segmentId, value in tqdm(contents.items(), desc='building txtdb', total=len(contents.keys())):
+        img_fname = segmentId + '.npz'
         if filter_dict is not None and filter_dict.get(img_fname) is None:
             continue
         for sent in value:
@@ -65,7 +62,6 @@ def process_jsonl(jsonf, db, toker, dataset_name="", split="", filter_path=None,
             id2len[_id] = len(input_ids)
             example['id'] = str(_id)
             example['dataset'] = dataset_name
-            example['split'] = split
             example['file_path'] = img_fname
             example['toked_caption'] = tokens
             example['input_ids'] = input_ids
@@ -90,13 +86,16 @@ def main(opts):
     meta['v_range'] = (toker.convert_tokens_to_ids('!')[0],
                        len(toker.vocab))
 
+    if not os.path.exists(opts.output):
+        os.makedirs(opts.output)
+
     with open(f'{opts.output}/meta.json', 'w') as f:
         json.dump(vars(opts), f, indent=4)
 
     open_db = curry(open_lmdb, opts.output, readonly=False)
     with open_db() as db:
         id2lens, txt2img, img2txt = process_jsonl(opts.input, db, toker, dataset_name=opts.dataset_name, \
-                                split=opts.split, filter_path=opts.filter_path, num_samples=opts.num_samples)
+                                filter_path=opts.filter_path, num_samples=opts.num_samples)
     print('generate id2lens {} txt2img {} img2txt {}'.format(len(id2lens), len(txt2img), len(img2txt)))
     with open(f'{opts.output}/id2len.json', 'w') as f:
         json.dump(id2lens, f)
@@ -111,6 +110,8 @@ if __name__ == '__main__':
                         help='input JSON, like coco ref**.json')
     parser.add_argument('--output', required=True,
                         help='output dir of DB, ')
+    parser.add_argument('--filter_path',
+                        help='used to filter the segment Id')
     parser.add_argument('--num_samples', type=int, default=0,
                         help='sample number samples from input JSON as a test set')
     parser.add_argument('--toker', default='bert-base-uncased',
@@ -121,8 +122,10 @@ if __name__ == '__main__':
     main(args)
 
 '''
-根据人脸特征数据来构建文本数据，一个文本对应一个图片
-python mk_txtdb_by_faces.py --input /data7/emobert/img_db/movie110_v1/nbb_th0.2_max100_min10.json \
-                --output /data7/emobert/img_db/movie110_v1/txt_db/movie110_v1_trn.db \
-                --toker bert-base-uncased  --dataset_name movie110_v1
+根据人脸特征数据来构建文本数据，一个文本对应一段video.
+python mk_txtdb_by_faces.py --input /data7/emobert/data_nomask/movies_v1/ref_captions.json \
+                --output /data7/emobert/txt_db/movies_v1_th0.0_trn_2000.db \
+                --filter_path /data7/emobert/img_db/movies_v1/nbb_th0.1_max100_min10.json \
+                --toker bert-base-uncased  --dataset_name movies_v1 \
+                --num_samples 2000 
 '''

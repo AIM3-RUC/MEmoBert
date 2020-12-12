@@ -74,13 +74,13 @@ class MlmDataset(DetectFeatTxtTokDataset):
         # text input
         input_ids, txt_labels = self.create_mlm_io(example['input_ids'])
 
-        # img input
-        img_feat, img_pos_feat, num_bb = self._get_img_feat(
+        # img input Jinming remove the norm-bbx fts
+        img_feat, num_bb = self._get_img_feat(
             example['img_fname'])
 
         attn_masks = torch.ones(len(input_ids) + num_bb, dtype=torch.long)
 
-        return input_ids, img_feat, img_pos_feat, attn_masks, txt_labels
+        return input_ids, img_feat, attn_masks, txt_labels
 
     def create_mlm_io(self, input_ids):
         input_ids, txt_labels = random_word(input_ids,
@@ -95,17 +95,18 @@ class MlmDataset(DetectFeatTxtTokDataset):
 
 def mlm_collate(inputs):
     """
+    Jinming: modify to img_position_ids
     Return:
     :input_ids    (n, max_L) padded with 0
     :position_ids (n, max_L) padded with 0
     :txt_lens     list of [txt_len]
     :img_feat     (n, max_num_bb, feat_dim)
-    :img_pos_feat (n, max_num_bb, 7)
+    :img_position_ids (n, max_num_bb)
     :num_bbs      list of [num_bb]
     :attn_masks   (n, max_{L + num_bb}) padded with 0
     :txt_labels   (n, max_L) padded with -1
     """
-    (input_ids, img_feats, img_pos_feats, attn_masks, txt_labels
+    (input_ids, img_feats, attn_masks, txt_labels
      ) = map(list, unzip(inputs))
 
     # text batches
@@ -118,7 +119,9 @@ def mlm_collate(inputs):
     # image batches
     num_bbs = [f.size(0) for f in img_feats]
     img_feat = pad_tensors(img_feats, num_bbs)
-    img_pos_feat = pad_tensors(img_pos_feats, num_bbs)
+    # img_feat = (n, max_num_nbb, dim)
+    img_position_ids = torch.arange(0, max(num_bbs), dtype=torch.long
+                                ).unsqueeze(0)
 
     attn_masks = pad_sequence(attn_masks, batch_first=True, padding_value=0)
 
@@ -129,7 +132,7 @@ def mlm_collate(inputs):
     batch = {'input_ids': input_ids,
              'position_ids': position_ids,
              'img_feat': img_feat,
-             'img_pos_feat': img_pos_feat,
+             'img_position_ids': img_position_ids,
              'attn_masks': attn_masks,
              'gather_index': gather_index,
              'txt_labels': txt_labels}

@@ -8,8 +8,7 @@ import argparse
 from collections import defaultdict
 import json
 import math
-import os
-from os.path import exists, join
+from os.path import join
 from time import time
 
 import torch
@@ -27,7 +26,7 @@ from data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   TxtTokLmdb, ImageLmdbGroup, ConcatDatasetWithLens,
                   MlmDataset, MrfrDataset, MrcDataset,
                   mlm_collate, mrfr_collate, mrc_collate,
-                  ItmDataset, itm_collate, itm_ot_collate)
+                  ItmDataset, itm_collate)
 
 from model.pretrain import UniterForPretraining
 from optim import get_lr_sched
@@ -109,7 +108,7 @@ def build_itm_dataset(txt_db, img_db, is_train, opts):
         dataset = ConcatDatasetWithLens(datasets)
     else:
         dataset = ItmDataset(txt_db, img_db, opts.itm_neg_prob)
-    collate_fn = itm_ot_collate if opts.itm_ot_lambda > 0 else itm_collate
+    collate_fn = itm_collate
     return dataset, collate_fn
 
 
@@ -199,10 +198,12 @@ def main(opts):
     meta_data = json.load(open(f'{all_dbs[0]}/meta.json'))
     if meta_data.get('bert') is None:
         tokenizer = meta_data['tokenizer']
+        assert all(tokenizer == json.load(open(f'{db}/meta.json'))['tokenizer']
+                for db in all_dbs)
     else:
         tokenizer = meta_data['bert']
-    assert all(tokenizer == json.load(open(f'{db}/meta.json'))['bert']
-               for db in all_dbs)
+        assert all(tokenizer == json.load(open(f'{db}/meta.json'))['bert']
+                for db in all_dbs)
 
     # build data loaders
     train_dataloaders, all_img_dbs = create_dataloaders(
@@ -244,16 +245,6 @@ def main(opts):
     # to compute training statistics
     task2loss = {task: RunningMeter(f'loss/{task}')
                  for task in train_dataloaders.keys()}
-    # ITM w/ OT
-    if opts.itm_ot_lambda > 0:
-        for task in train_dataloaders.keys():
-            if task.startswith('itm'):
-                task2loss[f'{task}_xe'] = RunningMeter(f'loss/{task}_xe')
-                task2loss[f'{task}_ot'] = RunningMeter(f'loss/{task}_ot')
-                task2loss[f'{task}_ot_pos'] = RunningMeter(
-                    f'loss/{task}_ot_pos')
-                task2loss[f'{task}_ot_neg'] = RunningMeter(
-                    f'loss/{task}_ot_neg')
 
     n_examples = defaultdict(int)
     n_in_units = defaultdict(int)
@@ -275,24 +266,7 @@ def main(opts):
             itm_loss, ot_loss = loss
             n_loss_units[name] += itm_loss.size(0)
             itm_loss = itm_loss.mean()
-            if ot_loss is not None:
-                ot_pos, ot_neg = ot_loss
-                ot_loss = (ot_pos.sum() - ot_neg.sum()
-                           ) / (ot_pos.size(0) + ot_neg.size(0))
-
-                # NOTE: be ware of empty tensor
-                ot_pos = ot_pos.mean().item()
-                if not math.isnan(ot_pos):
-                    task2loss[f'{name}_ot_pos'](ot_pos)
-                ot_neg = ot_neg.mean().item()
-                if not math.isnan(ot_neg):
-                    task2loss[f'{name}_ot_neg'](ot_neg)
-
-                loss = itm_loss + opts.itm_ot_lambda * ot_loss
-                task2loss[f'{name}_xe'](itm_loss.item())
-                task2loss[f'{name}_ot'](ot_loss.item())
-            else:
-                loss = itm_loss
+            loss = itm_loss
         else:
             n_loss_units[name] += loss.size(0)
             loss = loss.mean()  # loss is not normalized in model
@@ -500,24 +474,11 @@ def compute_accuracy_for_soft_targets(out, labels):
 def validate_itm(model, val_loader):
     LOGGER.info("start running ITM validation...")
     val_loss = 0
-    tot_ot_loss = 0
-    tot_ot_pos = 0
-    tot_ot_neg = 0
     tot_score = 0
     n_ex = 0
     st = time()
     for i, batch in enumerate(val_loader):
         scores, ot_loss = model(batch, task='itm', compute_loss=False)
-        if ot_loss is not None:
-            if isinstance(ot_loss, tuple):
-                ot_pos, ot_neg = ot_loss
-                ot_pos = ot_pos.sum().item()
-                ot_neg = ot_neg.sum().item()
-                tot_ot_pos += ot_pos
-                tot_ot_neg += ot_neg
-                tot_ot_loss += ot_pos - ot_neg
-            else:
-                tot_ot_loss += ot_loss.sum().item()
         targets = batch['targets']
         loss = F.cross_entropy(scores, targets, reduction='sum')
         val_loss += loss.item()
@@ -533,14 +494,6 @@ def validate_itm(model, val_loader):
     val_log = {'valid/loss': val_loss,
                'valid/acc': val_acc,
                'valid/ex_per_s': n_ex/tot_time}
-
-    if ot_loss is not None:
-        tot_ot_loss = sum(all_gather_list(tot_ot_loss))
-        tot_ot_pos = sum(all_gather_list(tot_ot_pos))
-        tot_ot_neg = sum(all_gather_list(tot_ot_neg))
-        val_log['valid/ot_loss'] = tot_ot_loss / n_ex
-        val_log['valid/ot_pos'] = tot_ot_pos / n_ex
-        val_log['valid/ot_neg'] = tot_ot_neg / n_ex
 
     LOGGER.info(f"validation finished in {int(tot_time)} seconds, "
                 f"score: {val_acc*100:.2f}")

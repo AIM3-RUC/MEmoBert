@@ -5,11 +5,12 @@ import json
 from tqdm import tqdm
 from functools import partial
 from toolz.sandbox import unzip
-from utils import get_basename, mkdir
-from tasks.audio import *
-from tasks.vision import *
-from tasks.text import *
-from tools.get_emo_words import EmoLexicon
+from preprocess.utils import get_basename, mkdir
+from preprocess.tasks.audio import *
+from preprocess.tasks.vision import *
+from preprocess.tasks.text import *
+from preprocess.tools.get_emo_words import EmoLexicon
+import preprocess.process_config as path_config
 
 def extract_features_h5(extract_func, get_input_func, utt_ids, save_path, multi_processing=False):
     if os.path.exists(save_path):
@@ -76,28 +77,27 @@ def extract_denseface_dir(dir_path, denseface_model, face_selector):
     return {'feat': feats, 'pred': pred}
 
 if __name__ == '__main__':
-    import sys
     device = 0
-    meta_dir = 'data/meta'
-    feature_root = 'feature_tst'
-    face_dir = 'data/faces'
-    frame_dir = 'data/frames'
-    audio_dir = 'data/audio_clips'
-    transcript_dir = 'data/transcripts/json'
-    tmp_dir = 'data/.tmp'
+    transcripts_dir = path_config.transcript_json_dir
+    video_clip_dir = path_config.video_clip_dir
+    audio_dir = path_config.audio_dir
+    frame_dir = path_config.frame_dir
+    face_dir = path_config.face_dir
+    meta_dir = path_config.meta_root
+    feature_root = path_config.feature_dir
+    tmp_dir = path_config.tmp_dir
         
     denseface = DensefaceExtractor(device=device, mean=48.85351, std=45.574123)
     face_selector = FaceSelector()
     extract_denseface = partial(extract_denseface_dir, denseface_model=denseface, face_selector=face_selector)
 
-    movie_name = 'No0043.Fever.Pitch'
+    movie_name = 'No0103.Home.Alone'
     utt_file = os.path.join(meta_dir, movie_name, 'has_active_spk.txt')
-    utt_file_name = 'test'
+    utt_file_name = 'has_active_spk'
     feature_dir = os.path.join(feature_root, movie_name)
     mkdir(feature_dir)
     utt_ids = open(utt_file).readlines()
     utt_ids = list(map(lambda x: x.strip(), utt_ids))
-    utt_ids = utt_ids[1100:]
     print(len(utt_ids))
     save_path = os.path.join(feature_dir, f'{utt_file_name}_denseface.h5')
     extract_features_h5(extract_denseface, lambda x: os.path.join(face_dir, x), 

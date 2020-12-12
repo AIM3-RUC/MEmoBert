@@ -4,6 +4,6 @@ Licensed under the MIT license.
 
 constants
 """
-IMG_DIM = 2048
-IMG_LABEL_DIM = 1601
+IMG_DIM = 342
+IMG_LABEL_DIM = 8
 BUCKET_SIZE = 8192

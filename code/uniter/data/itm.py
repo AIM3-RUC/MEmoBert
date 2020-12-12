@@ -82,7 +82,9 @@ class ItmDataset(DetectFeatTxtTokDataset):
         # labels and negative images should be sampled every epoch
         ground_truth_label = self.labels[i]
         img_fname = self.train_imgs[i]
-        img_feat, img_pos_feat, num_bb = self._get_img_feat(img_fname)
+        # img_feat, img_pos_feat, num_bb = self._get_img_feat(img_fname)
+        # Jinming remove norm-bbx feature
+        img_feat, num_bb = self._get_img_feat(img_fname)
 
         # text input
         input_ids = example['input_ids']
@@ -92,11 +94,11 @@ class ItmDataset(DetectFeatTxtTokDataset):
         target = torch.Tensor(1).long()
         target.data.fill_(ground_truth_label)
 
-        return input_ids, img_feat, img_pos_feat, attn_masks, target
+        return input_ids, img_feat, attn_masks, target
 
 
 def itm_collate(inputs):
-    (input_ids, img_feats, img_pos_feats, attn_masks, targets
+    (input_ids, img_feats, attn_masks, targets
      ) = map(list, unzip(inputs))
 
     txt_lens = [i.size(0) for i in input_ids]
@@ -107,7 +109,8 @@ def itm_collate(inputs):
 
     num_bbs = [f.size(0) for f in img_feats]
     img_feat = pad_tensors(img_feats, num_bbs)
-    img_pos_feat = pad_tensors(img_pos_feats, num_bbs)
+    img_position_ids = torch.arange(0, max(num_bbs), dtype=torch.long
+                                ).unsqueeze(0)
 
     attn_masks = pad_sequence(attn_masks, batch_first=True, padding_value=0)
     targets = torch.cat(targets, dim=0)
@@ -118,7 +121,7 @@ def itm_collate(inputs):
     batch = {'input_ids': input_ids,
              'position_ids': position_ids,
              'img_feat': img_feat,
-             'img_pos_feat': img_pos_feat,
+             'img_position_ids': img_position_ids,
              'attn_masks': attn_masks,
              'gather_index': gather_index,
              'targets': targets}
@@ -140,49 +143,6 @@ def _compute_pad(lens, max_len):
     for i, l in enumerate(lens):
         pad.data[i, l:].fill_(1)
     return pad
-
-
-def itm_ot_collate(inputs):
-    (input_ids, img_feats, img_pos_feats, attn_masks, targets
-     ) = map(list, unzip(inputs))
-
-    txt_lens = [i.size(0) for i in input_ids]
-
-    input_ids = pad_sequence(input_ids, batch_first=True, padding_value=0)
-    position_ids = torch.arange(0, input_ids.size(1), dtype=torch.long
-                                ).unsqueeze(0)
-
-    num_bbs = [f.size(0) for f in img_feats]
-    img_feat = pad_tensors(img_feats, num_bbs)
-    img_pos_feat = pad_tensors(img_pos_feats, num_bbs)
-
-    attn_masks = pad_sequence(attn_masks, batch_first=True, padding_value=0)
-    targets = torch.cat(targets, dim=0)
-    bs, max_tl = input_ids.size()
-    out_size = attn_masks.size(1)
-    gather_index = get_gather_index(txt_lens, num_bbs, bs, max_tl, out_size)
-
-    # OT inputs
-    max_tl = max(txt_lens)
-    max_nbb = max(num_bbs)
-    ot_scatter = _compute_ot_scatter(txt_lens, max_tl, attn_masks.size(1))
-    txt_pad = _compute_pad(txt_lens, max_tl)
-    img_pad = _compute_pad(num_bbs, max_nbb)
-    ot_inputs = {'ot_scatter': ot_scatter,
-                 'scatter_max': ot_scatter.max().item(),
-                 'txt_pad': txt_pad,
-                 'img_pad': img_pad}
-
-    batch = {'input_ids': input_ids,
-             'position_ids': position_ids,
-             'img_feat': img_feat,
-             'img_pos_feat': img_pos_feat,
-             'attn_masks': attn_masks,
-             'gather_index': gather_index,
-             'targets': targets,
-             'ot_inputs': ot_inputs}
-    return batch
-
 
 class ItmRankDataset(DetectFeatTxtTokDataset):
     def __init__(self, txt_db, img_db, neg_sample_size=1):
@@ -228,18 +188,17 @@ class ItmRankDataset(DetectFeatTxtTokDataset):
             input_ids = example['input_ids']
             input_ids = self.txt_db.combine_inputs(input_ids)
             # img input
-            img_feat, img_pos_feat, num_bb = self._get_img_feat(img_id)
+            img_feat, num_bb = self._get_img_feat(img_id)
             # mask
             attn_masks = torch.ones(len(input_ids) + num_bb, dtype=torch.long)
 
-            inputs.append((input_ids, img_feat, img_pos_feat, attn_masks))
+            inputs.append((input_ids, img_feat, attn_masks))
 
         return inputs
 
 
 def itm_rank_collate(inputs):
-    (input_ids, img_feats, img_pos_feats, attn_masks,
-     ) = map(list, unzip(concat(i for i in inputs)))
+    (input_ids, img_feats, attn_masks) = map(list, unzip(concat(i for i in inputs)))
 
     txt_lens = [i.size(0) for i in input_ids]
     input_ids = pad_sequence(input_ids, batch_first=True, padding_value=0)
@@ -248,8 +207,8 @@ def itm_rank_collate(inputs):
 
     num_bbs = [f.size(0) for f in img_feats]
     img_feat = pad_tensors(img_feats, num_bbs)
-    img_pos_feat = pad_tensors(img_pos_feats, num_bbs)
-
+    img_position_ids = torch.arange(0, max(num_bbs), dtype=torch.long
+                                ).unsqueeze(0)
     attn_masks = pad_sequence(attn_masks, batch_first=True, padding_value=0)
     sample_size = len(inputs[0])
     assert all(sample_size == len(i) for i in inputs)
@@ -261,7 +220,7 @@ def itm_rank_collate(inputs):
     batch = {'input_ids': input_ids,
              'position_ids': position_ids,
              'img_feat': img_feat,
-             'img_pos_feat': img_pos_feat,
+             'img_position_ids': img_position_ids,
              'attn_masks': attn_masks,
              'gather_index': gather_index,
              'sample_size': sample_size}
@@ -293,10 +252,11 @@ class ItmRankDatasetHardNegFromText(DetectFeatTxtTokDataset):
             self.img_name_list, [gt_img_fname], self.neg_sample_size)
         img_ids = [gt_img_fname] + neg_img_ids
         # process image features (gt always first)
-        img_feats, img_pos_feats, num_bbs = map(
+        img_feats, num_bbs = map(
             list, unzip(map(self._get_img_feat, img_ids)))
         img_feat = pad_tensors(img_feats, num_bbs)
-        img_pos_feat = pad_tensors(img_pos_feats, num_bbs)
+        img_position_ids = torch.arange(0, max(num_bbs), dtype=torch.long
+                                ).unsqueeze(0)
 
         tl = input_ids.size(1)
         attn_masks = torch.zeros(len(img_ids), max(num_bbs) + tl).long()
@@ -309,7 +269,7 @@ class ItmRankDatasetHardNegFromText(DetectFeatTxtTokDataset):
         batch = {'input_ids': input_ids,
                  'position_ids': position_ids,
                  'img_feat': img_feat,
-                 'img_pos_feat': img_pos_feat,
+                 'img_position_ids': img_position_ids,
                  'attn_masks': attn_masks,
                  'gather_index': gather_index}
         return batch
@@ -332,9 +292,10 @@ class ItmRankDatasetHardNegFromImage(DetectFeatTxtTokDataset):
         gt_txt_ids = self.img2txts[gt_img_id]
 
         # process image features (gt always first)
-        img_feat, img_pos_feat, nbb = self._get_img_feat(gt_img_id)
+        img_feat, nbb = self._get_img_feat(gt_img_id)
         img_feat = img_feat.unsqueeze(0)
-        img_pos_feat = img_pos_feat.unsqueeze(0)
+        img_position_ids = torch.arange(0, img_feat.size(1), dtype=torch.long
+                                    ).unsqueeze(0)
 
         # sample negative
         neg_txt_ids = sample_negative(
@@ -363,7 +324,7 @@ class ItmRankDatasetHardNegFromImage(DetectFeatTxtTokDataset):
         batch = {'input_ids': input_ids,
                  'position_ids': position_ids,
                  'img_feat': img_feat,
-                 'img_pos_feat': img_pos_feat,
+                 'img_position_ids': img_position_ids,
                  'attn_masks': attn_masks,
                  'gather_index': gather_index}
         return batch
@@ -427,7 +388,8 @@ class ItmValDataset(DetectFeatTxtTokDataset):
         img_feats, img_pos_feats, num_bbs = map(
             list, unzip(map(self._get_img_feat, img_ids)))
         img_feat = pad_tensors(img_feats, num_bbs)
-        img_pos_feat = pad_tensors(img_pos_feats, num_bbs)
+        img_position_ids = torch.arange(0, img_feat.size(1), dtype=torch.long
+                                    ).unsqueeze(0)
 
         tl = input_ids.size(1)
         attn_masks = torch.zeros(len(img_ids), max(num_bbs) + tl).long()
@@ -440,7 +402,7 @@ class ItmValDataset(DetectFeatTxtTokDataset):
         batch = {'input_ids': input_ids,
                  'position_ids': position_ids,
                  'img_feat': img_feat,
-                 'img_pos_feat': img_pos_feat,
+                 'img_position_ids': img_position_ids,
                  'attn_masks': attn_masks,
                  'gather_index': gather_index}
         return batch

@@ -5,11 +5,12 @@ import json
 from tqdm import tqdm
 from functools import partial
 from toolz.sandbox import unzip
-from utils import get_basename, mkdir
-from tasks.audio import *
-from tasks.vision import *
-from tasks.text import *
-from tools.get_emo_words import EmoLexicon
+from preprocess.utils import get_basename, mkdir
+from preprocess.tasks.audio import *
+from preprocess.tasks.vision import DensefaceExtractor, FaceSelector
+from preprocess.tasks.text import *
+from preprocess.tools.get_emo_words import EmoLexicon
+import preprocess.process_config as path_config
 
 def extract_features_h5(extract_func, get_input_func, utt_ids, save_path, multi_processing=False):
     if os.path.exists(save_path):
@@ -41,7 +42,7 @@ def get_utt_id_files(meta_dir, file_name):
     movie_names = list(map(lambda x: x.split('/')[-2], files))
     return files, movie_names
 
-def process_emo_word(utt_ids, emol, save_path, multiprocessing=False):
+def process_emo_word(transcript_dir, utt_ids, emol, save_path, multiprocessing=False):
     if os.path.exists(save_path):
         content = json.load(open(save_path))
         if len(content.keys()) == len(utt_ids):
@@ -58,7 +59,6 @@ def process_emo_word(utt_ids, emol, save_path, multiprocessing=False):
             all_word2affect[utt_id] = word2affect
     else:
         pool = multiprocessing.Pool(4)
-        utterances = list(map(lambda x: utts[x.split('/')[-1]]['content'], utt_ids))
         ret = pool.map(emol.get_emo_words, utt_ids)
         all_word2affect = list(map(lambda x:x[1], ret))
         all_word2affect = dict([(utt_id, word2affect) for utt_id, word2affect in zip(utt_ids, all_word2affect)])
@@ -87,27 +87,26 @@ if __name__ == '__main__':
     utt_file_name = sys.argv[1]
     part_no, total = eval(sys.argv[2]), eval(sys.argv[3])
     device = 0
-    meta_dir = 'data/meta'
-    feature_root = 'feature'
-    face_dir = 'data/faces'
-    frame_dir = 'data/frames'
-    audio_dir = 'data/audio_clips'
-    transcript_dir = 'data/transcripts/json'
-    tmp_dir = 'data/.tmp'
-    # extract_comparE = ComParEExtractor(tmp_dir=tmp_dir)
+    transcripts_dir = path_config.transcript_json_dir
+    video_clip_dir = path_config.video_clip_dir
+    audio_dir = path_config.audio_dir
+    frame_dir = path_config.frame_dir
+    face_dir = path_config.face_dir
+    meta_dir = path_config.meta_root
+    feature_root = path_config.feature_dir
+    tmp_dir = path_config.tmp_dir
+
+    # ## extach comparE audio features
+    # extract_comparE = ComParEExtractor(path_config.opensmile_path, tmp_dir=tmp_dir)
     # extract_vggish = VggishExtractor(device=device)
-    # lexicon_dir = '/data2/zjm/tools/EmoLexicons'
     # lexicon_name = 'LIWC2015Dictionary.dic'
     # utterance = "Because you're going to get us all fucking pinched. What are you, so stupid?".lower()
-    # bert_vocab_filepath = '/data2/zjm/tools/LMs/bert_base_en/vocab.txt'
-    # emol = EmoLexicon(lexicon_dir, lexicon_name, is_bert_token=True, bert_vocab_filepath=bert_vocab_filepath)
-        
-    denseface = DensefaceExtractor(device=device, mean=48.85351, std=45.574123)
+    # emol = EmoLexicon(path_config.lexicon_dir, lexicon_name, is_bert_token=True, bert_vocab_filepath=path_config.bert_vocab_filepath)
+    
+    denseface = DensefaceExtractor(restore_path=path_config.denseface_restore_path, device=device, mean=48.85351, std=45.574123)
     face_selector = FaceSelector()
     extract_denseface = partial(extract_denseface_dir, denseface_model=denseface, face_selector=face_selector)
-    # data = extract_denseface('data/faces/0052.October.Sky/1473')
-    # print(data)
-    # input()
+   
     all_utt_files, movie_names = get_utt_id_files(meta_dir, utt_file_name)
     length = len(all_utt_files)
     start = int(part_no * length / total)
@@ -155,4 +154,3 @@ if __name__ == '__main__':
         # save_path = os.path.join(feature_dir, f'{utt_file_name}_emoword.json')
         # process_emo_word(utt_ids, emol, save_path, multiprocessing=False)
         # print(f'[EmoWord]: {movie_name} saved in {save_path}')
-        
