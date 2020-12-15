@@ -10,7 +10,7 @@ import torch
 from torch.nn.utils.rnn import pad_sequence
 from toolz.sandbox import unzip
 
-from .data import (DetectFeatTxtTokDataset, TxtTokLmdb,
+from code.uniter.data.data import (DetectFeatTxtTokDataset, TxtTokLmdb,
                    pad_tensors, get_gather_index)
 
 
@@ -64,7 +64,6 @@ class MlmDataset(DetectFeatTxtTokDataset):
         Return:
         - input_ids    : (L, ), i.e., [cls, wd, wd, ..., sep, 0, 0], 0s padded
         - img_feat     : (num_bb, d)
-        - img_pos_feat : (num_bb, 7)
         - attn_masks   : (L + num_bb, ), ie., [1, 1, ..., 0, 0, 1, 1]
         - txt_labels   : (L, ), [-1, -1, wid, -1, -1, -1]
         0's padded so that (L + num_bb) % 8 == 0

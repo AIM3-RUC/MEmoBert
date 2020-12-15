@@ -21,23 +21,23 @@ from horovod import torch as hvd
 
 from tqdm import tqdm
 
-from data import (TokenBucketSampler, TokenBucketSamplerForItm,
+from code.uniter.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   MetaLoader, PrefetchLoader,
                   TxtTokLmdb, ImageLmdbGroup, ConcatDatasetWithLens,
                   MlmDataset, MrfrDataset, MrcDataset,
                   mlm_collate, mrfr_collate, mrc_collate,
                   ItmDataset, itm_collate)
 
-from model.pretrain import UniterForPretraining
-from optim import get_lr_sched
-from optim.misc import build_optimizer
+from code.uniter.model.pretrain import UniterForPretraining
+from code.uniter.optim import get_lr_sched
+from code.uniter.optim.misc import build_optimizer
 
-from utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
-from utils.distributed import (all_reduce_and_rescale_tensors, all_gather_list,
+from code.uniter.utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
+from code.uniter.utils.distributed import (all_reduce_and_rescale_tensors, all_gather_list,
                                broadcast_tensors)
-from utils.save import ModelSaver, save_training_meta
-from utils.misc import NoOp, parse_with_config, set_dropout, set_random_seed
-from utils.const import IMG_DIM, IMG_LABEL_DIM, BUCKET_SIZE
+from code.uniter.utils.save import ModelSaver, save_training_meta
+from code.uniter.utils.misc import NoOp, parse_with_config, set_dropout, set_random_seed
+from code.uniter.utils.const import IMG_DIM, IMG_LABEL_DIM, BUCKET_SIZE
 
 
 def build_dataloader(dataset, collate_fn, is_train, opts):

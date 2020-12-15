@@ -11,9 +11,8 @@ from torch import nn
 from torch.nn import functional as F
 from apex.normalization.fused_layer_norm import FusedLayerNorm as LayerNorm
 
-from .layer import GELU, BertOnlyMLMHead
-from .model import UniterModel, UniterPreTrainedModel
-
+from code.uniter.model.layer import GELU, BertOnlyMLMHead
+from code.uniter.model.model import UniterModel, UniterPreTrainedModel
 
 class RegionFeatureRegression(nn.Module):
     " for MRM"

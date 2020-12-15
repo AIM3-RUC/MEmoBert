@@ -15,7 +15,7 @@ import torch
 from torch import nn
 from apex.normalization.fused_layer_norm import FusedLayerNorm
 
-from .layer import BertLayer, BertPooler
+from code.uniter.model.layer import BertLayer, BertPooler
 
 
 logger = logging.getLogger(__name__)

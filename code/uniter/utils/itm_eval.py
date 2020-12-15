@@ -10,9 +10,9 @@ import torch
 from horovod import torch as hvd
 from tqdm import tqdm
 
-from .logger import LOGGER
-from .misc import NoOp
-from .distributed import all_gather_list
+from code.uniter.utils.logger import LOGGER
+from code.uniter.utils.misc import NoOp
+from code.uniter.utils.distributed import all_gather_list
 
 
 @torch.no_grad()

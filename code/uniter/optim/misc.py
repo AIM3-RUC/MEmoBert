@@ -6,7 +6,7 @@ Misc lr helper
 """
 from torch.optim import Adam, Adamax
 
-from .adamw import AdamW
+from code.uniter.optim.adamw import AdamW
 
 
 def build_optimizer(model, opts):

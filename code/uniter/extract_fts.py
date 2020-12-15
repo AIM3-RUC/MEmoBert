@@ -2,13 +2,13 @@
 Copyright (c) Microsoft Corporation.
 Licensed under the MIT license.
 
-run inference for Image Text Retrieval
+UNITER pre-training
+根据输入的信息，获取对应的模态的输出特征.
+Step1: 构建图文的合并的
 """
+
 import argparse
-import json
-import os
 from os.path import exists
-import pickle
 from time import time
 
 import torch
@@ -18,15 +18,11 @@ from apex import amp
 from horovod import torch as hvd
 
 from code.uniter.data.data import (PrefetchLoader,
-                  DetectFeatLmdb, TxtTokLmdb, ItmEvalDataset, itm_eval_collate)
-from code.uniter.model.itm import UniterForImageTextRetrieval
-
+                  DetectFeatLmdb, TxtTokLmdb, InferDataset, infer_collate)
+from code.uniter.model.infer import UniterForExtracting
 from code.uniter.utils.logger import LOGGER
 from code.uniter.utils.distributed import all_gather_list
-from code.uniter.utils.misc import Struct
 from code.uniter.utils.const import IMG_DIM
-from code.uniter.utils.itm_eval import inference, itm_eval
-
 
 def main(opts):
     hvd.init()
@@ -35,64 +31,36 @@ def main(opts):
     torch.cuda.set_device(hvd.local_rank())
     rank = hvd.rank()
     LOGGER.info("device: {} n_gpu: {}, rank: {}, "
-                "16-bits training: {}".format(
+                "16-bits extracting features: {}".format(
                     device, n_gpu, hvd.rank(), opts.fp16))
 
-    if opts.train_config is not None:
-        train_opts = Struct(json.load(open(opts.train_config)))
-        opts.conf_th = train_opts.conf_th
-        opts.max_bb = train_opts.max_bb
-        opts.min_bb = train_opts.min_bb
-        opts.num_bb = train_opts.num_bb
-
-    # load DBs and image dirs
-    eval_img_db = DetectFeatLmdb(opts.img_db,
+    # load image db
+    img_db = DetectFeatLmdb(opts.img_db,
                                  opts.conf_th, opts.max_bb,
                                  opts.min_bb, opts.num_bb,
                                  opts.compressed_db)
+    # load text db
     eval_txt_db = TxtTokLmdb(opts.txt_db, -1)
-    eval_dataset = ItmEvalDataset(eval_txt_db, eval_img_db, opts.batch_size)
+    # load the dataset
+    infer_dataset = InferDataset(eval_txt_db, img_db, opts.batch_size)
 
     # Prepare model
     checkpoint = torch.load(opts.checkpoint)
-    model = UniterForImageTextRetrieval.from_pretrained(
+    model = UniterForExtracting.from_pretrained(
         opts.model_config, checkpoint, img_dim=IMG_DIM)
-    if 'rank_output' not in checkpoint:
-        model.init_output()  # zero shot setting
 
     model.to(device)
     model = amp.initialize(model, enabled=opts.fp16, opt_level='O2')
 
-    eval_dataloader = DataLoader(eval_dataset, batch_size=1,
+    infer_dataloader = DataLoader(infer_dataset, batch_size=opts.batch_size,
                                  num_workers=opts.n_workers,
                                  pin_memory=opts.pin_mem,
-                                 collate_fn=itm_eval_collate)
-    eval_dataloader = PrefetchLoader(eval_dataloader)
-
-    eval_log, results = evaluate(model, eval_dataloader)
-    if hvd.rank() == 0:
-        if not exists(opts.output_dir) and rank == 0:
-            os.makedirs(opts.output_dir)
-        with open(f'{opts.output_dir}/config.json', 'w') as f:
-            json.dump(vars(opts), f)
-        with open(f'{opts.output_dir}/results.bin', 'wb') as f:
-            pickle.dump(results, f)
-        with open(f'{opts.output_dir}/scores.json', 'w') as f:
-            json.dump(eval_log, f)
-        LOGGER.info(f'evaluation finished')
-        LOGGER.info(
-            f"======================== Results =========================\n"
-            f"image retrieval R1: {eval_log['img_r1']*100:.2f},\n"
-            f"image retrieval R5: {eval_log['img_r5']*100:.2f},\n"
-            f"image retrieval R10: {eval_log['img_r10']*100:.2f}\n"
-            f"text retrieval R1: {eval_log['txt_r1']*100:.2f},\n"
-            f"text retrieval R5: {eval_log['txt_r5']*100:.2f},\n"
-            f"text retrieval R10: {eval_log['txt_r10']*100:.2f}")
-        LOGGER.info("========================================================")
-
+                                 collate_fn=infer_collate)
+    infer_dataloader = PrefetchLoader(infer_dataloader)
+    resuls = extracting_fts(model, infer_dataloader)
 
 @torch.no_grad()
-def evaluate(model, eval_loader):
+def extracting_fts(model, eval_loader):
     model.eval()
     st = time()
     LOGGER.info("start running Image/Text Retrieval evaluation ...")
@@ -113,7 +81,6 @@ def evaluate(model, eval_loader):
     results = (all_score, all_txt_ids, all_img_ids)
     tot_time = time()-st
     LOGGER.info(f"evaluation finished in {int(tot_time)} seconds, ")
-    return eval_log, results
 
 
 if __name__ == "__main__":
@@ -134,8 +101,6 @@ if __name__ == "__main__":
              "written.")
 
     # optional parameters
-    parser.add_argument("--train_config", default=None, type=str,
-                        help="hps.json from training (for prepro hps)")
     parser.add_argument('--compressed_db', action='store_true',
                         help='use compressed LMDB')
     parser.add_argument('--conf_th', type=float, default=0.2,

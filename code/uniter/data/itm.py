@@ -14,9 +14,9 @@ from toolz.sandbox import unzip
 from cytoolz import concat
 import numpy as np
 
-from .data import (DetectFeatTxtTokDataset, DetectFeatLmdb, TxtTokLmdb,
+from code.uniter.data.data import (DetectFeatTxtTokDataset, DetectFeatLmdb, TxtTokLmdb,
                    pad_tensors, get_gather_index, get_ids_and_lens)
-from .sampler import TokenBucketSampler
+from code.uniter.data.sampler import TokenBucketSampler
 
 
 class TokenBucketSamplerForItm(TokenBucketSampler):
@@ -385,7 +385,7 @@ class ItmValDataset(DetectFeatTxtTokDataset):
                                     ).unsqueeze(0)
 
         # process image features (gt always first)
-        img_feats, img_pos_feats, num_bbs = map(
+        img_feats, num_bbs = map(
             list, unzip(map(self._get_img_feat, img_ids)))
         img_feat = pad_tensors(img_feats, num_bbs)
         img_position_ids = torch.arange(0, img_feat.size(1), dtype=torch.long

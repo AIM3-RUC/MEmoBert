@@ -11,7 +11,7 @@ import sys
 import torch
 import numpy as np
 
-from utils.logger import LOGGER
+from code.uniter.utils.logger import LOGGER
 
 
 class NoOp(object):

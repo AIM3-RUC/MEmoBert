@@ -8,7 +8,7 @@ from collections import defaultdict
 
 import torch
 from torch import nn
-from .model import UniterPreTrainedModel, UniterModel
+from code.uniter.model.model import UniterPreTrainedModel, UniterModel
 
 
 class UniterForImageTextRetrieval(UniterPreTrainedModel):

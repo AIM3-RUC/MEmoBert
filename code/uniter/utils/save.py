@@ -11,7 +11,7 @@ import subprocess
 
 import torch
 
-from utils.logger import LOGGER
+from code.uniter.utils.logger import LOGGER
 
 
 def save_training_meta(args):
