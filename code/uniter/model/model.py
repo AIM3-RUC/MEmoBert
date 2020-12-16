@@ -17,9 +17,7 @@ from apex.normalization.fused_layer_norm import FusedLayerNorm
 
 from code.uniter.model.layer import BertLayer, BertPooler
 
-
 logger = logging.getLogger(__name__)
-
 
 class UniterConfig(object):
     """Configuration class to store the configuration of a `UniterModel`.
@@ -259,7 +257,7 @@ class UniterImageEmbeddings(nn.Module):
         self.LayerNorm = FusedLayerNorm(config.hidden_size, eps=1e-12)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
-    def forward(self, img_feat, img_position_ids, type_embeddings, img_masks=None):
+    def forward(self, img_feat, img_position_ids, img_type_embeddings, img_masks=None):
         if img_masks is not None:
             self.mask_embedding.weight.data[0, :].fill_(0)
             mask = self.mask_embedding(img_masks.long())
@@ -267,7 +265,10 @@ class UniterImageEmbeddings(nn.Module):
 
         transformed_im = self.img_layer_norm(self.img_linear(img_feat))
         position_embeddings = self.position_embeddings(img_position_ids)
-        embeddings = transformed_im + position_embeddings + type_embeddings
+        # print('transformed_im {} position_embeddings {} img_type_embeddings {}'.format(
+        #     transformed_im.size(), position_embeddings.size(), img_type_embeddings.size()
+        # ))
+        embeddings = transformed_im + position_embeddings + img_type_embeddings
         embeddings = self.LayerNorm(embeddings)
         embeddings = self.dropout(embeddings)
         return embeddings

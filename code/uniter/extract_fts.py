@@ -7,9 +7,9 @@ UNITER pre-training
 Step1: 构建图文的合并的
 """
 
-import argparse
-from os.path import exists
+import os, argparse
 from time import time
+import numpy as np
 
 import torch
 from torch.utils.data import DataLoader
@@ -17,9 +17,9 @@ from torch.utils.data import DataLoader
 from apex import amp
 from horovod import torch as hvd
 
-from code.uniter.data.data import (PrefetchLoader,
+from code.uniter.data import (PrefetchLoader,
                   DetectFeatLmdb, TxtTokLmdb, InferDataset, infer_collate)
-from code.uniter.model.infer import UniterForExtracting
+from code.uniter.model.infer import UniterForExtracting, extracting
 from code.uniter.utils.logger import LOGGER
 from code.uniter.utils.distributed import all_gather_list
 from code.uniter.utils.const import IMG_DIM
@@ -40,9 +40,9 @@ def main(opts):
                                  opts.min_bb, opts.num_bb,
                                  opts.compressed_db)
     # load text db
-    eval_txt_db = TxtTokLmdb(opts.txt_db, -1)
+    txt_db = TxtTokLmdb(opts.txt_db, -1)
     # load the dataset
-    infer_dataset = InferDataset(eval_txt_db, img_db, opts.batch_size)
+    infer_dataset = InferDataset(txt_db, img_db)
 
     # Prepare model
     checkpoint = torch.load(opts.checkpoint)
@@ -55,32 +55,28 @@ def main(opts):
     infer_dataloader = DataLoader(infer_dataset, batch_size=opts.batch_size,
                                  num_workers=opts.n_workers,
                                  pin_memory=opts.pin_mem,
+                                 shuffle=False,
                                  collate_fn=infer_collate)
     infer_dataloader = PrefetchLoader(infer_dataloader)
-    resuls = extracting_fts(model, infer_dataloader)
+
+    txt_features, img_features = extracting_mm_fts(model, infer_dataloader)
+    print('Final Feature txt {} img {}'.format(len(txt_features), len(img_features)))
+    np.save(os.path.join(opts.output_dir, 'txt_ft.npy'), txt_features)
+    np.save(os.path.join(opts.output_dir, 'face_ft.npy'), img_features)
+    # Manually check the samples' length 
+    for i in range(5):
+        print('\ttxt original {} tokens fts {}'.format(txt_db.id2len[str(i)], txt_features[i].shape))
+        print('\timg original {} faces fts {}'.format(img_db.name2nbb[txt_db.txt2img[str(i)]], img_features[i].shape))
 
 @torch.no_grad()
-def extracting_fts(model, eval_loader):
+def extracting_mm_fts(model, eval_loader):
     model.eval()
     st = time()
     LOGGER.info("start running Image/Text Retrieval evaluation ...")
-    score_matrix = inference(model, eval_loader)
-    dset = eval_loader.dataset
-    all_score = hvd.allgather(score_matrix)
-    all_txt_ids = [i for ids in all_gather_list(dset.ids)
-                   for i in ids]
-    all_img_ids = dset.all_img_ids
-    print('Score_matrix {}'.format(score_matrix.size()))
-    assert all_score.size() == (len(all_txt_ids), len(all_img_ids))
-    if hvd.rank() != 0:
-        return {}, tuple()
-    # NOTE: only use rank0 to compute final scores
-    eval_log = itm_eval(all_score, all_txt_ids, all_img_ids,
-                        dset.txt2img, dset.img2txts)
-
-    results = (all_score, all_txt_ids, all_img_ids)
+    txt_features, img_features = extracting(model, eval_loader)
     tot_time = time()-st
-    LOGGER.info(f"evaluation finished in {int(tot_time)} seconds, ")
+    LOGGER.info(f"extracting finished in {int(tot_time)} seconds, ")
+    return txt_features, img_features
 
 
 if __name__ == "__main__":
@@ -114,7 +110,6 @@ if __name__ == "__main__":
                         help='static number of bounding boxes')
     parser.add_argument("--batch_size", default=400, type=int,
                         help="number of samples in a batch")
-
     # device parameters
     parser.add_argument('--fp16', action='store_true',
                         help="Whether to use 16-bit float precision instead "

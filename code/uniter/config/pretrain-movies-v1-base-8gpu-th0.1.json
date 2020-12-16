@@ -6,7 +6,7 @@
     "itm_neg_prob": 0.5,
     "itm_ot_lambda": 0.1,
     "max_txt_len": 30,
-    "conf_th": 0.0,
+    "conf_th": 0.1,
     "max_bb": 100,
     "min_bb": 10,
     "num_bb": 36,

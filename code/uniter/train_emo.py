@@ -16,24 +16,25 @@ from apex import amp
 from horovod import torch as hvd
 from tqdm import tqdm
 
-from data import (PrefetchLoader, TxtTokLmdb, ImageLmdbGroup,
+from  code.uniter.data import (PrefetchLoader, TxtTokLmdb, ImageLmdbGroup,
                   ItmRankDataset, itm_rank_collate,
                   ItmValDataset, itm_val_collate,
                   ItmEvalDataset, itm_eval_collate)
-from model.itm import UniterForImageTextRetrieval
-from optim import get_lr_sched
-from optim.misc import build_optimizer
+from code.uniter.model.itm import UniterForImageTextRetrieval
+from code.uniter.optim import get_lr_sched
+from code.uniter.optim.misc import build_optimizer
 
-from utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
-from utils.distributed import (all_reduce_and_rescale_tensors, all_gather_list,
+from code.uniter.utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
+from code.uniter.utils.distributed import (all_reduce_and_rescale_tensors, all_gather_list,
                                broadcast_tensors)
-from utils.save import ModelSaver, save_training_meta
-from utils.misc import NoOp, parse_with_config, set_dropout, set_random_seed
-from utils.const import IMG_DIM
-from utils.itm_eval import evaluate
+from code.uniter.utils.save import ModelSaver, save_training_meta
+from code.uniter.utils.misc import NoOp, parse_with_config, set_dropout, set_random_seed
+from code.uniter.utils.const import IMG_DIM
+from code.uniter.utils.itm_eval import evaluate
 
 
 def build_dataloader(dataset, collate_fn, is_train, opts):
+    # 构建训练集合或者测试集合的
     batch_size = opts.train_batch_size if is_train else 1
     dataloader = DataLoader(dataset, batch_size=batch_size,
                             shuffle=is_train, drop_last=is_train,
@@ -41,7 +42,6 @@ def build_dataloader(dataset, collate_fn, is_train, opts):
                             pin_memory=opts.pin_mem, collate_fn=collate_fn)
     dataloader = PrefetchLoader(dataloader)
     return dataloader
-
 
 def main(opts):
     hvd.init()
@@ -219,17 +219,7 @@ def main(opts):
                         TB_LOGGER.log_scaler_dict(
                             {f"valid/{k}": v for k, v in val_log.items()})
                         LOGGER.info(f"image retrieval R1: "
-                                    f"{val_log['img_r1']*100:.2f},\n"
-                                    f"image retrieval R5: "
-                                    f"{val_log['img_r5']*100:.2f},\n"
-                                    f"image retrieval R10: "
-                                    f"{val_log['img_r10']*100:.2f}\n"
-                                    f"text retrieval R1: "
-                                    f"{val_log['txt_r1']*100:.2f},\n"
-                                    f"text retrieval R5: "
-                                    f"{val_log['txt_r5']*100:.2f},\n"
-                                    f"text retrieval R10: "
-                                    f"{val_log['txt_r10']*100:.2f}")
+                                    f"{val_log['img_r1']*100:.2f},\n")
                         LOGGER.info("================================="
                                     "=================================")
                     else:
@@ -263,10 +253,6 @@ def main(opts):
         LOGGER.info(
             f"========================= {split} ===========================\n"
             f"image retrieval R1: {eval_log['img_r1']*100:.2f},\n"
-            f"image retrieval R5: {eval_log['img_r5']*100:.2f},\n"
-            f"image retrieval R10: {eval_log['img_r10']*100:.2f}\n"
-            f"text retrieval R1: {eval_log['txt_r1']*100:.2f},\n"
-            f"text retrieval R5: {eval_log['txt_r5']*100:.2f},\n"
             f"text retrieval R10: {eval_log['txt_r10']*100:.2f}")
     LOGGER.info("=========================================================")
 
@@ -319,7 +305,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # Required parameters
-
     parser.add_argument('--compressed_db', action='store_true',
                         help='use compressed LMDB')
     parser.add_argument("--checkpoint",
@@ -397,9 +382,9 @@ if __name__ == "__main__":
 
     args = parse_with_config(parser)
 
-    if exists(args.output_dir) and os.listdir(args.output_dir):
-        raise ValueError("Output directory ({}) already exists and is not "
-                         "empty.".format(args.output_dir))
+    if not exists(args.output_dir):
+        print('Output {}'.format(args.output_dir))
+        os.makedirs(args.output_dir)
 
     # options safe guard
     if args.conf_th == -1:

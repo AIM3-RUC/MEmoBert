@@ -5,21 +5,19 @@ Licensed under the MIT license.
 Evaluation dataset
 顺序的读取数据的Batch
 """
- 
+
 import torch
 from torch.nn.utils.rnn import pad_sequence
 from toolz.sandbox import unzip
-import numpy as np
 
-from code.uniter.data.data import (DetectFeatTxtTokDataset, DetectFeatLmdb, TxtTokLmdb,
+from code.uniter.data.data import (DetectFeatTxtTokDataset, DetectFeatLmdb, TxtTokLmdb, \
                    pad_tensors, get_gather_index)
-
+                   
 class InferDataset(DetectFeatTxtTokDataset):
-    def __init__(self, txt_db, img_db, batch_size):
+    def __init__(self, txt_db, img_db):
         assert isinstance(txt_db, TxtTokLmdb)
         assert isinstance(img_db, DetectFeatLmdb)
         super().__init__(txt_db, img_db)
-        self.bs = batch_size
 
     def __getitem__(self, i):
         """
@@ -65,7 +63,7 @@ def infer_collate(inputs):
     # image batches
     num_bbs = [f.size(0) for f in img_feats]
     img_feat = pad_tensors(img_feats, num_bbs) # (n, max_num_nbb, dim)
-    img_position_ids = torch.arange(0, img_feat.size(0), dtype=torch.long
+    img_position_ids = torch.arange(0, img_feat.size(1), dtype=torch.long
                                 ).unsqueeze(0)
 
     attn_masks = pad_sequence(attn_masks, batch_first=True, padding_value=0)

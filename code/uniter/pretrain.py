@@ -7,7 +7,6 @@ UNITER pre-training
 import argparse
 from collections import defaultdict
 import json
-import math
 from os.path import join
 from time import time
 

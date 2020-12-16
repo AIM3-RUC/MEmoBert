@@ -5,6 +5,7 @@ Licensed under the MIT license.
 UNITER for extracting features
 """
 from collections import defaultdict
+import horovod
 from tqdm import tqdm
 
 import torch
@@ -47,26 +48,29 @@ class UniterForExtracting(UniterPreTrainedModel):
         # get only the img part
         img_lens = batch['img_lens']
         img_sequence_output = sequence_output[:, input_ids.size(1):, :]
-        print('[Features] txt fts {} and img fts {}'.format(txt_sequence_output.size(), img_sequence_output.size()))
+        # print('[Features] txt fts {} and img fts {}'.format(txt_sequence_output.size(), img_sequence_output.size()))
         return txt_sequence_output, txt_lens, img_sequence_output, img_lens
-    
 
 @torch.no_grad()
-def inference(model, eval_loader):
+def extracting(model, loader):
     model.eval()
     if hvd.rank() == 0:
-        pbar = tqdm(total=len(eval_loader))
+        pbar = tqdm(total=len(loader))
     else:
         pbar = NoOp()
-    for i, mini_batches in enumerate(eval_loader):
-        j = 0
-        for batch in mini_batches:
-            scores = model(batch, compute_loss=False)
-            bs = scores.size(0)
-            score_matrix.data[i, j:j+bs] = scores.data.squeeze(1).half()
-            j += bs
-        assert j == score_matrix.size(1)
+    
+    txt_real_sequence_outputs = []
+    img_real_sequence_outputs = []
+    for i, batch in enumerate(loader):
+        txt_sequence_output, txt_lens, img_sequence_output, img_lens = model(batch)
+        assert txt_sequence_output.size(0) == len(txt_lens) == img_sequence_output.size(0) == len(img_lens)
+        for j in range(len(txt_lens)):
+            # txt_len = cls + txt + sep
+            txt_real_sequence_outputs.append(txt_sequence_output[j][1:txt_lens[j]-1].cpu().numpy())
+            img_real_sequence_outputs.append(img_sequence_output[j][:img_lens[j]].cpu().numpy())
         pbar.update(1)
     model.train()
     pbar.close()
-    return score_matrix
+    print('[P{}] txt {} img {} '.format(hvd.rank(), \
+            len(txt_real_sequence_outputs), len(img_real_sequence_outputs)))
+    return txt_real_sequence_outputs, img_real_sequence_outputs

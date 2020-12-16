@@ -182,11 +182,16 @@ def get_ids_and_lens(db):
     assert isinstance(db, TxtTokLmdb)
     lens = []
     ids = []
-    for id_ in list(db.id2len.keys())[hvd.rank()::hvd.size()]:
+    # Modify by zjm: hvd.rank() is current process Id and hvd.size() is total gpus
+    # for example, gpu0: 0~1/4L, gpu2: 1/4L~2/4L, gpu3: 2/4L~3/4L
+    # Then the hvd.allgather() can restore original sequential order.
+    splice_size = len(list(db.id2len.keys())) / hvd.size()
+    start = int(hvd.rank() * splice_size)
+    end = int(hvd.rank() * splice_size + splice_size)
+    for id_ in list(db.id2len.keys())[start:end]:
         lens.append(db.id2len[id_])
         ids.append(id_)
     return lens, ids
-
 
 class DetectFeatTxtTokDataset(Dataset):
     def __init__(self, txt_db, img_db):

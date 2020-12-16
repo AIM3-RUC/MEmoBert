@@ -82,7 +82,6 @@ def record_cuda_stream(batch):
     else:
         pass
 
-
 class PrefetchLoader(object):
     """
     overlap compute and cuda data transfer
