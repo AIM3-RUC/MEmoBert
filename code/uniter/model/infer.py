@@ -5,7 +5,6 @@ Licensed under the MIT license.
 UNITER for extracting features
 """
 from collections import defaultdict
-import horovod
 from tqdm import tqdm
 
 import torch
@@ -14,6 +13,10 @@ from torch.nn import functional as F
 from apex.normalization.fused_layer_norm import FusedLayerNorm as LayerNorm
 from code.uniter.model.model import UniterModel, UniterPreTrainedModel
 from code.uniter.utils.misc import NoOp
+
+'''
+For extracting features or evaluation on the downstream tasks
+'''
 
 class UniterForExtracting(UniterPreTrainedModel):
     """ UNITER Extracting Features """
@@ -58,7 +61,6 @@ def extracting(model, loader):
         pbar = tqdm(total=len(loader))
     else:
         pbar = NoOp()
-    
     txt_real_sequence_outputs = []
     img_real_sequence_outputs = []
     for i, batch in enumerate(loader):
@@ -69,7 +71,6 @@ def extracting(model, loader):
             txt_real_sequence_outputs.append(txt_sequence_output[j][1:txt_lens[j]-1].cpu().numpy())
             img_real_sequence_outputs.append(img_sequence_output[j][:img_lens[j]].cpu().numpy())
         pbar.update(1)
-    model.train()
     pbar.close()
     print('[P{}] txt {} img {} '.format(hvd.rank(), \
             len(txt_real_sequence_outputs), len(img_real_sequence_outputs)))

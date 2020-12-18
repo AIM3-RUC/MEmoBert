@@ -16,21 +16,17 @@ from apex import amp
 from horovod import torch as hvd
 from tqdm import tqdm
 
-from  code.uniter.data import (PrefetchLoader, TxtTokLmdb, ImageLmdbGroup,
-                  ItmRankDataset, itm_rank_collate,
-                  ItmValDataset, itm_val_collate,
-                  ItmEvalDataset, itm_eval_collate)
-from code.uniter.model.itm import UniterForImageTextRetrieval
+from  code.uniter.data import (PrefetchLoader, TxtTokLmdb, ImageLmdbGroup, EmoCLsDataset,
+                                emocls_collate)
+from code.uniter.model.emocls import UniterForEmoRecognition
 from code.uniter.optim import get_lr_sched
 from code.uniter.optim.misc import build_optimizer
-
 from code.uniter.utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
 from code.uniter.utils.distributed import (all_reduce_and_rescale_tensors, all_gather_list,
                                broadcast_tensors)
 from code.uniter.utils.save import ModelSaver, save_training_meta
 from code.uniter.utils.misc import NoOp, parse_with_config, set_dropout, set_random_seed
 from code.uniter.utils.const import IMG_DIM
-from code.uniter.utils.itm_eval import evaluate
 
 
 def build_dataloader(dataset, collate_fn, is_train, opts):
@@ -68,57 +64,40 @@ def main(opts):
         model_saver = ModelSaver(join(opts.output_dir, 'ckpt'))
         add_log_to_file(join(opts.output_dir, 'log', 'log.txt'))
         # store ITM predictions
-        os.makedirs(join(opts.output_dir, 'results_val'))
-        os.makedirs(join(opts.output_dir, 'results_test'))
-        os.makedirs(join(opts.output_dir, 'results_train'))
+        if not os.path.exists(join(opts.output_dir, 'results_val')):
+            os.makedirs(join(opts.output_dir, 'results_val'))
+        if not os.path.exists(join(opts.output_dir, 'results_test')):
+            os.makedirs(join(opts.output_dir, 'results_test'))
+        if not os.path.exists(join(opts.output_dir, 'results_train')):
+            os.makedirs(join(opts.output_dir, 'results_train'))
     else:
         LOGGER.disabled = True
         pbar = NoOp()
         model_saver = NoOp()
 
-    # train_examples = None
-    LOGGER.info(f"Loading Train Dataset {opts.train_txt_dbs}, "
-                f"{opts.train_img_dbs}")
-    # check multiple DBs
-    assert len(opts.train_txt_dbs) == len(opts.train_img_dbs), \
-        "train txt_db and img_db have different length"
-
-    # load DBs and image dirs
-    all_img_dbs = ImageLmdbGroup(opts.conf_th, opts.max_bb, opts.min_bb,
-                                 opts.num_bb, opts.compressed_db)
-    # train
-    LOGGER.info(f"Loading Train Dataset "
-                f"{opts.train_txt_dbs}, {opts.train_img_dbs}")
+    # load img DBs
+    all_img_dbs = ImageLmdbGroup(opts.conf_th, opts.max_bb, opts.min_bb, opts.num_bb, opts.compressed_db)
+    # train set of 
+    LOGGER.info("Loading Train Dataset {} {}".format(opts.train_txt_dbs, opts.train_img_dbs))
     train_datasets = []
     for txt_path, img_path in zip(opts.train_txt_dbs, opts.train_img_dbs):
         img_db = all_img_dbs[img_path]
         txt_db = TxtTokLmdb(txt_path, opts.max_txt_len)
-        train_datasets.append(ItmRankDataset(txt_db, img_db,
-                                             opts.negative_size))
+        train_datasets.append(EmoCLsDataset(txt_db, img_db, opts.trn_textId2target_path))
     train_dataset = ConcatDataset(train_datasets)
 
     # val
-    LOGGER.info(f"Loading Val Dataset {opts.val_txt_db}, {opts.val_img_db}")
-    val_img_db = all_img_dbs[opts.val_img_db]
+    LOGGER.info(f"Loading Val Dataset {opts.val_db}, {opts.val_db}")
+    val_img_db = os.path.join(opts.train_img_dbs, opts.val_db)
+    val_img_db = all_img_dbs[val_img_db]
     val_txt_db = TxtTokLmdb(opts.val_txt_db, -1)
-    val_dataset = ItmValDataset(val_txt_db, val_img_db,
-                                opts.inf_minibatch_size)
-    val_dataloader = build_dataloader(val_dataset, itm_val_collate,
-                                      False, opts)
-    # eval
-    LOGGER.info(f"Loading val, test Dataset for full evaluation: "
-                f"{opts.val_txt_db}, {opts.val_img_db}"
-                f"{opts.test_txt_db}, {opts.test_img_db}")
-    eval_dataset_val = ItmEvalDataset(val_txt_db, val_img_db,
-                                      opts.inf_minibatch_size)
-    eval_loader_val = build_dataloader(eval_dataset_val, itm_eval_collate,
-                                       False, opts)
+    val_dataset = EmoCLsDataset(val_txt_db, val_img_db, opts.val_textId2target_path)
+    val_dataloader = build_dataloader(val_dataset, emocls_collate, False, opts)
+    # test
     test_img_db = all_img_dbs[opts.test_img_db]
     test_txt_db = TxtTokLmdb(opts.test_txt_db, -1)
-    eval_dataset_test = ItmEvalDataset(test_txt_db, test_img_db,
-                                       opts.inf_minibatch_size)
-    eval_loader_test = build_dataloader(eval_dataset_test, itm_eval_collate,
-                                        False, opts)
+    eval_dataset_test = EmoCLsDataset(test_txt_db, test_img_db, opts.test_textId2target_path)
+    test_dataloader = build_dataloader(eval_dataset_test, emocls_collate, False, opts)
 
     # Prepare model
     if opts.checkpoint:
@@ -126,9 +105,8 @@ def main(opts):
     else:
         checkpoint = {}
 
-    model = UniterForImageTextRetrieval.from_pretrained(
-        opts.model_config, state_dict=checkpoint,
-        img_dim=IMG_DIM, margin=opts.margin)
+    model = UniterForEmoRecognition.from_pretrained(
+        opts.model_config, state_dict=checkpoint, img_dim=IMG_DIM)
     model.init_output()  # pretrain ITM head is different from ranking head
     model.to(device)
     # make sure every process has same model parameters in the beginning
@@ -158,7 +136,7 @@ def main(opts):
     optimizer.step()
     while True:
         train_dataloader = build_dataloader(
-            train_dataset, itm_rank_collate, True, opts)
+            train_dataset, emocls_collate, True, opts)
         for step, batch in enumerate(train_dataloader):
             n_examples += batch['input_ids'].size(0)
             loss = model(batch, compute_loss=True)
@@ -168,9 +146,6 @@ def main(opts):
                                 ) as scaled_loss:
                 scaled_loss.backward()
                 if not delay_unscale:
-                    # gather gradients from every processes
-                    # do this before unscaling to make sure every process uses
-                    # the same gradient scale
                     grads = [p.grad.data for p in model.parameters()
                              if p.requires_grad and p.grad is not None]
                     all_reduce_and_rescale_tensors(grads, float(1))
@@ -199,32 +174,15 @@ def main(opts):
                 optimizer.zero_grad()
                 pbar.update(1)
 
-                if global_step % 100 == 0:
-                    # monitor training throughput
-                    LOGGER.info(f'------------Step {global_step}-------------')
-                    tot_ex = sum(all_gather_list(n_examples))
-                    ex_per_sec = int(tot_ex / (time()-start))
-                    LOGGER.info(f'{tot_ex} examples trained at '
-                                f'{ex_per_sec} ex/s')
-                    TB_LOGGER.add_scalar('perf/ex_per_s',
-                                         ex_per_sec, global_step)
-                    LOGGER.info(f'-------------------------------------------')
-
                 if global_step % opts.valid_steps == 0:
-                    if opts.full_val:
-                        LOGGER.info(
-                            f"========================== Step {global_step} "
-                            f"==========================")
-                        val_log = evaluate(model, eval_loader_val)
-                        TB_LOGGER.log_scaler_dict(
-                            {f"valid/{k}": v for k, v in val_log.items()})
-                        LOGGER.info(f"image retrieval R1: "
-                                    f"{val_log['img_r1']*100:.2f},\n")
-                        LOGGER.info("================================="
-                                    "=================================")
-                    else:
-                        val_log = validate(model, val_dataloader)
-                        TB_LOGGER.log_scaler_dict(val_log)
+                    LOGGER.info(
+                        f"========================== Step {global_step} "
+                        f"==========================")
+                    val_log = evaluate(model, eval_dataloader)
+                    TB_LOGGER.log_scaler_dict(
+                        {f"valid/{k}": v for k, v in val_log.items()})
+                    LOGGER.info(f"emo recognition accuracy: "
+                                f"{val_log['img_r1']*100:.2f},\n")
                     model_saver.save(model, global_step)
 
             if global_step >= opts.num_train_steps:
@@ -234,71 +192,7 @@ def main(opts):
             break
         n_epoch += 1
         LOGGER.info(f"finished {n_epoch} epochs")
-
     pbar.close()
-    if opts.num_train_steps % opts.valid_steps != 0:
-        # final validation
-        val_log = validate(model, val_dataloader)
-        TB_LOGGER.log_scaler_dict(val_log)
-        model_saver.save(model, global_step)
-
-    # evaluation
-    for split, loader in [('val', eval_loader_val),
-                          ('test', eval_loader_test)]:
-        eval_log = evaluate(model, loader)
-        TB_LOGGER.log_scaler_dict({f"eval/{split}_{k}": v
-                                   for k, v in eval_log.items()})
-        if hvd.rank() != 0:
-            continue
-        LOGGER.info(
-            f"========================= {split} ===========================\n"
-            f"image retrieval R1: {eval_log['img_r1']*100:.2f},\n"
-            f"text retrieval R10: {eval_log['txt_r10']*100:.2f}")
-    LOGGER.info("=========================================================")
-
-
-@torch.no_grad()
-def validate(model, val_loader):
-    if hvd.rank() == 0:
-        pbar = tqdm(total=len(val_loader))
-    else:
-        pbar = NoOp()
-    LOGGER.info("start running Image Retrieval validation ...")
-    model.eval()
-    n_ex = 0
-    st = time()
-
-    recall_at_1, recall_at_5, recall_at_10 = 0, 0, 0
-    for batch in val_loader:
-        scores = model(batch, compute_loss=False)
-        _, indices = scores.squeeze(1).topk(10, dim=0)
-        rank = (indices == 0).nonzero()
-        if rank.numel():
-            rank = rank.item()
-            if rank < 1:
-                recall_at_1 += 1
-            if rank < 5:
-                recall_at_5 += 1
-            if rank < 10:
-                recall_at_10 += 1
-        n_ex += 1
-        pbar.update(1)
-    n_ex = sum(all_gather_list(n_ex))
-    recall_at_1 = sum(all_gather_list(recall_at_1)) / n_ex
-    recall_at_5 = sum(all_gather_list(recall_at_5)) / n_ex
-    recall_at_10 = sum(all_gather_list(recall_at_10)) / n_ex
-    tot_time = time()-st
-    val_log = {'valid/ex_per_s': n_ex/tot_time,
-               'valid/recall_1': recall_at_1,
-               'valid/recall_5': recall_at_5,
-               'valid/recall_10': recall_at_10}
-    model.train()
-    LOGGER.info(f"validation finished in {int(tot_time)} seconds, "
-                f"recall_1: {recall_at_1*100:.2f}, "
-                f"recall_5: {recall_at_5*100:.2f}, "
-                f"recall_10: {recall_at_10*100:.2f}")
-    pbar.close()
-    return val_log
 
 
 if __name__ == "__main__":
@@ -334,7 +228,7 @@ if __name__ == "__main__":
                              "(batch by examples)")
     parser.add_argument("--negative_size", default=1, type=int,
                         help="Number of negative samples per positive sample")
-    parser.add_argument("--inf_minibatch_size", default=400, type=int,
+    parser.add_argument("--inf_batch_size", default=128, type=int,
                         help="batch size for running inference. "
                              "(used for validation, and evaluation)")
 

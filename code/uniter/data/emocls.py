@@ -2,7 +2,7 @@
 Copyright (c) Microsoft Corporation.
 Licensed under the MIT license.
 
-Evaluation dataset without target 
+training dataset with target
 """
 
 import torch
@@ -12,14 +12,17 @@ from toolz.sandbox import unzip
 from code.uniter.data.data import (DetectFeatTxtTokDataset, DetectFeatLmdb, TxtTokLmdb, \
                    pad_tensors, get_gather_index)
                    
-class InferDataset(DetectFeatTxtTokDataset):
-    def __init__(self, txt_db, img_db):
+class EmoCLsDataset(DetectFeatTxtTokDataset):
+    def __init__(self, txt_db, img_db, text2target_path):
         assert isinstance(txt_db, TxtTokLmdb)
         assert isinstance(img_db, DetectFeatLmdb)
         super().__init__(txt_db, img_db)
+        # {'1':0}
+        self.txt2target = json.load(open(text2target_path))
 
     def __getitem__(self, i):
         """
+        i: is str type
         Return:
         - input_ids    : (L, ), i.e., [cls, wd, wd, ..., sep, 0, 0], 0s padded
         - img_feat     : (num_bb, d)
@@ -28,6 +31,7 @@ class InferDataset(DetectFeatTxtTokDataset):
         0's padded so that (L + num_bb) % 8 == 0
         """
         example = super().__getitem__(i)
+        target = self.txt2target[i]
 
         # text input
         input_ids = example['input_ids']
@@ -38,9 +42,9 @@ class InferDataset(DetectFeatTxtTokDataset):
 
         attn_masks = torch.ones(len(input_ids) + num_bb, dtype=torch.long)
 
-        return input_ids, img_feat, attn_masks
+        return input_ids, img_feat, attn_masks, target
 
-def infer_collate(inputs):
+def emocls_collate(inputs):
     """
     Return:
     :input_ids    (n, max_L) padded with 0
@@ -51,7 +55,7 @@ def infer_collate(inputs):
     :num_bbs      list of [num_bb], real num_bbs
     :attn_masks   (n, max_{L + num_bb}) padded with 0
     """
-    (input_ids, img_feats, attn_masks) = map(list, unzip(inputs))
+    (input_ids, img_feats, attn_masks, targets) = map(list, unzip(inputs))
 
     # text batches
     txt_lens = [i.size(0) for i in input_ids]
@@ -78,5 +82,6 @@ def infer_collate(inputs):
              'img_position_ids': img_position_ids,
              'img_lens': num_bbs,
              'attn_masks': attn_masks,
-             'gather_index': gather_index}
+             'gather_index': gather_index,
+             'targets': targets}
     return batch

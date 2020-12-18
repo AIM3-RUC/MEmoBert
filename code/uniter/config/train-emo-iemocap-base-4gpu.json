@@ -8,7 +8,10 @@
     "min_bb": 10,
     "num_bb": 36,
     "train_batch_size": 80,
-    "inf_minibatch_size": 40,
+    "inf_batch_size": 80,
+    "cls_num": 4,
+    "cls_dropout": 0.3,
+    "frozen_layers": 11,
     "gradient_accumulation_steps": 4,
     "learning_rate": 5e-05,
     "valid_steps": 2000,
@@ -28,14 +31,15 @@
     "n_workers": 4,
     "pin_mem": true,
     "train_txt_dbs": [
-        "/txt/itm_flickr30k_train.db"
+        "/data7/emobert/txt_db/iemocap/"
     ],
     "train_img_dbs": [
-        "/img/flickr30k/"
+        "/data7/emobert/img_db/iemocap/"
     ],
-    "val_txt_db": "/txt/itm_flickr30k_val.db",
-    "val_img_db": "/img/flickr30k/",
-    "test_txt_db": "/txt/itm_flickr30k_test.db",
-    "test_img_db": "/img/flickr30k/",
+    "train_textId2target_path": "None", 
+    "val_textId2target_path": "None", 
+    "test_textId2target_path": "None", 
+    "val_db": "cv1",
+    "test__db": "cv2",
     "model_config": "config/uniter-base.json"
 }
