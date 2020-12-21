@@ -284,12 +284,15 @@ class UniterEncoder(nn.Module):
     def forward(self, input_, attention_mask, frozen_en_layers=0,
                 output_all_encoded_layers=True):
         # zjm 2020/12/15: add parameter: frozen_en_layer for small dataset finetune.
+        # print('[Model]Frozen_en_layer {}'.format(frozen_en_layers))
         all_encoder_layers = []
         hidden_states = input_
         for i, layer_module in enumerate(self.layer):
             if i <= frozen_en_layers - 1:
                 with torch.no_grad():
                     hidden_states = layer_module(hidden_states, attention_mask)
+            else:
+                hidden_states = layer_module(hidden_states, attention_mask)
             if output_all_encoded_layers:
                 all_encoder_layers.append(hidden_states)
         if not output_all_encoded_layers:

@@ -6,40 +6,51 @@ UNITER for Emo Recognition Model
 """
 from collections import defaultdict
 from tqdm import tqdm
+import numpy as np
 
 import torch
 from horovod import torch as hvd
 from torch import nn
+from torch.nn import CrossEntropyLoss
 from code.uniter.model.model import UniterPreTrainedModel, UniterModel
 from code.uniter.utils.misc import NoOp
+from apex.normalization.fused_layer_norm import FusedLayerNorm as LayerNorm
+from code.uniter.model.layer import GELU
+from sklearn.metrics import accuracy_score, recall_score, f1_score, confusion_matrix
 
 
 class UniterForEmoRecognition(UniterPreTrainedModel):
     """ Finetune UNITER for Emotion Recognition
     """
-    def __init__(self, config, img_dim, training):
+    def __init__(self, config, img_dim, cls_num, frozen_en_layers):
         super().__init__(config)
-        self.traning = training
         self.uniter = UniterModel(config, img_dim)
         self.output = nn.Sequential(
             nn.Linear(config.hidden_size, config.hidden_size), 
-            nn.ReLU(True),
-            nn.Linear(config.hidden_size, config.cls_num)
+            GELU(),
+            LayerNorm(config.hidden_size, eps=1e-12),
+            nn.Dropout(self.config.cls_dropout_prob),
+            nn.Linear(config.hidden_size, cls_num)
             )
-        self.criterion = torch.nn.CrossEntropyLoss()
+        self.frozen_en_layers = frozen_en_layers
+        self.criterion = CrossEntropyLoss()
         self.apply(self.init_weights)
 
     def forward(self, batch, compute_loss=True):
+        '''
+        if compute_loss is true, the function will return the loss = (1)
+        else the the function will return the logits = (batch, cls_num)
+        '''
         batch = defaultdict(lambda: None, batch)
-        sequence_output = self.uniter(batch, frozen_en_layers=self.config.frozen_en_layers,
+        sequence_output = self.uniter(batch, frozen_en_layers=self.frozen_en_layers,
                                       output_all_encoded_layers=False)
+        # the output of the first token [CLS]
         pooled_output = self.uniter.pooler(sequence_output)
         logits = self.output(pooled_output)
         # one-hot targets
-        targets = batch['targets']
+        self.pred = torch.softmax(logits, dim=-1)
         if compute_loss:
-            # softmax loss
-            cls_loss = self.criterion(logits, targets)
+            cls_loss = self.criterion(logits, batch['targets'])
             return cls_loss
         else:
             return logits
@@ -51,19 +62,29 @@ def evaluation(model, loader):
         pbar = tqdm(total=len(loader))
     else:
         pbar = NoOp()
-    predictions_outputs = []
+    total_pred = []
+    total_target = []
     eval_loss = 0
-    eval_acc = 0
     for i, batch in enumerate(loader):
-        out = model(batch)
-        loss = model.loss_func(out, batch['targets'])
+        out = model(batch, compute_loss=False)
+        loss = model.criterion(out, batch['targets'])
         eval_loss += loss.item()
-        pred = torch.max(out, 1)[1]
-        num_correct = (pred == batch['targets']).sum()
-        eval_acc += num_correct.item()
+        # the predicton reuslts
+        preds = model.pred.argmax(dim=1).detach().cpu().numpy()
+        targets = batch['targets'].detach().cpu().numpy()
+        total_pred.append(preds)
+        total_target.append(targets)
         pbar.update(1)
-    # average loss and num_correct / total samples in set
-    print('eval Loss: {:.6f}, Acc: {:.6f}'.format()) 
+    total_pred = np.concatenate(total_pred)
+    total_label = np.concatenate(total_target)
+    avg_loss = eval_loss / len(total_pred)
+    try:
+        acc = accuracy_score(total_label, total_pred)
+        uar = recall_score(total_label, total_pred, average='macro')
+        f1 = f1_score(total_label, total_pred, average='macro')
+        cm = confusion_matrix(total_label, total_pred)
+    except:
+        acc, uar, f1, cm =0, 0, 0, 0
     model.train()
     pbar.close()
-    return predictions_outputs
+    return {'loss': avg_loss,  'WA': acc,  'UA': uar, 'F1': f1}

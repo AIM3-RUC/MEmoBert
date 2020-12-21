@@ -18,7 +18,7 @@ from tqdm import tqdm
 
 from  code.uniter.data import (PrefetchLoader, TxtTokLmdb, ImageLmdbGroup, EmoCLsDataset,
                                 emocls_collate)
-from code.uniter.model.emocls import UniterForEmoRecognition
+from code.uniter.model.emocls import UniterForEmoRecognition, evaluation
 from code.uniter.optim import get_lr_sched
 from code.uniter.optim.misc import build_optimizer
 from code.uniter.utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
@@ -75,29 +75,28 @@ def main(opts):
         pbar = NoOp()
         model_saver = NoOp()
 
-    # load img DBs
     all_img_dbs = ImageLmdbGroup(opts.conf_th, opts.max_bb, opts.min_bb, opts.num_bb, opts.compressed_db)
-    # train set of 
+
     LOGGER.info("Loading Train Dataset {} {}".format(opts.train_txt_dbs, opts.train_img_dbs))
     train_datasets = []
     for txt_path, img_path in zip(opts.train_txt_dbs, opts.train_img_dbs):
         img_db = all_img_dbs[img_path]
         txt_db = TxtTokLmdb(txt_path, opts.max_txt_len)
-        train_datasets.append(EmoCLsDataset(txt_db, img_db, opts.trn_textId2target_path))
+        train_datasets.append(EmoCLsDataset(txt_db, img_db, opts.train_textId2target_path))
     train_dataset = ConcatDataset(train_datasets)
 
     # val
-    LOGGER.info(f"Loading Val Dataset {opts.val_db}, {opts.val_db}")
-    val_img_db = os.path.join(opts.train_img_dbs, opts.val_db)
-    val_img_db = all_img_dbs[val_img_db]
+    LOGGER.info(f"Loading Val Dataset {opts.val_img_db}, {opts.val_txt_db}")
+    val_img_db = all_img_dbs[opts.val_img_db]
     val_txt_db = TxtTokLmdb(opts.val_txt_db, -1)
     val_dataset = EmoCLsDataset(val_txt_db, val_img_db, opts.val_textId2target_path)
     val_dataloader = build_dataloader(val_dataset, emocls_collate, False, opts)
     # test
+    LOGGER.info(f"Loading Test Dataset {opts.test_img_db}, {opts.test_txt_db}")
     test_img_db = all_img_dbs[opts.test_img_db]
     test_txt_db = TxtTokLmdb(opts.test_txt_db, -1)
-    eval_dataset_test = EmoCLsDataset(test_txt_db, test_img_db, opts.test_textId2target_path)
-    test_dataloader = build_dataloader(eval_dataset_test, emocls_collate, False, opts)
+    test_dataset = EmoCLsDataset(test_txt_db, test_img_db, opts.test_textId2target_path)
+    test_dataloader = build_dataloader(test_dataset, emocls_collate, False, opts)
 
     # Prepare model
     if opts.checkpoint:
@@ -105,9 +104,8 @@ def main(opts):
     else:
         checkpoint = {}
 
-    model = UniterForEmoRecognition.from_pretrained(
-        opts.model_config, state_dict=checkpoint, img_dim=IMG_DIM)
-    model.init_output()  # pretrain ITM head is different from ranking head
+    model = UniterForEmoRecognition.from_pretrained(opts.model_config, state_dict=checkpoint, \
+                            img_dim=IMG_DIM, cls_num=opts.cls_num, frozen_en_layers=opts.frozen_en_layers)
     model.to(device)
     # make sure every process has same model parameters in the beginning
     broadcast_tensors([p.data for p in model.parameters()], 0)
@@ -129,7 +127,8 @@ def main(opts):
     model.train()
 
     n_examples = 0
-    n_epoch = 0
+    best_eval_UA = 0
+    best_eval_step = 0
     start = time()
     # quick hack for amp delay_unscale bug
     optimizer.zero_grad()
@@ -153,7 +152,6 @@ def main(opts):
             running_loss(loss.item())
             if (step + 1) % opts.gradient_accumulation_steps == 0:
                 global_step += 1
-
                 # learning rate scheduling
                 lr_this_step = get_lr_sched(global_step, opts)
                 for param_group in optimizer.param_groups:
@@ -176,24 +174,37 @@ def main(opts):
 
                 if global_step % opts.valid_steps == 0:
                     LOGGER.info(
-                        f"========================== Step {global_step} "
+                        f"========================== Evaluation Step {global_step} "
                         f"==========================")
-                    val_log = evaluate(model, eval_dataloader)
+                    val_log = evaluation(model, val_dataloader)
                     TB_LOGGER.log_scaler_dict(
                         {f"valid/{k}": v for k, v in val_log.items()})
-                    LOGGER.info(f"emo recognition accuracy: "
-                                f"{val_log['img_r1']*100:.2f},\n")
-                    model_saver.save(model, global_step)
+                    LOGGER.info(f"[Validation] Loss: {val_log['loss']:.2f},"
+                                f"\t WA: {val_log['WA']*100:.2f},"
+                                f"\t UA: {val_log['UA']*100:.2f},\n")
+                    test_log = evaluation(model, test_dataloader)
+                    TB_LOGGER.log_scaler_dict(
+                        {f"test/{k}": v for k, v in test_log.items()})
+                    LOGGER.info(f"[Testing] Loss: {test_log['loss']:.2f},"
+                                f"\t WA: {test_log['WA']*100:.2f},"
+                                f"\t UA: {test_log['UA']*100:.2f},\n")
+                    # update the current best model
+                    if val_log['UA'] > best_eval_UA:
+                        best_eval_step = global_step
+                        print('Save model at {} global step'.format(global_step))
+                        model_saver.save(model, global_step)
+                    best_eval_UA = val_log['UA']
 
             if global_step >= opts.num_train_steps:
                 break
-
         if global_step >= opts.num_train_steps:
             break
-        n_epoch += 1
-        LOGGER.info(f"finished {n_epoch} epochs")
     pbar.close()
-
+    LOGGER.info(f"finished {opts.num_train_steps} steps in {time()- start} seconds!")
+    ### final use the best model tested on validation set.
+    LOGGER.info('Best eval steps {} found with UA {}'.format(best_eval_step,  best_eval_UA))
+    # need to do: only save the best model and read the results on validation set and testing set.
+    # use and dict to save the {step:val_log}
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

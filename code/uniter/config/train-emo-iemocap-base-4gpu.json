@@ -8,14 +8,14 @@
     "min_bb": 10,
     "num_bb": 36,
     "train_batch_size": 80,
-    "inf_batch_size": 80,
+    "inf_batch_size": 256,
     "cls_num": 4,
     "cls_dropout": 0.3,
-    "frozen_layers": 11,
+    "frozen_en_layers": 11,
     "gradient_accumulation_steps": 4,
     "learning_rate": 5e-05,
-    "valid_steps": 2000,
-    "num_train_steps": 10000,
+    "valid_steps": 100,
+    "num_train_steps": 1000,
     "optim": "adamw",
     "betas": [
         0.9,
@@ -31,15 +31,17 @@
     "n_workers": 4,
     "pin_mem": true,
     "train_txt_dbs": [
-        "/data7/emobert/txt_db/iemocap/"
+        "/data7/emobert/txt_db/movies_v1_th0.0_trn_2000.db"
     ],
     "train_img_dbs": [
-        "/data7/emobert/img_db/iemocap/"
+        "/data7/emobert/img_db_masked_meanstd/movies_v1"
     ],
-    "train_textId2target_path": "None", 
-    "val_textId2target_path": "None", 
-    "test_textId2target_path": "None", 
-    "val_db": "cv1",
-    "test__db": "cv2",
+    "train_textId2target_path": "/data7/emobert/target/movies_v1/train_id2target.json", 
+    "val_textId2target_path": "/data7/emobert/target/movies_v1/val_id2target.json", 
+    "test_textId2target_path": "/data7/emobert/target/movies_v1/test_id2target.json", 
+    "val_txt_db": "/data7/emobert/txt_db/movies_v1_th0.0_trn_2000.db",
+    "val_img_db": "/data7/emobert/img_db_masked_meanstd/movies_v1/",
+    "test_txt_db": "/data7/emobert/txt_db/movies_v1_th0.0_trn_2000.db",
+    "test_img_db": "/data7/emobert/img_db_masked_meanstd/movies_v1/",
     "model_config": "config/uniter-base.json"
 }

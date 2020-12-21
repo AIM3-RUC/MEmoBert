@@ -4,8 +4,9 @@ Licensed under the MIT license.
 
 training dataset with target
 """
-
+import json
 import torch
+import numpy as np
 from torch.nn.utils.rnn import pad_sequence
 from toolz.sandbox import unzip
 
@@ -31,7 +32,8 @@ class EmoCLsDataset(DetectFeatTxtTokDataset):
         0's padded so that (L + num_bb) % 8 == 0
         """
         example = super().__getitem__(i)
-        target = self.txt2target[i]
+        # self.ids[i] return strID '0'
+        target = self.txt2target[self.ids[i]]
 
         # text input
         input_ids = example['input_ids']
@@ -74,6 +76,9 @@ def emocls_collate(inputs):
     bs, max_tl = input_ids.size()
     out_size = attn_masks.size(1)
     gather_index = get_gather_index(txt_lens, num_bbs, bs, max_tl, out_size)
+
+    # transfer targets to tensor
+    targets = torch.from_numpy(np.array(targets).reshape([-1])).long()
 
     batch = {'input_ids': input_ids,
              'position_ids': position_ids,

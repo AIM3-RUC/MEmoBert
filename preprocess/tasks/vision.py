@@ -59,13 +59,15 @@ class VideoFaceTracker(BaseWorker):
         return save_dir
 
 class DensefaceExtractor(BaseWorker):
-    def __init__(self, restore_path, mean=96.3801, std=53.615868, device=0, smooth=False, logger=None):
+    def __init__(self, restore_path=None, mean=96.3801, std=53.615868, device=0, smooth=False, logger=None):
         """ extract densenet feature
             Parameters:
             ------------------------
             model: model class returned by function 'load_model'
         """
         super().__init__(logger=logger)
+        if restore_path is None:
+            restore_path = '/data2/zjm/tools/FER_models/denseface/DenseNet-BC_growth-rate12_depth100_FERPlus/model/epoch-200'
         self.model = self.load_model(restore_path)
         self.mean = mean
         self.std = std

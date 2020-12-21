@@ -103,7 +103,13 @@ if __name__ == '__main__':
     # utterance = "Because you're going to get us all fucking pinched. What are you, so stupid?".lower()
     # emol = EmoLexicon(path_config.lexicon_dir, lexicon_name, is_bert_token=True, bert_vocab_filepath=path_config.bert_vocab_filepath)
     
-    denseface = DensefaceExtractor(restore_path=path_config.denseface_restore_path, device=device, mean=48.85351, std=45.574123)
+    # mask
+    # mean = 48.85351
+    # std = 45.574123
+    # nomask
+    mean = 63.987095
+    std = 43.00519
+    denseface = DensefaceExtractor(restore_path=path_config.denseface_restore_path, device=device, mean=mean, std=std)
     face_selector = FaceSelector()
     extract_denseface = partial(extract_denseface_dir, denseface_model=denseface, face_selector=face_selector)
    

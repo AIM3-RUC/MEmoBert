@@ -12,26 +12,29 @@ import json
 import multiprocessing as mp
 import os
 from os.path import basename, exists
+from token import NOTEQUAL
 
 from cytoolz import curry
 import numpy as np
 from tqdm import tqdm
 import lmdb
-
 import msgpack
 import msgpack_numpy
 msgpack_numpy.patch()
 
-
 def _compute_valid_nbb(img_dump, conf_th, max_bb):
     # 由于不同于bbx, 这里的 face 是有顺序的, 所以需要返回具体的index.
-    valid_indexs = []
-    for index in range(len(img_dump['confidence'])):
-        if img_dump['confidence'][index] > conf_th:
-            valid_indexs.append(index)
-    if len(valid_indexs) > max_bb:
-        valid_indexs = valid_indexs[:max_bb]
-    return valid_indexs
+    if img_dump.get('confidence') is None:
+        return range(len(img_dump['soft_labels']))
+    else:
+        valid_indexs = []
+        for index in range(len(img_dump['confidence'])):
+            if img_dump['confidence'][index] > conf_th:
+                valid_indexs.append(index)
+        if len(valid_indexs) > max_bb:
+            valid_indexs = valid_indexs[:max_bb]
+        return valid_indexs
+
 
 
 @curry

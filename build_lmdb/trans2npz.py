@@ -6,7 +6,6 @@ from tqdm import tqdm
 from preprocess.FileOps import read_file
 
 '''
-
 将h5文件中的特征都转化为npz文件, 只需要存储特征和人脸即可
 '''
 def convert_hdf5_to_npz(hdf5_dir, output_dir, meta_data_dir, movie_names_path, start=None, end=None):
@@ -52,8 +51,8 @@ def convert_hdf5_to_npz(hdf5_dir, output_dir, meta_data_dir, movie_names_path, s
 if __name__ == "__main__":
     start = int(sys.argv[1])  # 0
     end =  int(sys.argv[2]) # 100
-    npzs_dir = '/data7/emobert/ft_npzs/movies_v1' 
-    hdf5_dir = '/data7/emobert/feature'
+    npzs_dir = '/data7/emobert/ft_npzs_nomask/movies_v1' 
+    hdf5_dir = '/data7/emobert/feature_nomask'
     meta_data_dir = '/data7/emobert/data_nomask/meta'
     movie_names_path = '/data7/emobert/data_nomask/movies_v1/movie_names.npy'
 
