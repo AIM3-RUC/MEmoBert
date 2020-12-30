@@ -10,6 +10,12 @@ from code.uniter.optim.adamw import AdamW
 
 
 def build_optimizer(model, opts):
+    '''
+    如果有多组参数 和 多个优化器
+    paremeters = [{'params': getattr(self, 'net'+net).parameters()} for net in self.model_names]
+    self.optimizer = torch.optim.Adam(paremeters, lr=opt.lr, betas=(opt.beta1, 0.999))
+    self.optimizers.append(self.optimizer)
+    '''
     param_optimizer = list(model.named_parameters())
     no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
     optimizer_grouped_parameters = [

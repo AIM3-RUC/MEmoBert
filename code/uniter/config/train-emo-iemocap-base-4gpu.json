@@ -1,21 +1,22 @@
 {
     "compressed_db": false,
-    "checkpoint": "/data7/emobert/exp/pretrain/movies_v1_uniter_4tasks/ckpt/model_step_100000.pt",
-    "output_dir": "/data7/emobert/exp/finetune/iemocap_based_on_movies_v1_uniter_4tasks/",
+    "checkpoint": "/data7/emobert/exp/pretrain/nomask_movies_v1_uniter_4tasks/ckpt/model_step_100000.pt",
+    "output_dir": "/data7/emobert/exp/finetune/iemocap_baseon_nomask_movies_v1_uniter_4tasks/",
     "max_txt_len": 30,
     "conf_th": 0.0,
     "max_bb": 100,
     "min_bb": 10,
     "num_bb": 36,
-    "train_batch_size": 80,
-    "inf_batch_size": 256,
+    "train_batch_size": 128,
+    "inf_batch_size": 128,
     "cls_num": 4,
     "cls_dropout": 0.3,
     "frozen_en_layers": 11,
-    "gradient_accumulation_steps": 4,
-    "learning_rate": 5e-05,
-    "valid_steps": 100,
-    "num_train_steps": 1000,
+    "patience": 5,
+    "gradient_accumulation_steps": 1,
+    "learning_rate": 1e-04,
+    "valid_steps": 50,
+    "num_train_steps": 2000,
     "optim": "adamw",
     "betas": [
         0.9,
@@ -24,24 +25,21 @@
     "dropout": 0.1,
     "weight_decay": 0.01,
     "grad_norm": 2.0,
-    "warmup_steps": 2000,
+    "warmup_steps": 100,
     "seed": 42,
     "full_val": true,
     "fp16": true,
     "n_workers": 4,
     "pin_mem": true,
     "train_txt_dbs": [
-        "/data7/emobert/txt_db/movies_v1_th0.0_trn_2000.db"
+        "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/trn.db"
     ],
     "train_img_dbs": [
-        "/data7/emobert/img_db_masked_meanstd/movies_v1"
+        "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_mean_std_movie_no_mask/img_db/iemocap/"
     ],
-    "train_textId2target_path": "/data7/emobert/target/movies_v1/train_id2target.json", 
-    "val_textId2target_path": "/data7/emobert/target/movies_v1/val_id2target.json", 
-    "test_textId2target_path": "/data7/emobert/target/movies_v1/test_id2target.json", 
-    "val_txt_db": "/data7/emobert/txt_db/movies_v1_th0.0_trn_2000.db",
-    "val_img_db": "/data7/emobert/img_db_masked_meanstd/movies_v1/",
-    "test_txt_db": "/data7/emobert/txt_db/movies_v1_th0.0_trn_2000.db",
-    "test_img_db": "/data7/emobert/img_db_masked_meanstd/movies_v1/",
+    "val_txt_db": "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val.db",
+    "val_img_db": "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_mean_std_movie_no_mask/img_db/iemocap/",
+    "test_txt_db": "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst.db",
+    "test_img_db": "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_mean_std_movie_no_mask/img_db/iemocap/",
     "model_config": "config/uniter-base.json"
 }

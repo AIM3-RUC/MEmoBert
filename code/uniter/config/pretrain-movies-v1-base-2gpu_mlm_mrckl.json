@@ -1,5 +1,5 @@
 {
-    "output_dir": "/data7/emobert/exp/pretrain/nomask_movies_v1_uniter_4tasks",
+    "output_dir": "/data7/emobert/exp/pretrain/nomask_movies_v1_uniter_mlm_mrckl_4tasks",
     "model_config": "config/uniter-base.json",
     "checkpoint": "/data7/emobert/resources/pretrained/uniter-base-uncased-init.pt",
     "mrm_prob": 0.15,
@@ -10,8 +10,8 @@
     "max_bb": 100,
     "min_bb": 10,
     "num_bb": 36,
-    "train_batch_size": 10240,
-    "val_batch_size": 10240,
+    "train_batch_size": 6400,
+    "val_batch_size": 6400,
     "gradient_accumulation_steps": 2,
     "learning_rate": 5e-05,
     "valid_steps": 5000,
@@ -39,15 +39,11 @@
                 "/data7/emobert/img_db_nomask/movies_v1/"
             ],
             "tasks": [
-                "itm",
                 "mlm",
-                "mrfr",
                 "mrckl"
             ],
             "mix_ratio": [
                 2,
-                2,
-                1,
                 1
             ]
         }
@@ -62,9 +58,7 @@
                 "/data7/emobert/img_db_nomask/movies_v1/"
             ],
             "tasks": [
-                "itm",
                 "mlm",
-                "mrfr",
                 "mrckl"
             ]
         }

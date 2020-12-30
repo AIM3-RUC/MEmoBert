@@ -3,11 +3,14 @@ Copyright (c) Microsoft Corporation.
 Licensed under the MIT license.
 
 UNITER finetuning for Image-Text Retrieval
+
+"checkpoint": "/data7/emobert/exp/pretrain/nomask_movies_v1_uniter_4tasks/ckpt/model_step_100000.pt",
 """
 import argparse
 import os
 from os.path import exists, join
 from time import time
+import json
 
 import torch
 from torch.nn.utils import clip_grad_norm_
@@ -25,7 +28,7 @@ from code.uniter.utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to
 from code.uniter.utils.distributed import (all_reduce_and_rescale_tensors, all_gather_list,
                                broadcast_tensors)
 from code.uniter.utils.save import ModelSaver, save_training_meta
-from code.uniter.utils.misc import NoOp, parse_with_config, set_dropout, set_random_seed
+from code.uniter.utils.misc import NoOp, parse_with_config, set_random_seed
 from code.uniter.utils.const import IMG_DIM
 
 
@@ -80,22 +83,26 @@ def main(opts):
     LOGGER.info("Loading Train Dataset {} {}".format(opts.train_txt_dbs, opts.train_img_dbs))
     train_datasets = []
     for txt_path, img_path in zip(opts.train_txt_dbs, opts.train_img_dbs):
+        # for cross-validation
+        txt_path = txt_path.format(opts.cv_no)
         img_db = all_img_dbs[img_path]
         txt_db = TxtTokLmdb(txt_path, opts.max_txt_len)
-        train_datasets.append(EmoCLsDataset(txt_db, img_db, opts.train_textId2target_path))
+        train_datasets.append(EmoCLsDataset(txt_db, img_db))
     train_dataset = ConcatDataset(train_datasets)
 
     # val
+    opts.val_txt_db = opts.val_txt_db.format(opts.cv_no)
     LOGGER.info(f"Loading Val Dataset {opts.val_img_db}, {opts.val_txt_db}")
     val_img_db = all_img_dbs[opts.val_img_db]
     val_txt_db = TxtTokLmdb(opts.val_txt_db, -1)
-    val_dataset = EmoCLsDataset(val_txt_db, val_img_db, opts.val_textId2target_path)
+    val_dataset = EmoCLsDataset(val_txt_db, val_img_db)
     val_dataloader = build_dataloader(val_dataset, emocls_collate, False, opts)
     # test
+    opts.test_txt_db = opts.test_txt_db.format(opts.cv_no)
     LOGGER.info(f"Loading Test Dataset {opts.test_img_db}, {opts.test_txt_db}")
     test_img_db = all_img_dbs[opts.test_img_db]
     test_txt_db = TxtTokLmdb(opts.test_txt_db, -1)
-    test_dataset = EmoCLsDataset(test_txt_db, test_img_db, opts.test_textId2target_path)
+    test_dataset = EmoCLsDataset(test_txt_db, test_img_db)
     test_dataloader = build_dataloader(test_dataset, emocls_collate, False, opts)
 
     # Prepare model
@@ -105,18 +112,17 @@ def main(opts):
         checkpoint = {}
 
     model = UniterForEmoRecognition.from_pretrained(opts.model_config, state_dict=checkpoint, \
-                            img_dim=IMG_DIM, cls_num=opts.cls_num, frozen_en_layers=opts.frozen_en_layers)
+                            img_dim=IMG_DIM, cls_num=opts.cls_num, frozen_en_layers=opts.frozen_en_layers, \
+                            cls_dropout=opts.cls_dropout, cls_type=opts.cls_type)
     model.to(device)
     # make sure every process has same model parameters in the beginning
     broadcast_tensors([p.data for p in model.parameters()], 0)
-    set_dropout(model, opts.dropout)
 
     # Prepare optimizer
     optimizer = build_optimizer(model, opts)
     model, optimizer = amp.initialize(model, optimizer,
                                       enabled=opts.fp16, opt_level='O2')
 
-    global_step = 0
     LOGGER.info(f"***** Running training on {n_gpu} GPUs *****")
     LOGGER.info("  Num examples = %d", len(train_dataset) * hvd.size())
     LOGGER.info("  Batch size = %d", opts.train_batch_size)
@@ -126,9 +132,16 @@ def main(opts):
     running_loss = RunningMeter('loss')
     model.train()
 
+    global_step = 0
     n_examples = 0
     best_eval_UA = 0
     best_eval_step = 0
+    steps2test_results = {}
+    steps2val_results = {}
+
+    # for early stop 
+    patience = opts.patience
+
     start = time()
     # quick hack for amp delay_unscale bug
     optimizer.zero_grad()
@@ -145,10 +158,12 @@ def main(opts):
                                 ) as scaled_loss:
                 scaled_loss.backward()
                 if not delay_unscale:
+                    # gather gradients from every processes do this before unscaling to 
+                    # make sure every process uses the same gradient scale
                     grads = [p.grad.data for p in model.parameters()
                              if p.requires_grad and p.grad is not None]
                     all_reduce_and_rescale_tensors(grads, float(1))
-
+                    
             running_loss(loss.item())
             if (step + 1) % opts.gradient_accumulation_steps == 0:
                 global_step += 1
@@ -174,8 +189,10 @@ def main(opts):
 
                 if global_step % opts.valid_steps == 0:
                     LOGGER.info(
-                        f"========================== Evaluation Step {global_step} "
-                        f"==========================")
+                        f"============ Evaluation Step {global_step} "
+                        f"============")
+                    LOGGER.info("Cur learning rate {}".format(lr_this_step))
+                    LOGGER.info("[Train] Loss {}".format(loss))
                     val_log = evaluation(model, val_dataloader)
                     TB_LOGGER.log_scaler_dict(
                         {f"valid/{k}": v for k, v in val_log.items()})
@@ -188,23 +205,33 @@ def main(opts):
                     LOGGER.info(f"[Testing] Loss: {test_log['loss']:.2f},"
                                 f"\t WA: {test_log['WA']*100:.2f},"
                                 f"\t UA: {test_log['UA']*100:.2f},\n")
-                    # update the current best model
+                    steps2val_results[global_step] = val_log
+                    steps2test_results[global_step] = test_log
+                    # update the current best model based on validation results
                     if val_log['UA'] > best_eval_UA:
                         best_eval_step = global_step
+                        best_eval_UA = val_log['UA']
+                        patience = opts.patience
                         print('Save model at {} global step'.format(global_step))
                         model_saver.save(model, global_step)
-                    best_eval_UA = val_log['UA']
+                    else:
+                        if global_step > opts.warmup_steps:
+                            patience -= 1 
+                        if opts.patience > 0 and patience <= 0:
+                            break
 
             if global_step >= opts.num_train_steps:
                 break
-        if global_step >= opts.num_train_steps:
+        if global_step >= opts.num_train_steps or patience <= 0:
             break
     pbar.close()
     LOGGER.info(f"finished {opts.num_train_steps} steps in {time()- start} seconds!")
     ### final use the best model tested on validation set.
-    LOGGER.info('Best eval steps {} found with UA {}'.format(best_eval_step,  best_eval_UA))
-    # need to do: only save the best model and read the results on validation set and testing set.
-    # use and dict to save the {step:val_log}
+    LOGGER.info('Val: Best eval steps {} found with UA {}'.format(best_eval_step,  best_eval_UA))
+    LOGGER.info('Test: {}'.format(steps2test_results[best_eval_step]))
+    steps2val_results['beststep'] = best_eval_step
+    json.dump(steps2test_results, open(join(opts.output_dir, 'log', 'step2test_reuslts.json'),'w',encoding='utf-8'))
+    json.dump(steps2val_results, open(join(opts.output_dir, 'log', 'step2val_reuslts.json'),'w',encoding='utf-8'))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -215,11 +242,20 @@ if __name__ == "__main__":
     parser.add_argument("--checkpoint",
                         default=None, type=str,
                         help="pretrained MLM")
-
     parser.add_argument("--output_dir", default=None, type=str,
                         help="The output directory where the model "
                              "checkpoints will be written.")
-
+    # self-modify
+    parser.add_argument('--cv_no', type=int, required=True,
+                        help='which cross-valiation folder')
+    parser.add_argument('--frozen_en_layers', type=int, required=True,
+                        help='frozen how many layers of the pretrained model')
+    parser.add_argument("--cls_dropout", default=0.3, type=float,
+                        help="tune dropout regularization of final classification layer")
+    parser.add_argument("--cls_type", default='vqa',
+                        help="for the type of the classfier layer")
+    parser.add_argument('--postfix', required=True, default='None',
+                        help='postfix for the output dir')
     # Prepro parameters
     parser.add_argument('--max_txt_len', type=int, default=60,
                         help='max number of tokens in text (BERT BPE)')
@@ -237,14 +273,9 @@ if __name__ == "__main__":
     parser.add_argument("--train_batch_size", default=128, type=int,
                         help="Total batch size for training. "
                              "(batch by examples)")
-    parser.add_argument("--negative_size", default=1, type=int,
-                        help="Number of negative samples per positive sample")
     parser.add_argument("--inf_batch_size", default=128, type=int,
                         help="batch size for running inference. "
                              "(used for validation, and evaluation)")
-
-    parser.add_argument("--margin", default=0.2, type=float,
-                        help="margin of ranking loss")
     parser.add_argument('--gradient_accumulation_steps', type=int, default=16,
                         help="Number of updates steps to accumualte before "
                              "performing a backward/update pass.")
@@ -252,7 +283,7 @@ if __name__ == "__main__":
                         help="The initial learning rate for Adam.")
     parser.add_argument("--valid_steps", default=1000, type=int,
                         help="Run validation every X steps")
-    parser.add_argument("--num_train_steps", default=100000, type=int,
+    parser.add_argument("--num_train_steps", default=10000, type=int,
                         help="Total number of training updates to perform.")
     parser.add_argument("--optim", default='adam',
                         choices=['adam', 'adamax', 'adamw'],
@@ -268,12 +299,12 @@ if __name__ == "__main__":
     parser.add_argument("--warmup_steps", default=4000, type=int,
                         help="Number of training steps to perform linear "
                              "learning rate warmup for.")
+    parser.add_argument("--patience", default=5, type=int,
+                        help="Early stop patience")
 
     # device parameters
     parser.add_argument('--seed', type=int, default=42,
                         help="random seed for initialization")
-    parser.add_argument('--full_val', action='store_true',
-                        help="Always run full evaluation during training")
     parser.add_argument('--fp16', action='store_true',
                         help="Whether to use 16-bit float precision instead "
                              "of 32-bit")
@@ -287,6 +318,10 @@ if __name__ == "__main__":
 
     args = parse_with_config(parser)
 
+    # for cross-validation
+    args.output_dir = args.output_dir + '/{}'.format(args.cv_no) + \
+                '/drop{}_frozen{}_{}_{}'.format(args.cls_dropout, args.frozen_en_layers, \
+                args.cls_type, args.postfix)
     if not exists(args.output_dir):
         print('Output {}'.format(args.output_dir))
         os.makedirs(args.output_dir)

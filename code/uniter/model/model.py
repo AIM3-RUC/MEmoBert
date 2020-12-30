@@ -301,6 +301,11 @@ class UniterEncoder(nn.Module):
 
 class UniterModel(UniterPreTrainedModel):
     """ Modification for Joint Vision-Language Encoding
+    BertLayer format:
+        hidden_states = self.dense(hidden_states)
+        hidden_states = self.dropout(hidden_states)
+        hidden_states = self.LayerNorm(hidden_states + input_tensor)
+    So the final output is layernorm.
     """
     def __init__(self, config, img_dim):
         super().__init__(config)

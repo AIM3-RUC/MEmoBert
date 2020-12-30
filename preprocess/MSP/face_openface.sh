@@ -2,8 +2,17 @@
 openface_root="/root/tools/openface_tool/OpenFace/build/bin/"
 frame_dir_name="frame"
 face_dir_name="openface"
+source_list="source.lst"
+target_list="target.lst"
 utt_id_lst="utt_ids.txt"
 
+if [ -f $source_list ];then
+    rm $source_list
+fi
+
+if [ -f $target_list ];then 
+    rm $target_list
+fi
 
 while read utt_id; do
     echo $utt_id

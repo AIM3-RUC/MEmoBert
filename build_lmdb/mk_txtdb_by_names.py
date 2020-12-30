@@ -3,6 +3,7 @@ Copyright (c) Microsoft Corporation.
 Licensed under the MIT license.
 
 preprocess json raw input to lmdb
+把 target 融合到 txtdb 中.
 """
 import argparse
 import os
@@ -52,6 +53,7 @@ def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_sampl
     for segmentId, value in tqdm(contents.items(), desc='building txtdb', total=len(contents.keys())):
         img_fname = segmentId + '.npz'
         if filter_dict is not None and filter_dict.get(img_fname) is None:
+            print('some thing wrong~~~ {}'.format(img_fname))
             continue
         for sent in value['txt']:
             example = {}
@@ -66,6 +68,7 @@ def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_sampl
             example['toked_caption'] = tokens
             example['input_ids'] = input_ids
             example['img_fname'] = img_fname
+            example['target'] = value['label']
             db[str(_id)] = example
             _id += 1
         count_img += 1
@@ -124,11 +127,11 @@ if __name__ == '__main__':
 '''
 根据人脸特征数据来构建文本数据，一个文本对应一段video.
 export PYTHONPATH=/data7/MEmoBert
-for i in `seq 1 10`; do
+for i in `seq 10 12`; do
   for setname in val tst trn; do
-    python mk_txtdb_by_names.py --input /data7/emobert/exp/evaluation/IEMOCAP/refs/${i}/${setname}_ref.json \
-                    --output /data7/emobert/exp/evaluation/IEMOCAP/txt_db/${i}/${setname}.db \
-                    --toker bert-base-uncased  --dataset_name iemocap_${setname}
+    python mk_txtdb_by_names.py --input /data7/emobert/exp/evaluation/MSP-IMPROV/feature/text/${i}/${setname}.json \
+                    --output /data7/emobert/exp/evaluation/MSP-IMPROV/txt_db/${i}/${setname}.db \
+                    --toker bert-base-uncased  --dataset_name msp_${setname}
   done
 done
 '''

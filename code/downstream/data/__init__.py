@@ -11,9 +11,8 @@ Now you can use the dataset class by specifying flag '--dataset_mode dummy'.
 See our template dataset class 'template_dataset.py' for more details.
 """
 import importlib
-import torch.utils.data
-from data.base_dataset import BaseDataset
-
+import torch.utils.data 
+from torch.utils.data import Dataset
 
 def find_dataset_using_name(dataset_name):
     """Import the module "data/[dataset_name]_dataset.py".
@@ -29,7 +28,7 @@ def find_dataset_using_name(dataset_name):
     target_dataset_name = dataset_name.replace('_', '') + 'dataset'
     for name, cls in datasetlib.__dict__.items():
         if name.lower() == target_dataset_name.lower() \
-           and issubclass(cls, BaseDataset):
+           and issubclass(cls, Dataset):
             dataset = cls
 
     if dataset is None:
@@ -37,67 +36,18 @@ def find_dataset_using_name(dataset_name):
 
     return dataset
 
-
-def get_option_setter(dataset_name):
-    """Return the static method <modify_commandline_options> of the dataset class."""
-    dataset_class = find_dataset_using_name(dataset_name)
-    return dataset_class.modify_commandline_options
-
-
-def create_dataset(opt):
-    """Create a dataloader given the option.
-
-    This function wraps the class CustomDatasetDataLoader.
-        This is the main interface between this package and 'train.py'/'test.py'
-
-    Example:
-        >>> from data import create_dataset
-        >>> dataset = create_dataset(opt)
-    """
-    data_loader = CustomDatasetDataLoader(opt)
-    return data_loader
-
-def create_trn_val_dataset(opt):
-    """Create two dataloader given the option, one for trn, another for val
-
-    This function wraps the class CustomDatasetDataLoader.
-        This is the main interface between this package and 'train.py'/'test.py'
-
-    Example:
-        >>> from data import create_trn_val_dataset
-        >>> dataset = create_dataset(opt)
-    """
-    trn_dataloader = CustomDatasetDataLoader(opt, is_train=True)
-    val_dataloader = CustomDatasetDataLoader(opt, is_train=False)
-    return trn_dataloader, val_dataloader
-
-def create_trn_val_tst_dataset(opt):
-    """Create two dataloader given the option, one for trn, another for val
-
-    This function wraps the class CustomDatasetDataLoader.
-        This is the main interface between this package and 'train.py'/'test.py'
-
-    Example:
-        >>> from data import create_trn_val_dataset
-        >>> dataset = create_dataset(opt)
-    """
-    trn_dataloader = CustomDatasetDataLoader(opt, set_name='trn')
-    val_dataloader = CustomDatasetDataLoader(opt, set_name='val')
-    tst_dataloader = CustomDatasetDataLoader(opt, set_name='tst')
-    return trn_dataloader, val_dataloader, tst_dataloader
-
 class CustomDatasetDataLoader():
     """Wrapper class of Dataset class that performs multi-threaded data loading"""
 
-    def __init__(self, opt, **kwargs):
+    def __init__(self, opt, dataset_mode, ft_dir, target_dir, setname='trn', is_train=True, **kwargs):
         """Initialize this class
 
         Step 1: create a dataset instance given the name [dataset_mode]
         Step 2: create a multi-threaded data loader.
         """
         self.opt = opt
-        dataset_class = find_dataset_using_name(opt.dataset_mode)
-        self.dataset = dataset_class(opt, **kwargs)
+        dataset_class = find_dataset_using_name(dataset_mode)
+        self.dataset = dataset_class(opt, ft_dir, target_dir, setname, **kwargs)
         print("dataset [%s] was created" % type(self.dataset).__name__)
         
         ''' Whether to use manual collate function defined in dataset.collate_fn'''
@@ -105,28 +55,25 @@ class CustomDatasetDataLoader():
             self.dataloader = torch.utils.data.DataLoader(
                 self.dataset,
                 batch_size=opt.batch_size,
-                shuffle=not opt.serial_batches,
+                shuffle=is_train,
                 num_workers=int(opt.num_threads),
-                drop_last=False,
+                drop_last=is_train,
                 collate_fn=self.dataset.collate_fn
             )
-
         else:
             self.dataloader = torch.utils.data.DataLoader(
                 self.dataset,
                 batch_size=opt.batch_size,
-                shuffle=not opt.serial_batches,
+                shuffle=is_train,
                 num_workers=int(opt.num_threads),
-                drop_last=False
+                drop_last=is_train
             )
 
     def __len__(self):
         """Return the number of data in the dataset"""
-        return min(len(self.dataset), self.opt.max_dataset_size)
+        return len(self.dataset)
 
     def __iter__(self):
         """Return a batch of data"""
         for i, data in enumerate(self.dataloader):
-            if i * self.opt.batch_size >= self.opt.max_dataset_size:
-                break
             yield data

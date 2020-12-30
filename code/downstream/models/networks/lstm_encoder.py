@@ -38,7 +38,8 @@ class LSTMEncoder(nn.Module):
         self.pool_len = pool_len
 
         if self.embd_method == 'maxpool':
-            self.maxpool = nn.MaxPool1d(self.pool_len)
+            # self.maxpool = nn.MaxPool1d(self.pool_len)
+            pass
         
         elif self.embd_method == 'attention':
             self.attention_vector_weight = nn.Parameter(torch.Tensor(hidden_size, 1))
@@ -66,8 +67,10 @@ class LSTMEncoder(nn.Module):
         return sentence_vector
 
     def embd_maxpool(self, r_out, h_n):
-        embd = self.maxpool(r_out.transpose(1,2))   # r_out.size()=>[batch_size, seq_len, hidden_size]
-                                                    # r_out.transpose(1, 2) => [batch_size, hidden_size, seq_len]
+        in_data = r_out.transpose(1,2)
+        embd = F.max_pool1d(in_data, in_data.size(2)).squeeze(2)    # r_out.size()=>[batch_size, seq_len, hidden_size]
+                                                                    # r_out.transpose(1, 2) => [batch_size, hidden_size, seq_len]
+        # F.max_pool1d(activation, activation.size()[2]).squeeze(2)
         return embd.squeeze()
 
     def embd_last(self, r_out, h_n):

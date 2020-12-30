@@ -9,8 +9,6 @@ from tqdm import tqdm
 
 import torch
 from horovod import torch as hvd
-from torch.nn import functional as F
-from apex.normalization.fused_layer_norm import FusedLayerNorm as LayerNorm
 from code.uniter.model.model import UniterModel, UniterPreTrainedModel
 from code.uniter.utils.misc import NoOp
 
@@ -63,6 +61,7 @@ def extracting(model, loader):
         pbar = NoOp()
     txt_real_sequence_outputs = []
     img_real_sequence_outputs = []
+    targets = []
     for i, batch in enumerate(loader):
         txt_sequence_output, txt_lens, img_sequence_output, img_lens = model(batch)
         assert txt_sequence_output.size(0) == len(txt_lens) == img_sequence_output.size(0) == len(img_lens)
@@ -70,8 +69,9 @@ def extracting(model, loader):
             # txt_len = cls + txt + sep
             txt_real_sequence_outputs.append(txt_sequence_output[j][1:txt_lens[j]-1].cpu().numpy())
             img_real_sequence_outputs.append(img_sequence_output[j][:img_lens[j]].cpu().numpy())
+            targets.append(batch['targets'][j].cpu().numpy())
         pbar.update(1)
     pbar.close()
-    print('[P{}] txt {} img {} '.format(hvd.rank(), \
-            len(txt_real_sequence_outputs), len(img_real_sequence_outputs)))
-    return txt_real_sequence_outputs, img_real_sequence_outputs
+    print('[P{}] txt {} img {} target {}'.format(hvd.rank(), \
+            len(txt_real_sequence_outputs), len(img_real_sequence_outputs), len(targets)))
+    return txt_real_sequence_outputs, img_real_sequence_outputs, targets

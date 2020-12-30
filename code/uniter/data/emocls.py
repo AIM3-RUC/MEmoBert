@@ -9,17 +9,14 @@ import torch
 import numpy as np
 from torch.nn.utils.rnn import pad_sequence
 from toolz.sandbox import unzip
-
 from code.uniter.data.data import (DetectFeatTxtTokDataset, DetectFeatLmdb, TxtTokLmdb, \
                    pad_tensors, get_gather_index)
                    
 class EmoCLsDataset(DetectFeatTxtTokDataset):
-    def __init__(self, txt_db, img_db, text2target_path):
+    def __init__(self, txt_db, img_db):
         assert isinstance(txt_db, TxtTokLmdb)
         assert isinstance(img_db, DetectFeatLmdb)
         super().__init__(txt_db, img_db)
-        # {'1':0}
-        self.txt2target = json.load(open(text2target_path))
 
     def __getitem__(self, i):
         """
@@ -32,8 +29,7 @@ class EmoCLsDataset(DetectFeatTxtTokDataset):
         0's padded so that (L + num_bb) % 8 == 0
         """
         example = super().__getitem__(i)
-        # self.ids[i] return strID '0'
-        target = self.txt2target[self.ids[i]]
+        target = example['target'] # int
 
         # text input
         input_ids = example['input_ids']
@@ -41,7 +37,6 @@ class EmoCLsDataset(DetectFeatTxtTokDataset):
 
         # img input Jinming remove the norm-bbx fts
         img_feat, num_bb = self._get_img_feat(example['img_fname'])
-
         attn_masks = torch.ones(len(input_ids) + num_bb, dtype=torch.long)
 
         return input_ids, img_feat, attn_masks, target
@@ -68,17 +63,15 @@ def emocls_collate(inputs):
     # image batches
     num_bbs = [f.size(0) for f in img_feats]
     img_feat = pad_tensors(img_feats, num_bbs) # (n, max_num_nbb, dim)
-    img_position_ids = torch.arange(0, img_feat.size(1), dtype=torch.long
-                                ).unsqueeze(0)
+    img_position_ids = torch.arange(0, img_feat.size(1), dtype=torch.long).unsqueeze(0)
 
     attn_masks = pad_sequence(attn_masks, batch_first=True, padding_value=0)
 
     bs, max_tl = input_ids.size()
     out_size = attn_masks.size(1)
     gather_index = get_gather_index(txt_lens, num_bbs, bs, max_tl, out_size)
-
-    # transfer targets to tensor
-    targets = torch.from_numpy(np.array(targets).reshape([-1])).long()
+    # transfer targets to tensor (batch-size)
+    targets = torch.from_numpy(np.array(targets).reshape((-1))).long()
 
     batch = {'input_ids': input_ids,
              'position_ids': position_ids,

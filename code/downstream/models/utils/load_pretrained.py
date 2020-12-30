@@ -16,6 +16,6 @@ def load_pretrained_model(model_class, checkpoints_dir, cv, gpu_ids):
     config.gpu_ids = gpu_ids                       # set gpu to the same
     model = model_class(config)
     model.cuda()
-    model.load_networks_cv(path)
+    model.load_networks_folder(path)
     model.eval()
     return model

@@ -18,20 +18,32 @@ from apex.normalization.fused_layer_norm import FusedLayerNorm as LayerNorm
 from code.uniter.model.layer import GELU
 from sklearn.metrics import accuracy_score, recall_score, f1_score, confusion_matrix
 
-
 class UniterForEmoRecognition(UniterPreTrainedModel):
     """ Finetune UNITER for Emotion Recognition
     """
-    def __init__(self, config, img_dim, cls_num, frozen_en_layers):
+    def __init__(self, config, img_dim, cls_num, frozen_en_layers, cls_dropout=0.5, cls_type='vqa'):
+        '''
+        cls_type: "emocls" is similar with  https://github.com/brightmart/roberta_zh/blob/master/run_classifier.py#L478
+        and "vqa" is similar with official-uniter/model/vqa.py 
+        '''
         super().__init__(config)
         self.uniter = UniterModel(config, img_dim)
-        self.output = nn.Sequential(
-            nn.Linear(config.hidden_size, config.hidden_size), 
-            GELU(),
-            LayerNorm(config.hidden_size, eps=1e-12),
-            nn.Dropout(self.config.cls_dropout_prob),
-            nn.Linear(config.hidden_size, cls_num)
-            )
+        ## for paraphrase loss
+        if cls_type == 'emocls':
+            self.output = nn.Sequential(
+                nn.Dropout(cls_dropout),
+                nn.Linear(config.hidden_size, cls_num)
+                )
+        elif cls_type == 'vqa':
+            self.output = nn.Sequential(
+                nn.Linear(config.hidden_size, config.hidden_size*2), 
+                GELU(),
+                LayerNorm(config.hidden_size*2, eps=1e-12),
+                nn.Linear(config.hidden_size*2, cls_num)
+                )
+        else:
+            print("------- [Error] classifier type {}".format(cls_type))
+            exit(0)
         self.frozen_en_layers = frozen_en_layers
         self.criterion = CrossEntropyLoss()
         self.apply(self.init_weights)
@@ -49,6 +61,7 @@ class UniterForEmoRecognition(UniterPreTrainedModel):
         logits = self.output(pooled_output)
         # one-hot targets
         self.pred = torch.softmax(logits, dim=-1)
+        
         if compute_loss:
             cls_loss = self.criterion(logits, batch['targets'])
             return cls_loss

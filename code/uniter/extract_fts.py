@@ -18,10 +18,9 @@ from apex import amp
 from horovod import torch as hvd
 
 from code.uniter.data import (PrefetchLoader,
-                  DetectFeatLmdb, TxtTokLmdb, InferDataset, infer_collate)
+                  DetectFeatLmdb, TxtTokLmdb, EmoCLsDataset, emocls_collate)
 from code.uniter.model.infer import UniterForExtracting, extracting
 from code.uniter.utils.logger import LOGGER
-from code.uniter.utils.distributed import all_gather_list
 from code.uniter.utils.const import IMG_DIM
 
 def main(opts):
@@ -42,7 +41,7 @@ def main(opts):
     # load text db
     txt_db = TxtTokLmdb(opts.txt_db, -1)
     # load the dataset
-    infer_dataset = InferDataset(txt_db, img_db)
+    infer_dataset = EmoCLsDataset(txt_db, img_db)
 
     # Prepare model
     checkpoint = torch.load(opts.checkpoint)
@@ -56,13 +55,15 @@ def main(opts):
                                  num_workers=opts.n_workers,
                                  pin_memory=opts.pin_mem,
                                  shuffle=False,
-                                 collate_fn=infer_collate)
+                                 drop_last=False,
+                                 collate_fn=emocls_collate)
     infer_dataloader = PrefetchLoader(infer_dataloader)
 
-    txt_features, img_features = extracting_mm_fts(model, infer_dataloader)
-    print('Final Feature txt {} img {}'.format(len(txt_features), len(img_features)))
+    txt_features, img_features, targets = extracting_mm_fts(model, infer_dataloader)
+    print('Final Feature txt {} img {} target {}'.format(len(txt_features), len(img_features), len(targets)))
     np.save(os.path.join(opts.output_dir, 'txt_ft.npy'), txt_features)
     np.save(os.path.join(opts.output_dir, 'face_ft.npy'), img_features)
+    np.save(os.path.join(opts.output_dir, 'label.npy'), targets)
     # Manually check the samples' length 
     for i in range(5):
         print('\ttxt original {} tokens fts {}'.format(txt_db.id2len[str(i)], txt_features[i].shape))
@@ -73,15 +74,13 @@ def extracting_mm_fts(model, eval_loader):
     model.eval()
     st = time()
     LOGGER.info("start running Image/Text Retrieval evaluation ...")
-    txt_features, img_features = extracting(model, eval_loader)
+    txt_features, img_features, targets = extracting(model, eval_loader)
     tot_time = time()-st
     LOGGER.info(f"extracting finished in {int(tot_time)} seconds, ")
-    return txt_features, img_features
-
+    return txt_features, img_features, targets
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-
     # Required parameters
     parser.add_argument("--txt_db", default=None, type=str,
                         help="The input train corpus. (LMDB)")
@@ -121,4 +120,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
+        
     main(args)
