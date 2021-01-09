@@ -36,15 +36,26 @@ def extract_features_h5(extract_func, get_input_func, utt_ids, save_path):
             continue
     h5f.close()
 
-
 def extract_one_video(video_dir, denseface_model):
+    using_frame = False
     if detect_type == 'seetaface':
         imgs = glob.glob(video_dir+'/*.jpg')
+        imgs = sorted(imgs, key=lambda x:int(x.split('/')[-1][:-4]))
+        frames = glob.glob(video_dir.replace('face', 'frame')+'/*.jpg')
     else:
         imgs = glob.glob(video_dir+'/*.bmp')
+        imgs = sorted(imgs, key=lambda x:int(x.split('/')[-1].split('_')[-1][:-4]))
+        frames = glob.glob('/'.join(video_dir.replace('openface', 'frame').split('/')[:-1])+'/*.jpg')
+    frames = sorted(frames, key=lambda x:int(x.split('/')[-1][:-4]))
     if len(imgs) == 0:
         print(video_dir, 'has no imgs, double check it')
-        return None
+        if using_frame:
+            imgs = frames
+            print(f'Using frames instead. frame len:{len(frames)}')
+            if len(frames) == 0:
+                return None
+        else:
+            return None
     feat_pred = [denseface_model(x) for x in imgs]
     feats, pred = map(list, unzip(feat_pred))
     feats = np.concatenate(feats, axis=0)
@@ -106,32 +117,44 @@ def split_by_utt_id(in_h5f, utt_ids, save_path):
                 _group[key] = deepcopy(tgt[key][()])
     
     out_h5f.close()
+
+def get_all_utt_ids():
+    target_root = '/data7/MEmoBert/evaluation/IEMOCAP/target/1'
+    ans = []
+    for set_name in ['trn', 'val', 'tst']:
+        utt_ids = np.load(os.path.join(target_root, f'{set_name}_int2name.npy')).tolist()
+        utt_ids = list(map(lambda x: x[0].decode('utf8'), utt_ids))
+        ans += utt_ids
+    return ans
     
 
 if __name__ == '__main__':
     detect_type = sys.argv[1]
     output_dir = '/data7/MEmoBert/evaluation/IEMOCAP/feature'
     if detect_type == 'seetaface':
-        name = "denseface_seetaface_mean_std_movie_no_mask"
+        # name = "denseface_seetaface_mean_std_movie_no_mask"
+        name = "denseface_seetaface_iemocap_mean_std"
     elif detect_type == 'openface':
-        name = "denseface_openface_mean_std_movie_no_mask"
+        # name = "denseface_openface_mean_std_movie_no_mask"
+        name = "denseface_openface_iemocap_mean_std"
     else:
         raise ValueError('detect type must be openface or seetaface')
 
     if not os.path.exists(output_dir + '/' + name):
         os.mkdir(output_dir + '/' + name)
 
-    utt_ids = open('/data7/MEmoBert/evaluation/IEMOCAP/utt_ids.txt').readlines()
-    utt_ids = list(map(lambda x: x.strip(), utt_ids))
+    # utt_ids = open('/data7/MEmoBert/evaluation/IEMOCAP/utt_ids.txt').readlines()
+    # utt_ids = list(map(lambda x: x.strip(), utt_ids))
+    utt_ids = get_all_utt_ids()
     # iemocap
-    # images_mean = 85.7
-    # images_std = 47.5
+    images_mean = 131.0754
+    images_std = 47.858177
     # movie with mask
     # images_mean=48.85351
     # images_std=45.574123
     # movie without mask
-    images_mean=63.987095
-    images_std=43.00519
+    # images_mean=63.987095
+    # images_std=43.00519
     restore_path = '/data2/zjm/tools/FER_models/denseface/DenseNet-BC_growth-rate12_depth100_FERPlus/model/epoch-200'
     model = DensefaceExtractor(restore_path, mean=images_mean, std=images_std)
     extract_func = partial(extract_one_video, denseface_model=model)
@@ -142,3 +165,5 @@ if __name__ == '__main__':
         extract_features_h5(extract_func, get_face_dir_openface, utt_ids, save_path)
     save_path = os.path.join(output_dir, name, 'all.h5')
     split_h5(save_path, save_root=os.path.join(output_dir, name))
+    # PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=1 python extract_denseface.py openface
+    # PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=2 python extract_denseface.py seetaface

@@ -7,6 +7,10 @@ import numpy as np
 from PIL import Image
 import torchvision.transforms as transforms
 
+def init_weight():
+    pass
+
+
 def get_params(opt, size):
     w, h = size
     new_h = h

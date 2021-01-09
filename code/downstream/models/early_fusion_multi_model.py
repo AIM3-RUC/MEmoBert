@@ -16,6 +16,7 @@ class EarlyFusionMultiModel(nn.Module):
         """
         super(EarlyFusionMultiModel, self).__init__()
         # our expriment is on 10 fold setting, teacher is on 5 fold setting, the train set should match
+        self.opt = opt
         self.device = torch.device("cuda:{}".format(opt.gpu_id))
         self.loss_names = ['CE']
         self.modality = opt.modality
@@ -41,7 +42,8 @@ class EarlyFusionMultiModel(nn.Module):
         self.criterion_ce = CrossEntropyLoss()
         
         # 全都采用默认的初始化方法
-        # self.apply(init_weights)
+        if self.opt.init_type != 'none':
+            init_weights(self, init_type=self.opt.init_type)
 
     def set_input(self, batch):
         """
@@ -81,3 +83,4 @@ class EarlyFusionMultiModel(nn.Module):
     def backward(self):
         """Calculate the loss for back propagation"""
         self.loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.parameters(), self.opt.grad_norm)

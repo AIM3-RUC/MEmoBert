@@ -1,0 +1,16 @@
+跟www baseline的差异：
+1. www 用的是 adam + 1e-3 的学习率, downstream 是 1e-4 的学习率
+    为啥用 1e-3 这么高的学习率？ 确实有用。--OK
+
+2. www 的 adam 的 betas=(opt.beta1=0.5, 0.999) # cyclegan 里面是 0.5 和 0.999.
+而 downstream 采用uniter中finetune的配置是 'betas':[0.9, 0.98] --OK
+
+3. www 的梯度裁剪是         
+torch.nn.utils.clip_grad_norm_(getattr(self, 'net'+model).parameters(), 0.1) --OK
+而 downstream 的梯度裁剪是 没有设置。
+
+4. www 初始化是 normal 而 downstream 的初始化是 默认的。
+对比采用更好的初始化策略 --OK
+
+ef_original_config.py  --原始的denseface的特征，直接从h5读取
+ef_pretrained_config.py  --从EmoBert抽取的特征，抽取好的 视觉特征 以及 文本特征

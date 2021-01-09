@@ -52,6 +52,7 @@ class CustomDatasetDataLoader():
         
         ''' Whether to use manual collate function defined in dataset.collate_fn'''
         if self.dataset.manual_collate_fn: 
+            print('Use the self batch collection methods')
             self.dataloader = torch.utils.data.DataLoader(
                 self.dataset,
                 batch_size=opt.batch_size,

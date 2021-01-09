@@ -1,16 +1,14 @@
-import logging
 import os, sys
-from tqdm import tqdm
+import fcntl
 import numpy as np
 import argparse
 import torch
 from torch.optim import lr_scheduler
 from os.path import join
-from code.downstream.configs import ef_config as config
+from code.downstream.configs import ef_original_config as config
 from code.downstream.data import CustomDatasetDataLoader
 from code.downstream.models.early_fusion_multi_model import EarlyFusionMultiModel
 from code.downstream.utils.logger import get_logger
-from code.uniter.optim.misc import build_optimizer
 from code.uniter.utils.save import ModelSaver
 from sklearn.metrics import accuracy_score, recall_score, f1_score, confusion_matrix
 
@@ -19,8 +17,9 @@ def make_path(path):
         os.makedirs(path)
 
 def clean_chekpoints(ckpt_dir, store_epoch):
+    # model_step_number.pt
     for checkpoint in os.listdir(ckpt_dir):
-        if not checkpoint.startswith(str(store_epoch)+'_') and checkpoint.endswith('pth'):
+        if not checkpoint.endswith('_{}.pt'.format(store_epoch)):
             os.remove(os.path.join(ckpt_dir, checkpoint))
 
 def parse_with_config(parser):
@@ -37,22 +36,36 @@ def parse_with_config(parser):
     return args
 
 def lambda_rule(epoch):
-    assert opt.remain_epoch < opt.max_epoch
-    niter = opt.remain_epoch
-    niter_decay = opt.max_epoch - opt.remain_epoch
-    lr_l = 1.0 - max(0, epoch + 1 - niter) / float(niter_decay + 1)
-    return lr_l
+    '''
+    比较复杂的策略, 返回的是学习率的衰减系数，而不是当前学习率
+    在 warmup 阶段： 学习率保持很小的值，opt.learning_rate * opt.warmup_decay
+    在 warmup < epoch <fix_lr_epoch 阶段，给定原始的学习率先训练几轮，10轮左右，经验值
+    在 fix_lr_epoch < epoch 阶段，线性的进行学习率的降低
+    '''
+    if epoch < opt.warmup_epoch:
+        return opt.warmup_decay
+    else:
+        assert opt.fix_lr_epoch < opt.max_epoch
+        niter = opt.fix_lr_epoch
+        niter_decay = opt.max_epoch - opt.fix_lr_epoch
+        lr_l = 1.0 - max(0, epoch + 1 - niter) / float(niter_decay + 1)
+        return lr_l
 
 def main(opt):
     ## for building the basic paths
-    output_dir = join(config.result_dir, config.pretained_ft_type, config.model_name) # get logger path
+    output_dir = join(config.result_dir, opt.pretained_ft_type, opt.model_name) # get logger path
         # for testing the parameters of the model
-    setting_name = '{}_dp{}_bn{}_A{}_V{}_L{}_F{}_run{}'.format(opt.modality, opt.dropout_rate, \
+    setting_name = '{}_dp{}_bn{}_A{}_V{}_L{}_F{}_run{}_{}'.format(opt.modality, opt.dropout_rate, \
         opt.bn, opt.a_hidden_size, opt.v_hidden_size, opt.l_hidden_size, \
-        opt.mid_fusion_layers, opt.run_idx)
-    
+        opt.mid_fusion_layers, opt.run_idx, opt.postfix)
+
+    output_tsv = join(output_dir, setting_name, 'result.tsv')
     output_dir = join(output_dir, setting_name, str(opt.cvNo))
+    
     make_path(output_dir)
+    if not os.path.exists(output_tsv):
+        open(output_tsv, 'w').close()  # touch output_csv
+
     log_dir = join(output_dir, 'log')
     checkpoint_dir = join(output_dir, 'ckpts')
     make_path(log_dir)
@@ -61,13 +74,15 @@ def main(opt):
     logger.info('[Output] {}'.format(output_dir))
 
     ## build ft paths and target
-    ft_dir = os.path.join(config.ft_dir, config.pretained_ft_type, str(opt.cvNo)) # setname + **.npy
-    target_dir = ft_dir # save as setname + **.npy
+    # ft_dir = os.path.join(config.ft_dir, opt.pretained_ft_type, str(opt.cvNo)) # setname + **.npy
+    # target_dir = ft_dir # save as setname + **.npy
+    ft_dir = config.ft_dir
+    target_dir = config.target_dir
 
     ## create a dataset given opt.dataset_mode and other options, the trn_db neither Dataset nor Dataloader
-    trn_db = CustomDatasetDataLoader(opt, config.dataset_mode, ft_dir, target_dir, setname='trn', is_train=True)
-    val_db = CustomDatasetDataLoader(opt, config.dataset_mode, ft_dir, target_dir, setname='val', is_train=False)
-    tst_db = CustomDatasetDataLoader(opt, config.dataset_mode, ft_dir, target_dir, setname='tst', is_train=False)
+    trn_db = CustomDatasetDataLoader(opt, opt.dataset_mode, ft_dir, target_dir, setname='trn', is_train=True)
+    val_db = CustomDatasetDataLoader(opt, opt.dataset_mode, ft_dir, target_dir, setname='val', is_train=False)
+    tst_db = CustomDatasetDataLoader(opt, opt.dataset_mode, ft_dir, target_dir, setname='tst', is_train=False)
     logger.info('The number of training samples = {}'.format(len(trn_db)))
     logger.info('The number of validation samples = {}'.format(len(val_db)))
     logger.info('The number of testing samples = {}'.format(len(tst_db)))
@@ -88,17 +103,18 @@ def main(opt):
         checkpoint = {}
 
     # initialized the optimizer
-    optimizer = build_optimizer(model, opt)
+    optimizer = torch.optim.Adam(model.parameters(), lr=opt.learning_rate, betas=opt.betas)
     scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda_rule)
 
     total_iters = 0                # the total number of training iterations
-    best_eval_uar = 0              # record the best eval UAR
+    best_eval_f1 = 0              # record the best eval UAR
     best_eval_epoch = -1           # record the best eval epoch
+    patience = opt.patience
 
     total_steps = opt.max_epoch * int((len(trn_db) / opt.batch_size))
     logger.info('Total iters {}'.format(total_steps))
     
-    for epoch in tqdm(range(opt.max_epoch)):
+    for epoch in range(opt.max_epoch):
         for i, batch in enumerate(trn_db):  # inner loop within one epoch
             total_iters += 1                # opt.batch_size
             model.set_input(batch)           # unpack data from dataset and apply preprocessing
@@ -109,7 +125,7 @@ def main(opt):
             optimizer.step()
             # visual training loss every print_freq
             if total_iters % 20 == 0:   # print training losses and save logging information to the disk
-                logger.info('Cur epoch {}'.format(epoch) + ' loss {}'.format(batch_loss))
+                logger.info('[Traing Loss:] {}'.format(batch_loss))
 
         # for evaluation
         if epoch % 1 == 0:
@@ -117,31 +133,59 @@ def main(opt):
             logger.info("Cur learning rate {}".format(optimizer.state_dict()['param_groups'][0]['lr']))
             val_log = evaluation(model, val_db)
             logger.info(f"[Validation] Loss: {val_log['loss']:.2f},"
+                        f"\t F1: {val_log['F1']*100:.2f},"
                         f"\t WA: {val_log['WA']*100:.2f},"
                         f"\t UA: {val_log['UA']*100:.2f},\n")
             test_log = evaluation(model, tst_db)
             logger.info(f"[Testing] Loss: {test_log['loss']:.2f},"
+                        f"\t F1: {test_log['F1']*100:.2f},"
                         f"\t WA: {test_log['WA']*100:.2f},"
                         f"\t UA: {test_log['UA']*100:.2f},\n")
+            print('Save model at {} epoch'.format(epoch))
+            model_saver.save(model, epoch)
             # update the current best model based on validation results
-            if val_log['UA'] > best_eval_uar:
+            if val_log['F1'] > best_eval_f1:
                 best_eval_epoch = epoch
-                best_eval_uar = val_log['UA']
-                print('Save model at {} epoch'.format(epoch))
-                model_saver.save(model, epoch)
-
+                best_eval_f1 = val_log['F1']
+                # reset to init
+                patience = opt.patience
+        # for early stop
+        if patience <= 0:            
+            break
+        else:
+            patience -= 1
+        # update the learning rate
         scheduler.step()
 
     # print best eval result
     logger.info('Loading best model found on val set: epoch-%d' % best_eval_epoch)
     checkpoint_path = os.path.join(checkpoint_dir, 'model_step_{}.pt'.format(best_eval_epoch))
+    if not os.path.exists(checkpoint_path):
+        logger.error("Load checkpoint error, not exist such file")
+        exit(0)
     ck = torch.load(checkpoint_path)
     model.load_state_dict(ck)
-    var_log = evaluation(model, val_db, save_dir=log_dir, set_name='val')
-    logger.info('[Val] result acc %.4f uar %.4f f1 %.4f' % (var_log['WA'], var_log['UA'], var_log['F1']))
+    val_log = evaluation(model, val_db, save_dir=log_dir, set_name='val')
+    logger.info('[Val] result WA: %.4f UAR %.4f F1 %.4f' % (val_log['WA'], val_log['UA'], val_log['F1']))
+    logger.info('\n{}'.format(val_log['cm']))
     tst_log = evaluation(model, tst_db, save_dir=log_dir, set_name='tst')
-    logger.info('[Tst] result acc %.4f uar %.4f f1 %.4f' % (tst_log['WA'], tst_log['UA'], tst_log['F1']))
-    # clean_chekpoints(checkpoint_dir, best_eval_epoch)
+    logger.info('[Tst] result WA: %.4f UAR %.4f F1 %.4f' % (tst_log['WA'], tst_log['UA'], tst_log['F1']))
+    logger.info('\n{}'.format(tst_log['cm']))
+    clean_chekpoints(checkpoint_dir, best_eval_epoch)
+    write_result_to_tsv(output_tsv, tst_log, opt.cvNo)
+
+def write_result_to_tsv(file_path, tst_log, cvNo):
+    # 使用fcntl对文件加锁,避免多个不同进程同时操作同一个文件
+    f_in = open(file_path)
+    fcntl.flock(f_in.fileno(), fcntl.LOCK_EX) # 加锁
+    content = f_in.readlines()
+    if len(content) != 10:
+        content += ['\n'] * (10-len(content))
+    content[cvNo-1] = '{:.4f}\t{:.4f}\t{:.4f}\n'.format(tst_log['WA'], tst_log['UA'], tst_log['F1'])
+    f_out = open(file_path, 'w')
+    f_out.writelines(content)
+    f_out.close()
+    f_in.close()                              # 释放锁
 
 @torch.no_grad()
 def evaluation(model, loader, set_name='val', save_dir=None):
@@ -192,7 +236,8 @@ if __name__ == '__main__':
                         help='which cross-valiation folder')
     parser.add_argument('--modality', type=str,
                         help='which modalities will consider, such as VL')
-
+    parser.add_argument('--pretained_ft_type', type=str,
+                        help='which feature will be use')
     # for stage
     parser.add_argument("--is_test", action='store_true')
     parser.add_argument("--restore_checkpoint", default=None, help='if at testing stage, then...')
@@ -200,7 +245,7 @@ if __name__ == '__main__':
     # for model
     parser.add_argument('--dropout_rate', type=float, help='')
     parser.add_argument('--mid_fusion_layers', type=str, default='256,128', help='')
-    parser.add_argument('--lr', type=float, default='2e-4', help='learning rate')
+    parser.add_argument('--learning_rate', type=float, default='2e-4', help='learning rate')
     parser.add_argument('--bn', action='store_true', help='use bn for the fully connected layers')
     parser.add_argument('--a_hidden_size', type=int, default=128)
     parser.add_argument('--v_hidden_size', type=int, default=128)

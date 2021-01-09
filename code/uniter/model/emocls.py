@@ -71,10 +71,6 @@ class UniterForEmoRecognition(UniterPreTrainedModel):
 @torch.no_grad()
 def evaluation(model, loader):
     model.eval()
-    if hvd.rank() == 0:
-        pbar = tqdm(total=len(loader))
-    else:
-        pbar = NoOp()
     total_pred = []
     total_target = []
     eval_loss = 0
@@ -87,7 +83,6 @@ def evaluation(model, loader):
         targets = batch['targets'].detach().cpu().numpy()
         total_pred.append(preds)
         total_target.append(targets)
-        pbar.update(1)
     total_pred = np.concatenate(total_pred)
     total_label = np.concatenate(total_target)
     avg_loss = eval_loss / len(total_pred)
@@ -99,5 +94,4 @@ def evaluation(model, loader):
     except:
         acc, uar, f1, cm =0, 0, 0, 0
     model.train()
-    pbar.close()
     return {'loss': avg_loss,  'WA': acc,  'UA': uar, 'F1': f1}

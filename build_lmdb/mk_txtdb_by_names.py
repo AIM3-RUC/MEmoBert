@@ -127,7 +127,7 @@ if __name__ == '__main__':
 '''
 根据人脸特征数据来构建文本数据，一个文本对应一段video.
 export PYTHONPATH=/data7/MEmoBert
-for i in `seq 10 12`; do
+for i in `seq 1 12`; do
   for setname in val tst trn; do
     python mk_txtdb_by_names.py --input /data7/emobert/exp/evaluation/MSP-IMPROV/feature/text/${i}/${setname}.json \
                     --output /data7/emobert/exp/evaluation/MSP-IMPROV/txt_db/${i}/${setname}.db \

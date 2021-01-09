@@ -4,9 +4,10 @@ from os.path import join
 import torch.utils.data as data
 from torch.nn.utils.rnn import pad_sequence
 
-class Iemocap10foldDataset(data.Dataset):
+class IemocapPretrainedDataset(data.Dataset):
     def __init__(self, opt, ft_dir, target_dir, setname='trn'):
         ''' IEMOCAP dataset reader
+        extracting features from pretrained emobert model 
             set_name in ['trn', 'val', 'tst']
         '''
         super().__init__()
@@ -28,6 +29,8 @@ class Iemocap10foldDataset(data.Dataset):
 
     def __getitem__(self, index):
         '''
+        'max_lexical_tokens': 22,
+        
         if modalities =3, then example = {
                         'acoustic': acoustic, 
                         'lexical': lexical,
@@ -72,7 +75,7 @@ if __name__ == '__main__':
     
     opt = test()
     ft_dir = '/data7/MEmoBert/emobert/exp/mmfts/iemocap/nomask_movies_v1_uniter_4tasks_nofinetune/1'
-    a = Iemocap10foldDataset(opt, ft_dir, ft_dir)
+    a = IemocapPretrainedDataset(opt, ft_dir, ft_dir)
     # print(next(iter(a)))
     _iter = iter(a)
     data1 = next(_iter)

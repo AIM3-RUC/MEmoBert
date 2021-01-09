@@ -157,14 +157,9 @@ class TranscriptPackager(BaseWorker):
         if not os.path.exists(transcript_file_path):
             self.print(f"Error: {transcript_file_path} not exists")
             return
-        
-        # try:
-        #     lines = open(transcript_file_path, encoding='utf8').readlines()
-        # except UnicodeDecodeError:
-        #     self.print("Error in {}, Unicode Error.".format(transcript_file_path))
-        #     return 
-        lines = read_lines(transcript_file_path)
 
+        lines = read_lines(transcript_file_path)
+        
         if len(lines) == 0:
             self.print("Error in {}, empty file.".format(transcript_file_path))
             return 
