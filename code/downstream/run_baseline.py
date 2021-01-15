@@ -1,11 +1,11 @@
 import os, sys
 import fcntl
+import json
 import numpy as np
 import argparse
 import torch
 from torch.optim import lr_scheduler
 from os.path import join
-from code.downstream.configs import ef_original_config as config
 from code.downstream.data import CustomDatasetDataLoader
 from code.downstream.models.early_fusion_multi_model import EarlyFusionMultiModel
 from code.downstream.utils.logger import get_logger
@@ -22,18 +22,17 @@ def clean_chekpoints(ckpt_dir, store_epoch):
         if not checkpoint.endswith('_{}.pt'.format(store_epoch)):
             os.remove(os.path.join(ckpt_dir, checkpoint))
 
-def parse_with_config(parser):
+def parse_with_config(main_args):
     '''
     only update the model config, such as batch-size and dimension
     '''
-    args = parser.parse_args()
     config_args = config.model_cfg
     override_keys = {arg[2:].split('=')[0] for arg in sys.argv[1:]
                         if arg.startswith('--')}
     for k, v in config_args.items():
         if k not in override_keys:
-            setattr(args, k, v)
-    return args
+            setattr(main_args, k, v)
+    return main_args
 
 def lambda_rule(epoch):
     '''
@@ -59,10 +58,16 @@ def main(opt):
         opt.bn, opt.a_hidden_size, opt.v_hidden_size, opt.l_hidden_size, \
         opt.mid_fusion_layers, opt.run_idx, opt.postfix)
 
+    output_config = join(output_dir, setting_name, 'config.json')
     output_tsv = join(output_dir, setting_name, 'result.tsv')
     output_dir = join(output_dir, setting_name, str(opt.cvNo))
     
     make_path(output_dir)
+
+    with open(output_config, 'w') as f:
+        optDict = opt.__dict__
+        json.dump(optDict, f)
+
     if not os.path.exists(output_tsv):
         open(output_tsv, 'w').close()  # touch output_csv
 
@@ -253,5 +258,17 @@ if __name__ == '__main__':
 
     parser.add_argument('--postfix', required=True, default='None',
                         help='postfix for the output dir')
-    opt = parse_with_config(parser)
+    main_args = parser.parse_args()
+    # 根据主函数传入的参数判断采用的config文件
+    if 'uniter' in main_args.pretained_ft_type:
+        if 'self' in main_args.postfix:
+            print('**** use ef_pretrained_self_config')
+            from code.downstream.configs import ef_pretrained_self_config as config 
+        else:
+            print('**** use ef_pretrained_www_config')
+            from code.downstream.configs import ef_pretrained_www_config as config 
+    else:
+        print('**** use ef_original_config')
+        from code.downstream.configs import ef_original_config as config
+    opt = parse_with_config(main_args)
     main(opt)

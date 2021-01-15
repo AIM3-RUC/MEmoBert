@@ -13,4 +13,4 @@ for i, content in enumerate(transcripts[start:start+test_num]):
     print(i, content)
 
 cut_video = VideoCutter('test_video_cut')
-cut_video("/data7/emobert/resources/raw_movies/No0001.The.Shawshank.Redemption.mp4", transcripts[start:start+test_num])
+cut_video("/data7/emobert/resources/raw_movies/No0001.The.Shawshank.Redemption_g1.mp4", transcripts[start:start+test_num])

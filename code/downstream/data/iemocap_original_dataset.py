@@ -16,6 +16,7 @@ class IemocapOriginalDataset(data.Dataset):
         super().__init__()
         self.opt = opt
         self.exits_modality = {}
+        # add by zjm 15/01/2021: need to modify if add audio and text
         self.opt.v_ft_name = self.opt.pretained_ft_type
         A_feat_dir = join(ft_dir, self.opt.a_ft_name, str(opt.cvNo))
         V_feat_dir = join(ft_dir, self.opt.v_ft_name, str(opt.cvNo))

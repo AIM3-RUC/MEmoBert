@@ -5,14 +5,15 @@ export PYTHONPATH=/data7/MEmoBert
 MLM+ITM+MRF+MRC-KL四个预训练任务:
     /data7/emobert/exp/pretrain/nomask_movies_v1_uniter_4tasks/ckpt/model_step_100000.pt
 
-## 构建LMDB 特征数据库
-Step1 将抽取的Denseface特征进行 segmentId = movie_name + '_' + segment_index 转化为所有的 npz 文件
+## 构建对于 LMDB 特征数据库
+Step1 将抽取的 Denseface 特征进行 segmentId = movie_name + '_' + segment_index 转化为所有的 npz 文件
     build_lmdb/trans2npz.py
 Step2 基于npz数据，构建视觉的 LMDB 数据库
     code/uniter/scripts/create_imgdb.sh
 Step3 基本英文的 bert-base-uncased 模型构建 txt_db
     build_lmdb/mk_txtdb_by_faces.py
----Manual Check OK 
+---Manual Check OK
+
 ## 模型转换，采用 bert-base-uncased
 code/uniter/scripts/convert_ckpt.py
 
@@ -31,4 +32,14 @@ code/uniter/scripts/convert_ckpt.py
 3. Finetune 的 emocls 分类器中的 drop=0.1, 即 keep-prob=0.9
 
 ## 直接抽取特征
-
+Step1: 对下游任务数据抽取面 Denseface 部表情特征, 用各自任务的均值和方差。-- lrc
+Step2: 将抽取的 Denseface 特征进行 segmentId = movie_name + '_' + segment_index 转化为所有的 npz 文件
+    build_lmdb/trans2npz.py
+Step3: 基于npz数据，构建视觉的 LMDB 数据库, img_db
+    code/uniter/scripts/create_imgdb.sh
+Step4: 基本英文的 bert-base-uncased 模型文本的 LMDB 特征库，txt_db
+    build_lmdb/mk_txtdb_by_faces.py
+Step5: 利用预训练好的模型抽取 Uniter 特征
+    code/uniter/extract_fts.sh
+Step6: 然后利用下游任务的代码进行训练测试
+    code/downstream/run_pretrained_ft.sh
