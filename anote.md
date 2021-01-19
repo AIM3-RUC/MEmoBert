@@ -34,11 +34,11 @@ code/uniter/scripts/convert_ckpt.py
 ## 直接抽取特征
 Step1: 对下游任务数据抽取面 Denseface 部表情特征, 用各自任务的均值和方差。-- lrc
 Step2: 将抽取的 Denseface 特征进行 segmentId = movie_name + '_' + segment_index 转化为所有的 npz 文件
-    build_lmdb/trans2npz.py
+    build_lmdb/trans2npz_downsteam.py
 Step3: 基于npz数据，构建视觉的 LMDB 数据库, img_db
     code/uniter/scripts/create_imgdb.sh
 Step4: 基本英文的 bert-base-uncased 模型文本的 LMDB 特征库，txt_db
-    build_lmdb/mk_txtdb_by_faces.py
+    build_lmdb/create_txtdb.sh
 Step5: 利用预训练好的模型抽取 Uniter 特征
     code/uniter/extract_fts.sh
 Step6: 然后利用下游任务的代码进行训练测试

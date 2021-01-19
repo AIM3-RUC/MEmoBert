@@ -186,7 +186,7 @@ def write_result_to_tsv(file_path, tst_log, cvNo):
     content = f_in.readlines()
     if len(content) != 10:
         content += ['\n'] * (10-len(content))
-    content[cvNo-1] = '{:.4f}\t{:.4f}\t{:.4f}\n'.format(tst_log['WA'], tst_log['UA'], tst_log['F1'])
+    content[cvNo-1] = 'CV{}\t{:.4f}\t{:.4f}\t{:.4f}\n'.format(cvNo, tst_log['WA'], tst_log['UA'], tst_log['F1'])
     f_out = open(file_path, 'w')
     f_out.writelines(content)
     f_out.close()
@@ -255,6 +255,7 @@ if __name__ == '__main__':
     parser.add_argument('--a_hidden_size', type=int, default=128)
     parser.add_argument('--v_hidden_size', type=int, default=128)
     parser.add_argument('--l_hidden_size', type=int, default=128)
+    parser.add_argument('--max_lexical_tokens', type=int, default=22)
 
     parser.add_argument('--postfix', required=True, default='None',
                         help='postfix for the output dir')

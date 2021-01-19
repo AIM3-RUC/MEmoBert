@@ -2,12 +2,11 @@
 Copyright (c) Microsoft Corporation.
 Licensed under the MIT license.
 
-UNITER pre-training
 根据输入的信息，获取对应的模态的输出特征.
-Step1: 构建图文的合并的
 """
 
 import os, argparse
+import  json
 from time import time
 import numpy as np
 
@@ -44,7 +43,17 @@ def main(opts):
     infer_dataset = EmoCLsDataset(txt_db, img_db)
 
     # Prepare model
-    checkpoint = torch.load(opts.checkpoint)
+    if os.path.isfile(opts.checkpoint):
+        checkpoint = torch.load(opts.checkpoint)
+    else:
+        # 如果是目录的话，读取日志文件找最佳的模型
+        log_path = os.path.join(opts.checkpoint, 'log', 'step2val_reuslts.json')
+        with open(log_path, 'r') as load_f:
+            log_dict = json.load(load_f)
+        checkpoint_path = os.path.join(opts.checkpoint, 'ckpt', 'model_step_{}.pt'.format(log_dict['beststep']))
+        LOGGER.info('Restore from {}'.format(checkpoint_path))
+        checkpoint = torch.load(checkpoint_path)
+
     model = UniterForExtracting.from_pretrained(
         opts.model_config, checkpoint, img_dim=IMG_DIM)
 
@@ -60,7 +69,7 @@ def main(opts):
     infer_dataloader = PrefetchLoader(infer_dataloader)
 
     txt_features, img_features, targets = extracting_mm_fts(model, infer_dataloader)
-    print('Final Feature txt {} img {} target {}'.format(len(txt_features), len(img_features), len(targets)))
+    LOGGER.info('Final Feature txt {} img {} target {}'.format(len(txt_features), len(img_features), len(targets)))
     np.save(os.path.join(opts.output_dir, 'txt_ft.npy'), txt_features)
     np.save(os.path.join(opts.output_dir, 'face_ft.npy'), img_features)
     np.save(os.path.join(opts.output_dir, 'label.npy'), targets)
@@ -87,7 +96,7 @@ if __name__ == "__main__":
     parser.add_argument("--img_db", default=None, type=str,
                         help="The input train images.")
     parser.add_argument("--checkpoint", default=None, type=str,
-                        help="model checkpoint binary")
+                        help="model checkpoint binary, filepath or dictionary")
     parser.add_argument("--model_config", default=None, type=str,
                         help="model config json")
     parser.add_argument(

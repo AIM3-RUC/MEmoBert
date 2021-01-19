@@ -1,7 +1,7 @@
 {
     "compressed_db": false,
     "checkpoint": "/data7/emobert/exp/pretrain/nomask_movies_v1_uniter_4tasks/ckpt/model_step_100000.pt",
-    "output_dir": "/data7/emobert/exp/finetune/iemocap_baseon_nomask_movies_v1_uniter_4tasks/",
+    "output_dir": "/data7/emobert/exp/finetune/iemocap_openface_baseon_nomask_movies_v1_uniter_4tasks/",
     "max_txt_len": 30,
     "conf_th": 0.0,
     "max_bb": 100,
@@ -35,11 +35,11 @@
         "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/trn.db"
     ],
     "train_img_dbs": [
-        "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_mean_std_movie_no_mask/img_db/iemocap/"
+        "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std/img_db/iemocap/"
     ],
     "val_txt_db": "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val.db",
-    "val_img_db": "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_mean_std_movie_no_mask/img_db/iemocap/",
+    "val_img_db": "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std/img_db/iemocap/",
     "test_txt_db": "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst.db",
-    "test_img_db": "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_mean_std_movie_no_mask/img_db/iemocap/",
+    "test_img_db": "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std/img_db/iemocap/",
     "model_config": "config/uniter-base.json"
 }

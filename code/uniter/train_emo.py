@@ -8,6 +8,7 @@ UNITER finetuning for Image-Text Retrieval
 """
 import argparse
 import os
+import fcntl
 from os.path import exists, join
 from time import time
 import json
@@ -84,21 +85,21 @@ def main(opts):
     train_datasets = []
     for txt_path, img_path in zip(opts.train_txt_dbs, opts.train_img_dbs):
         # for cross-validation
-        txt_path = txt_path.format(opts.cv_no)
+        txt_path = txt_path.format(opts.cvNo)
         img_db = all_img_dbs[img_path]
         txt_db = TxtTokLmdb(txt_path, opts.max_txt_len)
         train_datasets.append(EmoCLsDataset(txt_db, img_db))
     train_dataset = ConcatDataset(train_datasets)
 
     # val
-    opts.val_txt_db = opts.val_txt_db.format(opts.cv_no)
+    opts.val_txt_db = opts.val_txt_db.format(opts.cvNo)
     LOGGER.info(f"Loading Val Dataset {opts.val_img_db}, {opts.val_txt_db}")
     val_img_db = all_img_dbs[opts.val_img_db]
     val_txt_db = TxtTokLmdb(opts.val_txt_db, -1)
     val_dataset = EmoCLsDataset(val_txt_db, val_img_db)
     val_dataloader = build_dataloader(val_dataset, emocls_collate, False, opts)
     # test
-    opts.test_txt_db = opts.test_txt_db.format(opts.cv_no)
+    opts.test_txt_db = opts.test_txt_db.format(opts.cvNo)
     LOGGER.info(f"Loading Test Dataset {opts.test_img_db}, {opts.test_txt_db}")
     test_img_db = all_img_dbs[opts.test_img_db]
     test_txt_db = TxtTokLmdb(opts.test_txt_db, -1)
@@ -212,14 +213,13 @@ def main(opts):
                         best_eval_step = global_step
                         best_eval_UA = val_log['UA']
                         patience = opts.patience
-                        print('Save model at {} global step'.format(global_step))
+                        LOGGER.info('Save model at {} global step'.format(global_step))
                         model_saver.save(model, global_step)
                     else:
                         if global_step > opts.warmup_steps:
                             patience -= 1 
                         if opts.patience > 0 and patience <= 0:
                             break
-
             if global_step >= opts.num_train_steps:
                 break
         if global_step >= opts.num_train_steps or patience <= 0:
@@ -232,6 +232,31 @@ def main(opts):
     steps2val_results['beststep'] = best_eval_step
     json.dump(steps2test_results, open(join(opts.output_dir, 'log', 'step2test_reuslts.json'),'w',encoding='utf-8'))
     json.dump(steps2val_results, open(join(opts.output_dir, 'log', 'step2val_reuslts.json'),'w',encoding='utf-8'))
+    write_result_to_tsv(output_tsv, steps2test_results[best_eval_step], opts.cvNo)
+    # remove the others model
+    clean_chekpoints(join(opts.output_dir, 'ckpt'), best_eval_step)
+
+def clean_chekpoints(ckpt_dir, store_epoch):
+    # model_step_number.pt
+    for checkpoint in os.listdir(ckpt_dir):
+        if not checkpoint.endswith('_{}.pt'.format(store_epoch)):
+            os.remove(os.path.join(ckpt_dir, checkpoint))
+
+def write_result_to_tsv(file_path, tst_log, cvNo):
+    # 1. 使用fcntl对文件加锁,避免多个不同进程同时操作同一个文件
+    # 2. 如果不存在先创建一个 output_csv
+    if not os.path.exists(file_path):
+        open(file_path, 'w').close()  # touch output_csv
+    f_in = open(file_path)
+    fcntl.flock(f_in.fileno(), fcntl.LOCK_EX) # 加锁
+    content = f_in.readlines()
+    if len(content) != 10:
+        content += ['\n'] * (10-len(content))
+    content[cvNo-1] = 'CV{}\t{:.4f}\t{:.4f}\t{:.4f}\n'.format(cvNo, tst_log['WA'], tst_log['UA'], tst_log['F1'])
+    f_out = open(file_path, 'w')
+    f_out.writelines(content)
+    f_out.close()
+    f_in.close()                              # 释放锁
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -246,7 +271,7 @@ if __name__ == "__main__":
                         help="The output directory where the model "
                              "checkpoints will be written.")
     # self-modify
-    parser.add_argument('--cv_no', type=int, required=True,
+    parser.add_argument('--cvNo', type=int, required=True,
                         help='which cross-valiation folder')
     parser.add_argument('--frozen_en_layers', type=int, required=True,
                         help='frozen how many layers of the pretrained model')
@@ -318,14 +343,20 @@ if __name__ == "__main__":
 
     args = parse_with_config(parser)
 
-    # for cross-validation
-    args.output_dir = args.output_dir + '/{}'.format(args.cv_no) + \
-                '/drop{}_frozen{}_{}_{}'.format(args.cls_dropout, args.frozen_en_layers, \
-                args.cls_type, args.postfix)
-    if not exists(args.output_dir):
-        print('Output {}'.format(args.output_dir))
-        os.makedirs(args.output_dir)
+    if args.frozen_en_layers == 0:
+        args.train_batch_size = int(args.train_batch_size / 2)
+        print('Frozen 0 Layers and batch size is {}'.format(args.train_batch_size))
 
+    # for cross-validation
+    args.output_dir = args.output_dir + '/drop{}_frozen{}_{}_{}'.format(args.cls_dropout, args.frozen_en_layers, \
+                args.cls_type, args.postfix) 
+    if not exists(args.output_dir):
+        os.makedirs(args.output_dir)
+    output_tsv = join(args.output_dir, 'result.tsv')
+
+    args.output_dir = output_dir = join(args.output_dir, str(args.cvNo))
+    if not exists(args.output_dir):
+        os.makedirs(args.output_dir)
     # options safe guard
     if args.conf_th == -1:
         assert args.max_bb + args.max_txt_len + 2 <= 512

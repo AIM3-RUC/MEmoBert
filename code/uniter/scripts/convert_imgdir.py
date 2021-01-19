@@ -34,9 +34,7 @@ def _compute_valid_nbb(img_dump, conf_th, max_bb):
         if len(valid_indexs) > max_bb:
             valid_indexs = valid_indexs[:max_bb]
         return valid_indexs
-
-
-
+        
 @curry
 def load_npz(conf_th, max_bb, fname):
     try:

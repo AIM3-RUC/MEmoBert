@@ -9,7 +9,6 @@ class IemocapOriginalDataset(data.Dataset):
     def __init__(self, opt, ft_dir, target_dir, setname='trn'):
         ''' IEMOCAP dataset reader
             set_name in ['trn', 'val', 'tst']
-            ft_names = [A_ft_name, V_ft_name, L_ft_name]
             ft_dir: /data7/MEmoBert/evaluation/IEMOCAP/feature
             target_dir: /data7/MEmoBert/evaluation/IEMOCAP/target
         '''
@@ -21,23 +20,26 @@ class IemocapOriginalDataset(data.Dataset):
         A_feat_dir = join(ft_dir, self.opt.a_ft_name, str(opt.cvNo))
         V_feat_dir = join(ft_dir, self.opt.v_ft_name, str(opt.cvNo))
         L_feat_dir = join(ft_dir, self.opt.l_ft_name, str(opt.cvNo))
-        print('[Vfeat-dir] {}'.format(V_feat_dir))
 
         if 'A' in opt.modality:
             acoustic_data = h5py.File(join(A_feat_dir, setname + '.h5'), 'r')
             self.exits_modality['acoustic'] = acoustic_data
+            print('[Afeat-dir] {}'.format(A_feat_dir))
 
         if 'L' in opt.modality:
             lexical_data = h5py.File(join(L_feat_dir, setname + '.h5'), 'r')
             self.exits_modality['lexical'] = lexical_data
+            print('[Lfeat-dir] {}'.format(L_feat_dir))
 
         if 'V' in opt.modality:
             visual_data = h5py.File(join(V_feat_dir, setname + '.h5'), 'r')
             self.exits_modality['visual'] = visual_data
+            print('[Vfeat-dir] {}'.format(V_feat_dir))
 
         self.int2name = np.load(join(target_dir, str(opt.cvNo), f"{setname}_int2name.npy"))
         self.label = np.load(join(target_dir, str(opt.cvNo), f"{setname}_label.npy"))
-        self.label = np.argmax(self.label, axis=1)
+        if len(self.label.shape) > 1:
+            self.label = np.argmax(self.label, axis=1)            
         self.manual_collate_fn = False
 
     def __getitem__(self, index):
@@ -50,7 +52,11 @@ class IemocapOriginalDataset(data.Dataset):
                         'label': label}
         '''
         example = {}
-        utt_id = self.int2name[index][0].decode('utf8')
+        try:
+            # for iemocap that the int2name is binary type
+            utt_id = self.int2name[index][0].decode('utf8')
+        except:
+            utt_id = self.int2name[index]
         if 'acoustic' in self.exits_modality.keys():
             example['acoustic'] = torch.from_numpy(self.exits_modality['acoustic'][utt_id]['feat'][()])
             if len(example['acoustic']) >= self.opt.max_acoustic_tokens:
@@ -72,12 +78,14 @@ class IemocapOriginalDataset(data.Dataset):
 
         if 'lexical' in self.exits_modality.keys():
             example['lexical'] = torch.from_numpy(self.exits_modality['lexical'][utt_id][()])
+            if len(list(example['lexical'].size())) == 1:
+                example['lexical'] = example['lexical'].reshape([-1, self.opt.l_input_size])
+            # print(list(example['lexical'].size()))
             if len(example['lexical']) >= self.opt.max_lexical_tokens:
                 example['lexical'] = example['lexical'][:self.opt.max_lexical_tokens]
             else:
                 example['lexical'] = torch.cat([example['lexical'], \
                         torch.zeros([self.opt.max_lexical_tokens-len(example['lexical']), self.opt.l_input_size])], dim=0)
-            
         label = torch.tensor(self.label[index])
         example['label'] = label
         return example

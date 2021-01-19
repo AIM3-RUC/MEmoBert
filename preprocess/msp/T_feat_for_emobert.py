@@ -4,35 +4,35 @@ import numpy as np
 import json
 from tqdm import tqdm
 import torch
-from pytorch_pretrained_bert import BertModel
-from pytorch_pretrained_bert import BertTokenizer
+from transformers import BertTokenizer, BertModel
 
 class BertExtractor(object):
-    def __init__(self, gpu_id=None):
-        self.device = torch.device(f'cuda:{gpu_id}') if gpu_id is not None else None
-        self.model = BertModel.from_pretrained('bert-base-uncased')
-        if self.device:
-            self.model.to(self.device)
-        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
-    
-    def extract_feat(self, text):
-        ids = self.bert_tokenize(text)
-        ids = torch.tensor(ids).unsqueeze(0)
-        if self.device:
-            ids = ids.to(self.device)
-        with torch.no_grad():
-            feat = self.model(ids)[0][0]
-        return feat.squeeze().cpu().numpy()
+    def __init__(self, cuda=False, cuda_num=None):
+        self.tokenizer = BertTokenizer.from_pretrained('/data2/lrc/bert_cache/pytorch')
+        self.model = BertModel.from_pretrained('/data2/lrc/bert_cache/pytorch')
+        self.model.eval()
 
-    def bert_tokenize(self, text):
-        ids = []
-        for word in text.strip().split():
-            ws = self.tokenizer.tokenize(word)
-            if not ws:
-                # some special char
-                continue
-            ids.extend(self.tokenizer.convert_tokens_to_ids(ws))
-        return ids
+        if cuda:
+            self.cuda = True
+            self.cuda_num = cuda_num
+            self.model = self.model.cuda(self.cuda_num)
+        else:
+            self.cuda = False
+
+    def extract(self, text):
+        input_ids = torch.tensor(self.tokenizer.encode(text)).unsqueeze(0)  # Batch size 1
+        if self.cuda:
+            input_ids = input_ids.cuda(self.cuda_num)
+
+        with torch.no_grad():
+            outputs = self.model(input_ids)
+            
+            # last_hidden_states = outputs[0]  # The last hidden-state is the first element of the output tuple
+        
+        sequence_output = outputs[0]
+        pooled_output = outputs[1]
+        return sequence_output, pooled_output
+
 
 def get_trn_val_tst(cv, target_root='target'):
     target_dir = os.path.join(target_root, str(cv))
@@ -48,12 +48,12 @@ def get_trn_val_tst(cv, target_root='target'):
     return trn_int2name, val_int2name, tst_int2name, trn_label, val_label, tst_label
 
 def make_T_feat():
-    ref_root = '/data7/MEmoBert/evaluation/IEMOCAP/refs'
-    save_root =  '/data7/MEmoBert/evaluation/IEMOCAP/feature/bert'
-    bert_extractor = BertExtractor(gpu_id=0)
+    ref_root = '/data6/lrc/MSP-IMPROV/All_human_transcriptions'
+    save_root =  '/data7/MEmoBert/evaluation/MSP-IMPROV/feature/bert_large'
+    bert_extractor = BertExtractor(cuda=True, cuda_num=0)
     for cv in range(1, 11):
         trn_int2name, val_int2name, tst_int2name, _, _, _ = get_trn_val_tst(cv, \
-            '/data7/MEmoBert/evaluation/IEMOCAP/target')
+            '/data7/MEmoBert/evaluation/MSP-IMPROV/target')
         int2name_lookup = {
             'trn': trn_int2name,
             'val': val_int2name,
@@ -65,12 +65,12 @@ def make_T_feat():
                 os.mkdir(save_path)
             save_path = os.path.join(save_path, f'{part}.h5')
             h5f = h5py.File(save_path, 'w')
-            json_data = json.load(open(os.path.join(ref_root, str(cv), f'{part}_ref.json')))
             print(f"CV:{cv} Part:{part}")
             for utt_id in tqdm(int2name_lookup[part]):
-                utt_id = utt_id[0].decode('utf8')
-                text = json_data[utt_id]['txt'][0]
-                feat = bert_extractor.extract_feat(text)
+                txt_file = open(os.path.join(ref_root, utt_id + '.txt'))
+                text = txt_file.read().strip()
+                feat, _ = bert_extractor.extract_feat(text)
+                feat = feat[0].cpu().numpy()
                 h5f[utt_id] = feat
             h5f.close()
 

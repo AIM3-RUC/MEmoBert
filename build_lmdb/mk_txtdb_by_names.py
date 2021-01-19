@@ -68,6 +68,8 @@ def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_sampl
             example['toked_caption'] = tokens
             example['input_ids'] = input_ids
             example['img_fname'] = img_fname
+            if isinstance(value['label'], str):
+                value['label'] = int(value['label'])
             example['target'] = value['label']
             db[str(_id)] = example
             _id += 1
@@ -123,15 +125,3 @@ if __name__ == '__main__':
                         help='which dataset to be processed')
     args = parser.parse_args()
     main(args)
-
-'''
-根据人脸特征数据来构建文本数据，一个文本对应一段video.
-export PYTHONPATH=/data7/MEmoBert
-for i in `seq 1 12`; do
-  for setname in val tst trn; do
-    python mk_txtdb_by_names.py --input /data7/emobert/exp/evaluation/MSP-IMPROV/feature/text/${i}/${setname}.json \
-                    --output /data7/emobert/exp/evaluation/MSP-IMPROV/txt_db/${i}/${setname}.db \
-                    --toker bert-base-uncased  --dataset_name msp_${setname}
-  done
-done
-'''

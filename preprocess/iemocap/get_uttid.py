@@ -1,7 +1,6 @@
 '''
 获取需要抽取的uttid
 '''
-
 import os
 import numpy as np
 
