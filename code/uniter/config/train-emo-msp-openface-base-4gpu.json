@@ -35,11 +35,11 @@
         "/data7/emobert/exp/evaluation/MSP-IMPROV/txt_db/{}/trn.db"
     ],
     "train_img_dbs": [
-        "/data7/emobert/exp/evaluation/MSP-IMPROV/feature/denseface_openface_mean_std_movie_no_mask/img_db/msp/"
+        "/data7/emobert/exp/evaluation/MSP-IMPROV/feature/denseface_openface_msp_mean_std/img_db/msp/"
     ],
     "val_txt_db": "/data7/emobert/exp/evaluation/MSP-IMPROV/txt_db/{}/val.db",
-    "val_img_db": "/data7/emobert/exp/evaluation/MSP-IMPROV/feature/denseface_openface_mean_std_movie_no_mask/img_db/msp/",
+    "val_img_db": "/data7/emobert/exp/evaluation/MSP-IMPROV/feature/denseface_openface_msp_mean_std/img_db/msp/",
     "test_txt_db": "/data7/emobert/exp/evaluation/MSP-IMPROV/txt_db/{}/tst.db",
-    "test_img_db": "/data7/emobert/exp/evaluation/MSP-IMPROV/feature/denseface_openface_mean_std_movie_no_mask/img_db/msp/",
+    "test_img_db": "/data7/emobert/exp/evaluation/MSP-IMPROV/feature/denseface_openface_msp_mean_std/img_db/msp/",
     "model_config": "config/uniter-base.json"
 }

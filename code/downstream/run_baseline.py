@@ -184,8 +184,8 @@ def write_result_to_tsv(file_path, tst_log, cvNo):
     f_in = open(file_path)
     fcntl.flock(f_in.fileno(), fcntl.LOCK_EX) # 加锁
     content = f_in.readlines()
-    if len(content) != 10:
-        content += ['\n'] * (10-len(content))
+    if len(content) != 12:
+        content += ['\n'] * (12-len(content))
     content[cvNo-1] = 'CV{}\t{:.4f}\t{:.4f}\t{:.4f}\n'.format(cvNo, tst_log['WA'], tst_log['UA'], tst_log['F1'])
     f_out = open(file_path, 'w')
     f_out.writelines(content)

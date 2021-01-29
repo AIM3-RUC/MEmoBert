@@ -24,7 +24,6 @@ class EmoLexicon():
             print('The {} is not implemented'.format(lexicon_name))
             exit(0)
         self.emo_category_list = ['posemo', 'negemo', 'anx', 'anger', 'sad']
-        
         self.is_bert_token = is_bert_token
         if self.is_bert_token:
             bert_vocab = load_vocab(bert_vocab_filepath)
@@ -47,7 +46,26 @@ class EmoLexicon():
             utt_tokens = list(self.bert_tokenizer.tokenize(utterance))
         else:
             utt_tokens = list(self.tokenize(utterance))
-        # print(utt_tokens)
+        print(utt_tokens)
+        for ind in range(len(utt_tokens)):
+            token = utt_tokens[ind]
+            categories = list(self.parse(utt_tokens[ind]))
+            if 'affect' in categories:
+                emo_words.append(token)
+                word2affect[token] = 'affect'
+                for c in categories:
+                    if c in self.emo_category_list:
+                        word2affect[token] = c
+        return emo_words, word2affect
+    
+    def get_emo_words_by_tokens(self, utt_tokens):
+        '''
+        return:
+            emo_words: all emotional words with category 'affect' 
+            word2affect: word to emotion category
+        '''
+        word2affect = {}
+        emo_words = []
         for ind in range(len(utt_tokens)):
             token = utt_tokens[ind]
             categories = list(self.parse(utt_tokens[ind]))
@@ -62,7 +80,7 @@ class EmoLexicon():
 if __name__ == "__main__":
     lexicon_dir = '/data2/zjm/tools/EmoLexicons'
     lexicon_name = 'LIWC2015Dictionary.dic'
-    utterance = "Because you're going to get us all fucking pinched. What are you, so stupid?".lower()
+    utterance = "Because you're going to get us all fucking pinched and embarrassing. What are you, so stupid?".lower()
     bert_vocab_filepath = '/data2/zjm/tools/LMs/bert_base_en/vocab.txt'
     emol = EmoLexicon(lexicon_dir, lexicon_name, is_bert_token=True, bert_vocab_filepath=bert_vocab_filepath)
     emo_words, word2affect = emol.get_emo_words(utterance)

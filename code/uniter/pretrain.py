@@ -23,8 +23,8 @@ from tqdm import tqdm
 from code.uniter.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   MetaLoader, PrefetchLoader,
                   TxtTokLmdb, ImageLmdbGroup, ConcatDatasetWithLens,
-                  MlmDataset, MrfrDataset, MrcDataset,
-                  mlm_collate, mrfr_collate, mrc_collate,
+                  MlmDataset, MelmDataset, MrfrDataset, MrcDataset,
+                  mlm_collate, melm_collate, mrfr_collate, mrc_collate,
                   ItmDataset, itm_collate)
 
 from code.uniter.model.pretrain import UniterForPretraining
@@ -68,15 +68,21 @@ def build_dataloader_itm(dataset, collate_fn, is_train, opts):
 
 def build_mlm_dataset(txt_db, img_db, is_train, opts):
     if is_train:
-        collate_fn = mlm_collate
         datasets = [MlmDataset(t, i) for t, i in zip(txt_db, img_db)]
         dataset = ConcatDatasetWithLens(datasets)
     else:
-        collate_fn = mlm_collate
         dataset = MlmDataset(txt_db, img_db)
 
-    return dataset, collate_fn
+    return dataset, mlm_collate
 
+def build_melm_dataset(txt_db, img_db, is_train, opts):
+    if is_train:
+        datasets = [MelmDataset(opts.melm_prob, t, i) for t, i in zip(txt_db, img_db)]
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = MelmDataset(opts.melm_prob, txt_db, img_db)
+
+    return dataset, melm_collate
 
 def build_mrfr_dataset(txt_db, img_db, is_train, opts):
     if is_train:
@@ -140,6 +146,8 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None):
 
             if task.startswith('mlm'):
                 dataset = build_mlm_dataset(txt_db, img_db, is_train, opts)
+            elif task.startswith('melm'):
+                dataset = build_melm_dataset(txt_db, img_db, is_train, opts)
             elif task.startswith('mrfr'):
                 dataset = build_mrfr_dataset(txt_db, img_db, is_train, opts)
             elif task.startswith('mrc'):
@@ -349,6 +357,8 @@ def validate(model, val_dataloaders):
         LOGGER.info(f"validate on {task} task")
         if task.startswith('mlm'):
             val_log = validate_mlm(model, loader)
+        elif task.startswith('melm'):
+            val_log = validate_melm(model, loader)
         elif task.startswith('mrfr'):
             val_log = validate_mrfr(model, loader)
         elif task.startswith('mrc'):
@@ -391,6 +401,33 @@ def validate_mlm(model, val_loader):
                 f"acc: {acc*100:.2f}")
     return val_log
 
+@torch.no_grad()
+def validate_melm(model, val_loader):
+    LOGGER.info("start running MELM validation...")
+    val_loss = 0
+    n_correct = 0
+    n_word = 0
+    st = time()
+    for i, batch in enumerate(val_loader):
+        scores = model(batch, task='melm', compute_loss=False)
+        labels = batch['txt_labels']
+        labels = labels[labels != -1]
+        loss = F.cross_entropy(scores, labels, reduction='sum')
+        val_loss += loss.item()
+        n_correct += (scores.max(dim=-1)[1] == labels).sum().item()
+        n_word += labels.numel()
+    val_loss = sum(all_gather_list(val_loss))
+    n_correct = sum(all_gather_list(n_correct))
+    n_word = sum(all_gather_list(n_word))
+    tot_time = time()-st
+    val_loss /= n_word
+    acc = n_correct / n_word
+    val_log = {'loss': val_loss,
+               'acc': acc,
+               'tok_per_s': n_word/tot_time}
+    LOGGER.info(f"validation finished in {int(tot_time)} seconds, "
+                f"acc: {acc*100:.2f}")
+    return val_log
 
 def accuracy_count(out, labels):
     outputs = out.max(dim=-1)[1]
@@ -430,22 +467,14 @@ def validate_mrc(model, val_loader, task):
     for i, batch in enumerate(val_loader):
         prediction_soft_label = model(
             batch, task=task, compute_loss=False)
-        if "kl" in task:
-            prediction_soft_label = F.log_softmax(
-                prediction_soft_label, dim=-1)
-            label_targets = batch['label_targets']
-            loss = F.kl_div(
-                prediction_soft_label, label_targets, reduction='sum')
-            tot_score += compute_accuracy_for_soft_targets(
-                prediction_soft_label, label_targets)
-        else:
-            # background class should not be the target
-            cls_label_targets = label_targets[:, 1:].max(dim=-1)[1] + 1
-            loss = F.cross_entropy(
-                prediction_soft_label, cls_label_targets,
-                ignore_index=0, reduction='sum')
-            tot_score += compute_accuracy_for_soft_targets(
-                prediction_soft_label[:, 1:], label_targets[:, 1:])
+        # default use "kl" in task:
+        prediction_soft_label = F.log_softmax(
+            prediction_soft_label, dim=-1)
+        label_targets = batch['label_targets']
+        loss = F.kl_div(
+            prediction_soft_label, label_targets, reduction='sum')
+        tot_score += compute_accuracy_for_soft_targets(
+            prediction_soft_label, label_targets)
         val_loss += loss.item()
         n_feat += batch['img_mask_tgt'].sum().item()
     val_loss = sum(all_gather_list(val_loss))
@@ -517,6 +546,8 @@ if __name__ == "__main__":
         help="The output directory where the model checkpoints will be "
              "written.")
 
+    parser.add_argument('--melm_prob', default=0.15, type=float,
+                        help='probability to mask in MELM training')
     parser.add_argument('--mrm_prob', default=0.15, type=float,
                         help='probability to mask in MRM training')
     parser.add_argument('--itm_neg_prob', default=0.5, type=float,
@@ -583,7 +614,6 @@ if __name__ == "__main__":
     parser.add_argument('--config', required=True, help='JSON config files')
 
     args = parse_with_config(parser)
-
 
     # options safe guard
     if args.conf_th == -1:

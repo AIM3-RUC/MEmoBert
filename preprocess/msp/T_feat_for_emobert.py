@@ -8,8 +8,10 @@ from transformers import BertTokenizer, BertModel
 
 class BertExtractor(object):
     def __init__(self, cuda=False, cuda_num=None):
-        self.tokenizer = BertTokenizer.from_pretrained('/data2/lrc/bert_cache/pytorch')
-        self.model = BertModel.from_pretrained('/data2/lrc/bert_cache/pytorch')
+        # self.tokenizer = BertTokenizer.from_pretrained('/data2/lrc/bert_cache/pytorch')
+        # self.model = BertModel.from_pretrained('/data2/lrc/bert_cache/pytorch')
+        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+        self.model = BertModel.from_pretrained('bert-base-uncased')
         self.model.eval()
 
         if cuda:
@@ -49,9 +51,11 @@ def get_trn_val_tst(cv, target_root='target'):
 
 def make_T_feat():
     ref_root = '/data6/lrc/MSP-IMPROV/All_human_transcriptions'
-    save_root =  '/data7/MEmoBert/evaluation/MSP-IMPROV/feature/bert_large'
+    save_root =  '/data7/MEmoBert/evaluation/MSP-IMPROV/feature/bert'
+    if not os.path.exists(save_root):
+        os.makedirs(save_root)
     bert_extractor = BertExtractor(cuda=True, cuda_num=0)
-    for cv in range(1, 11):
+    for cv in range(1, 13):
         trn_int2name, val_int2name, tst_int2name, _, _, _ = get_trn_val_tst(cv, \
             '/data7/MEmoBert/evaluation/MSP-IMPROV/target')
         int2name_lookup = {
@@ -69,7 +73,7 @@ def make_T_feat():
             for utt_id in tqdm(int2name_lookup[part]):
                 txt_file = open(os.path.join(ref_root, utt_id + '.txt'))
                 text = txt_file.read().strip()
-                feat, _ = bert_extractor.extract_feat(text)
+                feat, _ = bert_extractor.extract(text)
                 feat = feat[0].cpu().numpy()
                 h5f[utt_id] = feat
             h5f.close()

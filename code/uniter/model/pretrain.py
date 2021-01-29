@@ -75,6 +75,10 @@ class UniterForPretraining(UniterPreTrainedModel):
         if task == 'mlm':
             txt_labels = batch['txt_labels']
             return self.forward_mlm(batch, txt_labels, compute_loss)
+        elif task == 'melm':
+            # total same as melm
+            txt_labels = batch['txt_labels']
+            return self.forward_mlm(batch, txt_labels, compute_loss)
         elif task == 'mrfr':
             img_mask_tgt = batch['img_mask_tgt']
             img_masks = batch['img_masks']

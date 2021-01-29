@@ -1,6 +1,6 @@
 # basic paths
-dataset_name = 'IEMOCAP'
-# dataset_name = 'MSP-IMPROV'
+# dataset_name = 'IEMOCAP'
+dataset_name = 'MSP-IMPROV'
 result_dir = '/data7/MEmoBert/evaluation/{}/results'.format(dataset_name)
 ft_dir = '/data7/MEmoBert/evaluation/{}/feature'.format(dataset_name)
 target_dir = '/data7/MEmoBert/evaluation/{}/target'.format(dataset_name)
@@ -45,7 +45,7 @@ model_cfg = {
     'a_hidden_size':128,
     # text encoder info -- textcnn, bert_base=768, bert_large=1024
     'max_lexical_tokens': 22,
-    'l_ft_name': 'bert_large',
-    'l_input_size': 1024,
+    'l_ft_name': 'bert',
+    'l_input_size': 768,
     'l_hidden_size': 128,
 }
