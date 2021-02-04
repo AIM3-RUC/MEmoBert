@@ -6,7 +6,7 @@ python mk_txtdb_by_faces.py --input /data7/emobert/data_nomask/movies_v1/ref_cap
                 --output /data7/emobert/txt_db/movies_v1_th0.0_emowords_trn.db \
                 --filter_path /data7/emobert/img_db_nomask/movies_v1/nbb_th0.0_max100_min10.json \
                 --toker bert-base-uncased  --dataset_name movies_v1 \
-                --use_emo
+                --use_emo --use_emo_type
 
 # # for iemocap
 # for i in `seq 2 10`; do

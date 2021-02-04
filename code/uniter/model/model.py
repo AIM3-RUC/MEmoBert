@@ -222,27 +222,38 @@ class UniterTextEmbeddings(nn.Module):
                                                 config.hidden_size)
         self.token_type_embeddings = nn.Embedding(config.type_vocab_size,
                                                   config.hidden_size)
-
+        ## add by jinming: add another emotion word type embedding
+        if config.melm_type_emo_size > 0:
+            self.emo_type_embeddings = nn.Embedding(config.melm_type_emo_size,
+                                                  config.hidden_size)
+        self.config = config
         # self.LayerNorm is not snake-cased to stick with TensorFlow model
         # variable name and be able to load any TensorFlow checkpoint file
         self.LayerNorm = FusedLayerNorm(config.hidden_size, eps=1e-12)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
-    def forward(self, input_ids, position_ids, token_type_ids=None):
+    def forward(self, input_ids, position_ids, token_type_ids=None, emo_type_ids=None):
+        '''
+        emo_type_ids: the emotion types of the input ids
+        '''
         if token_type_ids is None:
             token_type_ids = torch.zeros_like(input_ids)
 
         words_embeddings = self.word_embeddings(input_ids)
         position_embeddings = self.position_embeddings(position_ids)
         token_type_embeddings = self.token_type_embeddings(token_type_ids)
-
         embeddings = (words_embeddings
                       + position_embeddings
                       + token_type_embeddings)
+
+        ## add by jinming: add another emotion word type embedding
+        if emo_type_ids is not None:
+            emo_type_embeddings = self.emo_type_embeddings(emo_type_ids)
+            embeddings = embeddings + emo_type_embeddings
+    
         embeddings = self.LayerNorm(embeddings)
         embeddings = self.dropout(embeddings)
         return embeddings
-
 
 class UniterImageEmbeddings(nn.Module):
     def __init__(self, config, img_dim):
@@ -272,7 +283,6 @@ class UniterImageEmbeddings(nn.Module):
         embeddings = self.LayerNorm(embeddings)
         embeddings = self.dropout(embeddings)
         return embeddings
-
 
 class UniterEncoder(nn.Module):
     def __init__(self, config):
@@ -316,14 +326,16 @@ class UniterModel(UniterPreTrainedModel):
         self.apply(self.init_weights)
 
     def _compute_txt_embeddings(self, input_ids, position_ids,
-                                txt_type_ids=None):
-        output = self.embeddings(input_ids, position_ids, txt_type_ids)
+                                txt_type_ids=None, emo_type_ids=None):
+        # Jinming: add emo_type_ids interface
+        output = self.embeddings(input_ids, position_ids, txt_type_ids, emo_type_ids)
         return output
 
     def _compute_img_embeddings(self, img_feat, img_position_ids, img_masks=None,
                                 img_type_ids=None):
         if img_type_ids is None:
             img_type_ids = torch.ones_like(img_feat[:, :, 0].long())
+        # share the embedding defined in txtEmbedding
         img_type_embeddings = self.embeddings.token_type_embeddings(
             img_type_ids)
         output = self.img_embeddings(img_feat, img_position_ids,
@@ -333,9 +345,11 @@ class UniterModel(UniterPreTrainedModel):
     def _compute_img_txt_embeddings(self, input_ids, position_ids,
                                     img_feat, img_position_ids,
                                     gather_index, img_masks=None,
-                                    txt_type_ids=None, img_type_ids=None):
+                                    txt_type_ids=None, img_type_ids=None, 
+                                    emo_type_ids=None):
+        # Jinming: add emo_type_ids interface
         txt_emb = self._compute_txt_embeddings(
-            input_ids, position_ids, txt_type_ids)
+            input_ids, position_ids, txt_type_ids, emo_type_ids)
         img_emb = self._compute_img_embeddings(
             img_feat, img_position_ids, img_masks, img_type_ids)
         # align back to most compact input
@@ -355,7 +369,13 @@ class UniterModel(UniterPreTrainedModel):
         img_feat = batch['img_feat']
         img_position_ids = batch['img_position_ids']
         attention_mask = batch['attn_masks']
-        gather_index = batch['gather_index'] 
+        gather_index = batch['gather_index']
+
+        # Jinming: add emo_type_ids interface
+        if batch.get('emo_type_ids') is not None:
+            emo_type_ids = batch['emo_type_ids']
+        else:
+            emo_type_ids = None
 
         # compute self-attention mask
         extended_attention_mask = attention_mask.unsqueeze(1).unsqueeze(2)
@@ -371,12 +391,13 @@ class UniterModel(UniterPreTrainedModel):
         elif img_feat is None:
             # text only
             embedding_output = self._compute_txt_embeddings(
-                input_ids, position_ids, txt_type_ids)
+                input_ids, position_ids, txt_type_ids, emo_type_ids)
         else:
             embedding_output = self._compute_img_txt_embeddings(
                 input_ids, position_ids,
                 img_feat, img_position_ids,
-                gather_index, img_masks, txt_type_ids, img_type_ids)
+                gather_index, img_masks, txt_type_ids, 
+                img_type_ids, emo_type_ids)
 
         encoded_layers = self.encoder(
             embedding_output, extended_attention_mask,

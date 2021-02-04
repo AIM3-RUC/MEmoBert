@@ -1,9 +1,8 @@
 # basic paths
-# basic paths
-# dataset_name = 'IEMOCAP'
-# ft_dir = 'iemocap'
-dataset_name = 'MSP-IMPROV'
-ft_dir_name = 'msp'
+dataset_name = 'IEMOCAP'
+ft_dir_name = 'iemocap'
+# dataset_name = 'MSP-IMPROV'
+# ft_dir_name = 'msp'
 result_dir = '/data7/MEmoBert/evaluation/{}/results'.format(dataset_name)
 ft_dir = '/data7/MEmoBert/emobert/exp/mmfts/{}'.format(ft_dir_name)
 target_dir = ft_dir

@@ -546,6 +546,10 @@ if __name__ == "__main__":
         help="The output directory where the model checkpoints will be "
              "written.")
 
+    # emotional related
+    parser.add_argument('--melm_type_emb', action='store_true',
+                        help="use the emotion category embeddings")
+    # emotional related
     parser.add_argument('--melm_prob', default=0.15, type=float,
                         help='probability to mask in MELM training')
     parser.add_argument('--mrm_prob', default=0.15, type=float,

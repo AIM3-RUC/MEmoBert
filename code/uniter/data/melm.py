@@ -2,8 +2,11 @@
 Copyright (c) Microsoft Corporation.
 Licensed under the MIT license.
 
-MELM datasets: masked emotion language modeling
+MELM datasets: masked emotional language modeling
+
+Update 2020-02-04: Jinming add emo_type_ids
 """
+
 import random
 import torch
 from torch.nn.utils.rnn import pad_sequence
@@ -50,7 +53,6 @@ def random_emo_word(melm_prob, tokens, vocab_range, emo_tokens, mask):
 
     return tokens, output_label
 
-
 class MelmDataset(DetectFeatTxtTokDataset):
     '''
     emotional words masked modeling, the 
@@ -75,20 +77,27 @@ class MelmDataset(DetectFeatTxtTokDataset):
         # text input
         input_ids, txt_labels = self.create_melm_io(example['input_ids'], example['emo_input_ids'])
 
+        # Jinming: add for emo_type_ids (0~6), 
+        # 0 is the no-emotion-words
+        if example['emo_type_ids'] is not None:
+            emo_type_ids = torch.tensor([0]+ example['emo_type_ids'] + [0])
+        else:
+            emo_type_ids = None
+
         # img input Jinming remove the norm-bbx fts
         img_feat, num_bb = self._get_img_feat(
             example['img_fname'])
 
         attn_masks = torch.ones(len(input_ids) + num_bb, dtype=torch.long)
 
-        return input_ids, img_feat, attn_masks, txt_labels
+        return input_ids, img_feat, attn_masks, txt_labels, emo_type_ids
 
     def create_melm_io(self, input_ids, emo_input_ids):
         input_ids, txt_labels = random_emo_word(self.melm_prob, input_ids, 
                                                     self.txt_db.v_range, emo_input_ids, self.txt_db.mask)
         input_ids = torch.tensor([self.txt_db.cls_]
                                  + input_ids
-                                 + [self.txt_db.sep])
+                                 + [self.txt_db.sep])            
         txt_labels = torch.tensor([-1] + txt_labels + [-1])
         return input_ids, txt_labels
 
@@ -105,12 +114,17 @@ def melm_collate(inputs):
     :num_bbs      list of [num_bb]
     :attn_masks   (n, max_{L + num_bb}) padded with 0
     :txt_labels   (n, max_L) padded with -1
+    :emo_type_ids (n, max_L) padded with 0
     """
-    (input_ids, img_feats, attn_masks, txt_labels
-     ) = map(list, unzip(inputs))
+    (input_ids, img_feats, attn_masks, txt_labels, emo_type_ids) = map(list, unzip(inputs))
 
     # text batches
     txt_lens = [i.size(0) for i in input_ids]
+
+    # Jinming: add for emo_type_ids (0~6)
+    if emo_type_ids is not None:
+        emo_type_ids = pad_sequence(emo_type_ids, batch_first=True, padding_value=0)
+    
     input_ids = pad_sequence(input_ids, batch_first=True, padding_value=0)
     txt_labels = pad_sequence(txt_labels, batch_first=True, padding_value=-1)
     position_ids = torch.arange(0, input_ids.size(1), dtype=torch.long
@@ -135,5 +149,6 @@ def melm_collate(inputs):
              'img_position_ids': img_position_ids,
              'attn_masks': attn_masks,
              'gather_index': gather_index,
-             'txt_labels': txt_labels}
+             'txt_labels': txt_labels, 
+             'emo_type_ids': emo_type_ids}
     return batch

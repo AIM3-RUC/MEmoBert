@@ -1,6 +1,6 @@
 # basic paths
-# dataset_name = 'IEMOCAP'
-dataset_name = 'MSP-IMPROV'
+dataset_name = 'IEMOCAP'
+# dataset_name = 'MSP-IMPROV'
 result_dir = '/data7/MEmoBert/evaluation/{}/results'.format(dataset_name)
 ft_dir = '/data7/MEmoBert/evaluation/{}/feature'.format(dataset_name)
 target_dir = '/data7/MEmoBert/evaluation/{}/target'.format(dataset_name)
