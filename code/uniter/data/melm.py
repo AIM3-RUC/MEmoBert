@@ -80,7 +80,7 @@ class MelmDataset(DetectFeatTxtTokDataset):
         # Jinming: add for emo_type_ids (0~6), 
         # 0 is the no-emotion-words
         if example['emo_type_ids'] is not None:
-            emo_type_ids = torch.tensor([0]+ example['emo_type_ids'] + [0])
+            emo_type_ids = torch.tensor([0] + example['emo_type_ids'] + [0])
         else:
             emo_type_ids = None
 

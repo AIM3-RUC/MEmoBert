@@ -547,11 +547,11 @@ if __name__ == "__main__":
              "written.")
 
     # emotional related
-    parser.add_argument('--melm_type_emb', action='store_true',
-                        help="use the emotion category embeddings")
-    # emotional related
-    parser.add_argument('--melm_prob', default=0.15, type=float,
+    parser.add_argument('--melm_type_emo', type=str, default=None,
+                        help="use the emotion category embeddings [none, emo4, emo6, emo7]")
+    parser.add_argument('--melm_prob', default=0.5, type=float,
                         help='probability to mask in MELM training')
+    # traditional task
     parser.add_argument('--mrm_prob', default=0.15, type=float,
                         help='probability to mask in MRM training')
     parser.add_argument('--itm_neg_prob', default=0.5, type=float,

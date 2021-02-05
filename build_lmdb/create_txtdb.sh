@@ -3,10 +3,10 @@ export PYTHONPATH=/data7/MEmoBert
 
 ### 根据人脸特征数据来构建文本数据，一个文本对应一段video. for movies data
 python mk_txtdb_by_faces.py --input /data7/emobert/data_nomask/movies_v1/ref_captions.json \
-                --output /data7/emobert/txt_db/movies_v1_th0.0_emowords_trn.db \
+                --output /data7/emobert/txt_db/movies_v1_th0.0_emowords_emotype4_trn_2000.db \
                 --filter_path /data7/emobert/img_db_nomask/movies_v1/nbb_th0.0_max100_min10.json \
                 --toker bert-base-uncased  --dataset_name movies_v1 \
-                --use_emo --use_emo_type
+                --use_emo --use_emo_type 'emo4' --num_samples 2000
 
 # # for iemocap
 # for i in `seq 2 10`; do

@@ -223,10 +223,13 @@ class UniterTextEmbeddings(nn.Module):
         self.token_type_embeddings = nn.Embedding(config.type_vocab_size,
                                                   config.hidden_size)
         ## add by jinming: add another emotion word type embedding
-        if config.melm_type_emo_size > 0:
-            self.emo_type_embeddings = nn.Embedding(config.melm_type_emo_size,
-                                                  config.hidden_size)
-        self.config = config
+        try:
+            if config.melm_type_emo_size:
+                print("initialize the emo type embeddings!!!")
+                self.emo_type_embeddings = nn.Embedding(config.melm_type_emo_size,
+                                                        config.hidden_size)
+        except:
+            print("[Warning] Donot use emo type embeddings")
         # self.LayerNorm is not snake-cased to stick with TensorFlow model
         # variable name and be able to load any TensorFlow checkpoint file
         self.LayerNorm = FusedLayerNorm(config.hidden_size, eps=1e-12)
@@ -246,8 +249,9 @@ class UniterTextEmbeddings(nn.Module):
                       + position_embeddings
                       + token_type_embeddings)
 
-        ## add by jinming: add another emotion word type embedding
+        ## Jinming: add another emotion word type embedding
         if emo_type_ids is not None:
+            # print('[Debug] verify the emo type embeddig is work or not')
             emo_type_embeddings = self.emo_type_embeddings(emo_type_ids)
             embeddings = embeddings + emo_type_embeddings
     

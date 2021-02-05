@@ -42,6 +42,24 @@ def get_emo_words(emol, input_ids, tokens):
             emo_input_ids_labels.append(word2affect[tokens[i]])
     return emo_input_ids, emo_input_ids_labels
 
+def get_emo_type_ids(emo_category_list, input_ids, emo_input_ids, emo_input_ids_labels):
+    '''
+    不在emo input ids 里面的为 noemoword = 0
+    在 emo input ids 但是不属于 emo input ids[1:-1] 的为 affect words 中的 others = len(emo_category_list) - 1
+    '''
+    emo_type_ids = []
+    for input_id in input_ids:
+        if input_id in emo_input_ids:
+            index = emo_input_ids.index(input_id)
+            emo_type = emo_input_ids_labels[index]
+            if emo_type in emo_category_list[1:-1]:
+                emo_type_ids.append(emo_category_list.index(emo_type))
+            else:
+                emo_type_ids.append(len(emo_category_list) - 1)
+        else:
+            emo_type_ids.append(0)
+    return emo_type_ids
+
 def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_samples=0, use_emo=False, use_emo_type=None):
     '''
     {
@@ -67,11 +85,14 @@ def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_sampl
         emo_category_list = ['noemoword', 'posemo', 'negemo', 'others']
     else:
         emo_category_list = None
+    print('**** emo_category_list {}'.format(emo_category_list))
+
     if filter_path is not None:
         filter_dict = json.load(open(filter_path))
         print('filter_dict has {} imgs'.format(len(filter_dict)))
     else:
         filter_dict = None
+
     id2len = {}
     txt2img = {}  # not sure if useful
     img2txt = defaultdict(list)
@@ -100,13 +121,18 @@ def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_sampl
             if emol is not None:
                 emo_input_ids, emo_input_ids_labels = get_emo_words(emol, input_ids, tokens)
                 example['emo_input_ids'] = emo_input_ids  # 存储对应的情感词的id
-                example['emo_labels'] = emo_input_ids_labels # 存储对应的
+                example['emo_labels'] = emo_input_ids_labels # 存储对应的情感类别
                 if len(emo_input_ids) > 0:
                     count_emo_utts += 1
                     count_emo_words += len(emo_input_ids)
                 # print(tokens)
                 # print(input_ids)
                 # print(emo_input_ids, emo_input_ids_labels)
+                if emo_category_list is not None:
+                    emo_type_ids = get_emo_type_ids(emo_category_list, input_ids, emo_input_ids, emo_input_ids_labels)
+                    example['emo_type_ids'] = emo_type_ids
+                    assert len(emo_type_ids) == len(input_ids)
+                    # print(emo_type_ids)
             db[str(_id)] = example
             _id += 1
         count_img += 1
@@ -163,7 +189,7 @@ if __name__ == '__main__':
                         help='which dataset to be processed')
     parser.add_argument('--use_emo',  action='store_true',
                         help='store the emotion words and corresding labels')
-    parser.add_argument('--use_emo_type',  default='emo7',
+    parser.add_argument('--use_emo_type',  default=None,
                         help='one of the [None, emo7, emo6, emo4]')
     args = parser.parse_args()
     main(args)
