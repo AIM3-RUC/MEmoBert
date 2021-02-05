@@ -77,9 +77,10 @@ class MelmDataset(DetectFeatTxtTokDataset):
         # text input
         input_ids, txt_labels = self.create_melm_io(example['input_ids'], example['emo_input_ids'])
 
-        # Jinming: add for emo_type_ids (0~6), 
+        # Jinming: add for emo_type_ids (0~4), 
         # 0 is the no-emotion-words
-        if example['emo_type_ids'] is not None:
+        if example.get('emo_type_ids') is not None:
+            # print("emo_type_ids in examples")
             emo_type_ids = torch.tensor([0] + example['emo_type_ids'] + [0])
         else:
             emo_type_ids = None
@@ -116,14 +117,17 @@ def melm_collate(inputs):
     :txt_labels   (n, max_L) padded with -1
     :emo_type_ids (n, max_L) padded with 0
     """
-    (input_ids, img_feats, attn_masks, txt_labels, emo_type_ids) = map(list, unzip(inputs))
+    (input_ids, img_feats, attn_masks, txt_labels, batch_emo_type_ids) = map(list, unzip(inputs))
 
     # text batches
     txt_lens = [i.size(0) for i in input_ids]
 
-    # Jinming: add for emo_type_ids (0~6)
-    if emo_type_ids is not None:
-        emo_type_ids = pad_sequence(emo_type_ids, batch_first=True, padding_value=0)
+    # Jinming: here emo_type_ids is batch, so judge the element is none or not 
+    if batch_emo_type_ids[0] is not None:
+        # print(emo_type_ids)
+        batch_emo_type_ids = pad_sequence(batch_emo_type_ids, batch_first=True, padding_value=0)
+    else:
+        batch_emo_type_ids = None
     
     input_ids = pad_sequence(input_ids, batch_first=True, padding_value=0)
     txt_labels = pad_sequence(txt_labels, batch_first=True, padding_value=-1)
@@ -150,5 +154,5 @@ def melm_collate(inputs):
              'attn_masks': attn_masks,
              'gather_index': gather_index,
              'txt_labels': txt_labels, 
-             'emo_type_ids': emo_type_ids}
+             'emo_type_ids': batch_emo_type_ids}
     return batch

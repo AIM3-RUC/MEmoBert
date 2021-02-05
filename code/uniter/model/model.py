@@ -238,6 +238,7 @@ class UniterTextEmbeddings(nn.Module):
     def forward(self, input_ids, position_ids, token_type_ids=None, emo_type_ids=None):
         '''
         emo_type_ids: the emotion types of the input ids
+        batch-data
         '''
         if token_type_ids is None:
             token_type_ids = torch.zeros_like(input_ids)
