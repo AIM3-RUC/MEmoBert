@@ -62,7 +62,8 @@ class EmoLexicon():
         '''
         return:
             emo_words: all emotional words with category 'affect' 
-            word2affect: word to emotion category
+            word2affect: word to emotion category 
+            Jinming: word[token] = [anx, negemo]
         '''
         word2affect = {}
         emo_words = []
@@ -71,10 +72,16 @@ class EmoLexicon():
             categories = list(self.parse(utt_tokens[ind]))
             if 'affect' in categories:
                 emo_words.append(token)
-                word2affect[token] = 'affect'
                 for c in categories:
                     if c in self.emo_category_list:
-                        word2affect[token] = c
+                        if word2affect.get(token) is None:
+                            word2affect[token] = [c]
+                        else:
+                            word2affect[token] += [c]
+                # 如果不属于emo_category_list中的一类，那么就
+                if word2affect.get(token) is None:
+                    word2affect[token] = ['affect']
+                word2affect[token] = list(set(word2affect[token]))
         return emo_words, word2affect
 
 if __name__ == "__main__":

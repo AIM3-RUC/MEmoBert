@@ -5,6 +5,7 @@ from pytorch_pretrained_bert import BertTokenizer
 import lmdb
 import msgpack
 from lz4.frame import decompress
+from transformers.utils.dummy_pt_objects import BertLMHeadModel
 
 '''
 export PYTHONPATH=/data7/MEmoBert
@@ -61,9 +62,7 @@ def analyse_emo_dic():
     # sadneg_words = list(set(negemo_words).intersection(set(sad_words)))
     # print(len(angneg_words), len(anxneg_words), len(sadneg_words))    
 
-if __name__ == '__main__':    
-
-    # analyse_emo_dic()
+def analyse_movie_emos():
     txtdb_dir = '/data7/MEmoBert/emobert/txt_db/movies_v1_th0.0_emowords_trn.db'
     txt2img_path = os.path.join(txtdb_dir, 'txt2img.json')
     txt2img =  json.load(open(txt2img_path))
@@ -99,3 +98,70 @@ if __name__ == '__main__':
     sorted_emos_words2num = sorted(emos_words2num.items(), key=lambda d:d[1], reverse = True)
     print(sorted_emos_words2num)
     print(len(sorted_emos_words2num))
+
+if __name__ == '__main__':    
+    txtdb_dir = '/data7/emobert/exp/evaluation/IEMOCAP/txt_db/1/trn_emo4.db'
+    emo_category_list = ['noemoword', 'posemo', 'negemo', 'others']
+    txt2img_path = os.path.join(txtdb_dir, 'txt2img.json')
+    txt2img =  json.load(open(txt2img_path))
+    key_ids = txt2img.keys()
+    print(len(key_ids))
+    env = lmdb.open(txtdb_dir)
+    txn = env.begin(buffers=True)
+    emotional_utt = 0
+    emos2num = {}
+    emos_words2num = {}
+    match_emo_utt = {}
+    match_emo_utt['negemo'] = []
+    match_emo_utt['posemo'] = []
+    match_emo_utt['others'] = []
+    for key in key_ids:
+        item = msgpack.loads(decompress(txn.get(key.encode('utf-8'))), raw=False)
+        if len(item.get('emo_labels')) > 0:
+            target = item.get('target')
+            print(target, type(target))
+            if target in [0, 3]:
+                binary_emo = 'negemo'
+            elif target == 1:
+                binary_emo = 'posemo'
+            else:
+                binary_emo = 'others'
+            inputs = item.get('input_ids')
+            tokens = item.get('toked_caption')
+            assert len(inputs) == len(tokens)
+            for input_id in item.get('emo_input_ids'):
+                index = inputs.index(input_id) 
+                token = tokens[index]
+                if emos_words2num.get(token) is None:
+                    emos_words2num[token] = 1
+                else:
+                    emos_words2num[token] += 1
+            emotional_utt += 1
+            for emos in item.get('emo_labels'):
+                emo = emos[0]
+                for e in emos:
+                    if e in emo_category_list:
+                        emo = e
+                if emos2num.get(emo) is None:
+                    emos2num[emo] = 1
+                else:
+                    emos2num[emo] += 1
+                if emo == binary_emo == 'negemo':
+                    match_emo_utt['negemo'].append(tokens)
+                elif emo == binary_emo == 'posemo':
+                    match_emo_utt['posemo'].append(tokens)
+                else:
+                    match_emo_utt['others'].append(tokens)
+                break
+    print('emotional utts {}'.format(emotional_utt))
+    sorted_emos2num = sorted(emos2num.items(), key=lambda d:d[1], reverse = True)
+    print(sorted_emos2num)
+    sorted_emos_words2num = sorted(emos_words2num.items(), key=lambda d:d[1], reverse = True)
+    print(sorted_emos_words2num)
+    print(len(sorted_emos_words2num))
+    # 分析一下具体的情感词和真是情感分布的一致性
+    print('pos {} '.format(len(match_emo_utt['posemo'])))
+    print('neg {} '.format(len(match_emo_utt['negemo'])))
+    print('other {} '.format(len(match_emo_utt['others'])))
+
+

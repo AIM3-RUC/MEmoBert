@@ -43,6 +43,7 @@ class DetectFeatLmdb(object):
         # read the generated json file
         db_name = f'feat_th{conf_th}_max{max_bb}_min{min_bb}'
         nbb = f'nbb_th{conf_th}_max{max_bb}_min{min_bb}.json'
+        print("image db name {}".format(db_name))
         if not exists(f'{img_dir}/{nbb}'):
             print('[Error]: nbb is not pre-computed and the json-file may be error!')
             self.name2nbb = None

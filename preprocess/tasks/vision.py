@@ -26,7 +26,21 @@ class Video2Frame(BaseWorker):
             cmd = 'ffmpeg -i {} -r {} -q:v 2 -f image2 {}/'.format(video_path, self.fps, save_dir) + '%4d.jpg' + " > /dev/null 2>&1"
             os.system(cmd)
             frames_count = len(glob.glob(os.path.join(save_dir, '*.jpg')))
-            # self.print('Extract frames from {}, totally {} frames, save to {}'.format(video_path, frames_count, save_dir))
+            self.print('Extract frames from {}, totally {} frames, save to {}'.format(video_path, frames_count, save_dir))
+        return save_dir
+
+class Video2FrameTool(BaseWorker):
+    def __init__(self, fps=10, logger=None):
+        super().__init__(logger=logger)
+        self.fps = fps
+    
+    def __call__(self, video_path, save_dir):
+        if not(os.path.exists(save_dir)):
+            mkdir(save_dir)
+        cmd = 'ffmpeg -i {} -r {} -q:v 2 -f image2 {}/'.format(video_path, self.fps, save_dir) + '%4d.jpg' + " > /dev/null 2>&1"
+        os.system(cmd)
+        frames_count = len(glob.glob(os.path.join(save_dir, '*.jpg')))
+        self.print('Extract frames from {}, totally {} frames, save to {}'.format(video_path, frames_count, save_dir))
         return save_dir
 
 class VideoFaceTracker(BaseWorker):
@@ -56,6 +70,31 @@ class VideoFaceTracker(BaseWorker):
                     )
             os.system(cmd)
             # self.print('Face Track in {}, result save to {}'.format(frames_dir, save_dir))
+        return save_dir
+
+class VideoFaceTrackerTool(BaseWorker):
+    def __init__(self, openface_dir, logger=None):
+        super().__init__(logger=logger)
+        self.openface_dir = openface_dir
+    
+    def check_exists(self, save_dir):
+        clip_num = get_basename(save_dir)
+        is_exists = all([
+            os.path.exists(os.path.join(save_dir, clip_num+'_aligned')),
+            os.path.exists(os.path.join(save_dir, clip_num+'_of_details.txt')),
+            os.path.exists(os.path.join(save_dir, clip_num+'.avi')),
+            os.path.exists(os.path.join(save_dir, clip_num+'.hog'))
+        ])
+        return is_exists
+    
+    def __call__(self, frames_dir, save_dir):
+        if not self.check_exists(save_dir):
+            mkdir(save_dir)
+            cmd = '{}/FaceLandmarkVidMulti -nomask -fdir {} -out_dir {} > /dev/null 2>&1'.format(
+                        self.openface_dir, frames_dir, save_dir
+                    )
+            os.system(cmd)
+            self.print('Face Track in {}, result save to {}'.format(frames_dir, save_dir))
         return save_dir
 
 class DensefaceExtractor(BaseWorker):

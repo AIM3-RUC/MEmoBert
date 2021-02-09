@@ -9,6 +9,7 @@ import os
 from collections import defaultdict
 import json
 from cytoolz import curry
+from requests.api import options
 from tqdm import tqdm
 from pytorch_pretrained_bert import BertTokenizer
 import sys
@@ -31,7 +32,8 @@ def bert_id2token(tokenizer, ids):
     return tokens
 
 def get_emo_words(emol, input_ids, tokens):
-    # pass
+    # jinming modify: 
+    # return emo_input_ids_labels = [[], [], []]
     assert len(input_ids) == len(tokens)
     emo_input_ids = []
     emo_input_ids_labels = []
@@ -44,6 +46,8 @@ def get_emo_words(emol, input_ids, tokens):
 
 def get_emo_type_ids(emo_category_list, input_ids, emo_input_ids, emo_input_ids_labels):
     '''
+    得到每个token的情感类别
+    :emo_input_ids_labels [[], [], []]
     不在emo input ids 里面的为 noemoword = 0
     在 emo input ids 但是不属于 emo input ids[1:-1] 的为 affect words 中的 others = len(emo_category_list) - 1
     '''
@@ -51,7 +55,19 @@ def get_emo_type_ids(emo_category_list, input_ids, emo_input_ids, emo_input_ids_
     for input_id in input_ids:
         if input_id in emo_input_ids:
             index = emo_input_ids.index(input_id)
-            emo_type = emo_input_ids_labels[index]
+            # 得到对应的情感词类别, 可能 = [negative, anx], 
+            # 根据具体的 emo_category_list 确实使用哪一个
+            emo_labels = emo_input_ids_labels[index]
+            if len(emo_labels) == 1:
+                emo_type = emo_labels[0]
+            else:
+                emo_types = []
+                for e in emo_labels:
+                    if e in emo_category_list:
+                        emo_types.append(e)
+                if len(emo_types) > 1:
+                    print("[Warning] this word have multi-label {}".format(emo_types))
+                emo_type  = emo_types[0]
             if emo_type in emo_category_list[1:-1]:
                 emo_type_ids.append(emo_category_list.index(emo_type))
             else:
@@ -60,7 +76,8 @@ def get_emo_type_ids(emo_category_list, input_ids, emo_input_ids, emo_input_ids_
             emo_type_ids.append(0)
     return emo_type_ids
 
-def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_samples=0, use_emo=False, use_emo_type=None):
+def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, filter_path_val=None, num_samples=0, 
+                    use_emo=False, use_emo_type=None):
     '''
     {
         "segmentId": [
@@ -75,11 +92,9 @@ def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_sampl
         emol = EmoLexicon(lexicon_dir, lexicon_name, is_bert_token=False)
     else:
         emol = None
-    
+
     # add for emo type ids 
-    if use_emo_type == 'emo7':
-        emo_category_list = ['noemoword', 'posemo', 'negemo', 'anx', 'anger', 'sad', 'others']
-    elif use_emo_type == 'emo6':
+    if use_emo_type == 'emo6':
         emo_category_list = ['noemoword', 'posemo', 'anx', 'anger', 'sad', 'others']
     elif use_emo_type == 'emo4':
         emo_category_list = ['noemoword', 'posemo', 'negemo', 'others']
@@ -92,6 +107,12 @@ def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_sampl
         print('filter_dict has {} imgs'.format(len(filter_dict)))
     else:
         filter_dict = None
+    
+    if filter_path_val is not None:
+        filter_dict_val = json.load(open(filter_path_val))
+        print('val filter_dict has {} imgs'.format(len(filter_dict_val)))
+    else:
+        filter_dict_val = None
 
     id2len = {}
     txt2img = {}  # not sure if useful
@@ -104,6 +125,8 @@ def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_sampl
     for segmentId, value in tqdm(contents.items(), desc='building txtdb', total=len(contents.keys())):
         img_fname = segmentId + '.npz'
         if filter_dict is not None and filter_dict.get(img_fname) is None:
+            continue
+        if filter_dict_val is not None and filter_dict_val.get(img_fname) is not None:
             continue
         for sent in value:
             example = {}
@@ -128,18 +151,19 @@ def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_sampl
                 # print(tokens)
                 # print(input_ids)
                 # print(emo_input_ids, emo_input_ids_labels)
-                if emo_category_list is not None:
+                if use_emo_type is not None:
                     emo_type_ids = get_emo_type_ids(emo_category_list, input_ids, emo_input_ids, emo_input_ids_labels)
                     example['emo_type_ids'] = emo_type_ids
                     assert len(emo_type_ids) == len(input_ids)
-                    # print(emo_type_ids)
+                    # print(emo_type_ids)                    
             db[str(_id)] = example
             _id += 1
         count_img += 1
         if num_samples > 0 and num_samples == count_img:
             print('just sample {} as the part val set'.format(num_samples))
             break
-    print("emotional utts {} and avg emo words {}".format(count_emo_utts, count_emo_words/count_emo_utts))
+    if count_emo_utts > 0:
+        print("emotional utts {} and avg emo words {}".format(count_emo_utts, count_emo_words/count_emo_utts))
     return id2len, txt2img, img2txt
 
 def main(opts):
@@ -163,7 +187,8 @@ def main(opts):
     open_db = curry(open_lmdb, opts.output, readonly=False)
     with open_db() as db:
         id2lens, txt2img, img2txt = process_jsonl(opts.input, db, toker, dataset_name=opts.dataset_name, \
-                                filter_path=opts.filter_path, num_samples=opts.num_samples, \
+                                filter_path=opts.filter_path, filter_path_val=opts.filter_path_val, \
+                                num_samples=opts.num_samples, \
                                 use_emo=opts.use_emo, use_emo_type=opts.use_emo_type)
     print('generate id2lens {} txt2img {} img2txt {}'.format(len(id2lens), len(txt2img), len(img2txt)))
     with open(f'{opts.output}/id2len.json', 'w') as f:
@@ -181,6 +206,8 @@ if __name__ == '__main__':
                         help='output dir of DB, ')
     parser.add_argument('--filter_path',
                         help='used to filter the segment Id')
+    parser.add_argument('--filter_path_val', default=None,
+                        help='remove the val to get the trn, ')
     parser.add_argument('--num_samples', type=int, default=0,
                         help='sample number samples from input JSON as a test set')
     parser.add_argument('--toker', default='bert-base-uncased',

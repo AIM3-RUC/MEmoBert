@@ -13,8 +13,9 @@ from cytoolz import curry
 from tqdm import tqdm
 from pytorch_pretrained_bert import BertTokenizer
 import sys
-sys.path.append('/data7/MEmoBert/code/uniter')
-from data.data import open_lmdb
+from preprocess.tools.get_emo_words import EmoLexicon
+from build_lmdb.mk_txtdb_by_faces import get_emo_words, get_emo_type_ids
+from code.uniter.data.data import open_lmdb
 
 def bert_tokenize(tokenizer, text):
     ids = []
@@ -31,7 +32,7 @@ def bert_id2token(tokenizer, ids):
     tokens = list(map(lambda x: '@@'+x if not x.isalpha() else x, tokens))
     return tokens
 
-def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_samples=0):
+def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_samples=0, use_emo=False, use_emo_type=None):
     '''
     {
         "segmentId": [
@@ -39,6 +40,23 @@ def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_sampl
         ]
     }
     '''
+    if use_emo == True:
+        print("*********** Use Emo Words ************")
+        lexicon_dir = '/data2/zjm/tools/EmoLexicons'
+        lexicon_name = 'LIWC2015Dictionary.dic'
+        emol = EmoLexicon(lexicon_dir, lexicon_name, is_bert_token=False)
+    else:
+        emol = None
+
+    # add for emo type ids 
+    if use_emo_type == 'emo6':
+        emo_category_list = ['noemoword', 'posemo', 'anx', 'anger', 'sad', 'others']
+    elif use_emo_type == 'emo4':
+        emo_category_list = ['noemoword', 'posemo', 'negemo', 'others']
+    else:
+        emo_category_list = None
+    print('**** emo_category_list {}'.format(emo_category_list))
+
     if filter_path is not None:
         filter_dict = json.load(open(filter_path))
         print('filter_dict has {} imgs'.format(len(filter_dict)))
@@ -49,6 +67,8 @@ def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_sampl
     img2txt = defaultdict(list)
     contents = json.load(open(jsonf))
     count_img = 0
+    count_emo_utts = 0
+    count_emo_words = 0
     _id = 0
     for segmentId, value in tqdm(contents.items(), desc='building txtdb', total=len(contents.keys())):
         img_fname = segmentId + '.npz'
@@ -71,6 +91,23 @@ def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_sampl
             if isinstance(value['label'], str):
                 value['label'] = int(value['label'])
             example['target'] = value['label']
+
+            # add this for emotion
+            if emol is not None:
+                emo_input_ids, emo_input_ids_labels = get_emo_words(emol, input_ids, tokens)
+                example['emo_input_ids'] = emo_input_ids  # 存储对应的情感词的id
+                example['emo_labels'] = emo_input_ids_labels # 存储对应的情感类别
+                if len(emo_input_ids) > 0:
+                    count_emo_utts += 1
+                    count_emo_words += len(emo_input_ids)
+                # print(tokens)
+                # print(input_ids)
+                # print(emo_input_ids, emo_input_ids_labels)
+                if emo_category_list is not None:
+                    emo_type_ids = get_emo_type_ids(emo_category_list, input_ids, emo_input_ids, emo_input_ids_labels)
+                    example['emo_type_ids'] = emo_type_ids
+                    assert len(emo_type_ids) == len(input_ids)
+                    # print(emo_type_ids)
             db[str(_id)] = example
             _id += 1
         count_img += 1
@@ -100,7 +137,8 @@ def main(opts):
     open_db = curry(open_lmdb, opts.output, readonly=False)
     with open_db() as db:
         id2lens, txt2img, img2txt = process_jsonl(opts.input, db, toker, dataset_name=opts.dataset_name, \
-                                filter_path=opts.filter_path, num_samples=opts.num_samples)
+                                filter_path=opts.filter_path, num_samples=opts.num_samples, \
+                                use_emo=opts.use_emo, use_emo_type=opts.use_emo_type)
     print('generate id2lens {} txt2img {} img2txt {}'.format(len(id2lens), len(txt2img), len(img2txt)))
     with open(f'{opts.output}/id2len.json', 'w') as f:
         json.dump(id2lens, f)
@@ -123,5 +161,9 @@ if __name__ == '__main__':
                         help='which BERT tokenizer to used')
     parser.add_argument('--dataset_name', default='movies_v1',
                         help='which dataset to be processed')
+    parser.add_argument('--use_emo',  action='store_true',
+                        help='store the emotion words and corresding labels')
+    parser.add_argument('--use_emo_type',  default=None,
+                        help='one of the [None, emo7, emo6, emo4]')
     args = parser.parse_args()
     main(args)

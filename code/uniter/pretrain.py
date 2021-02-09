@@ -407,26 +407,49 @@ def validate_melm(model, val_loader):
     val_loss = 0
     n_correct = 0
     n_word = 0
+    # Jinming: add emo-cls loss for melm multi-task
+    use_melm_emo = False
+    n_correct_emo = 0
+    val_loss_emo = 0
+
     st = time()
     for i, batch in enumerate(val_loader):
         scores = model(batch, task='melm', compute_loss=False)
+        # Jinming: add emo-scores loss for melm multi-task
+        if len(scores) == 2:
+            use_melm_emo = True
+            scores, emo_scores = scores
+        else:
+            emo_scores = None
         labels = batch['txt_labels']
         labels = labels[labels != -1]
         loss = F.cross_entropy(scores, labels, reduction='sum')
         val_loss += loss.item()
         n_correct += (scores.max(dim=-1)[1] == labels).sum().item()
         n_word += labels.numel()
+        # Jinming: add emo acc for melm multi-task
+        if emo_scores is not None:
+            emo_labels = batch['txt_emo_labels']
+            emo_labels = emo_labels[emo_labels != -1]
+            loss1 = F.cross_entropy(emo_scores, emo_labels, reduction='sum')
+            val_loss_emo += loss1
+            n_correct_emo += (emo_scores.max(dim=-1)[1] == emo_labels).sum().item()
     val_loss = sum(all_gather_list(val_loss))
     n_correct = sum(all_gather_list(n_correct))
     n_word = sum(all_gather_list(n_word))
     tot_time = time()-st
     val_loss /= n_word
     acc = n_correct / n_word
-    val_log = {'loss': val_loss,
-               'acc': acc,
-               'tok_per_s': n_word/tot_time}
+    val_log = {'loss': val_loss, 'acc': acc, 'tok_per_s': n_word/tot_time}
     LOGGER.info(f"validation finished in {int(tot_time)} seconds, "
                 f"acc: {acc*100:.2f}")
+    if use_melm_emo:
+        # val_loss_emo = sum(all_gather_list(val_loss_emo))
+        n_correct_emo = sum(all_gather_list(n_correct_emo))
+        # val_loss_emo /= n_word
+        acc = n_correct_emo / n_word
+        LOGGER.info(f"validation finished in {int(tot_time)} seconds, "
+                f"emo acc: {acc*100:.2f}")
     return val_log
 
 def accuracy_count(out, labels):
@@ -546,9 +569,6 @@ if __name__ == "__main__":
         help="The output directory where the model checkpoints will be "
              "written.")
 
-    # emotional related
-    parser.add_argument('--melm_type_emo', type=str, default=None,
-                        help="use the emotion category embeddings [none, emo4, emo6, emo7]")
     parser.add_argument('--melm_prob', default=0.5, type=float,
                         help='probability to mask in MELM training')
     # traditional task

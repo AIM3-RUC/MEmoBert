@@ -1,5 +1,5 @@
 {
-    "output_dir": "/data7/emobert/exp/pretrain/nomask_movies_v1_uniter_mlm_itm_2tasks",
+    "output_dir": "/data7/emobert/exp/pretrain/nomask_movies_v1_uniter_mlm_itm_2tasks_conf.1",
     "model_config": "config/uniter-base.json",
     "checkpoint": "/data7/emobert/resources/pretrained/uniter-base-uncased-init.pt",
     "mrm_prob": 0.15,
@@ -33,7 +33,7 @@
         {
             "name": "movies_v1",
             "db": [
-                "/data7/emobert/txt_db/movies_v1_th0.0_trn.db/"
+                "/data7/emobert/txt_db/movies_v1_th0.1_trn.db/"
             ],
             "img": [
                 "/data7/emobert/img_db_nomask/movies_v1/"
@@ -52,7 +52,7 @@
         {
             "name": "movies_v1_2000",
             "db": [
-                "/data7/emobert/txt_db/movies_v1_th0.0_trn_2000.db/"            
+                "/data7/emobert/txt_db/movies_v1_th0.1_trn_2000.db/"            
             ],
             "img": [
                 "/data7/emobert/img_db_nomask/movies_v1/"

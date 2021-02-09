@@ -106,6 +106,7 @@ def main(opts):
                 value=json.dumps(list(name2nbb.keys())).encode('utf-8'))
         txn.commit()
         env.close()
+    print('total {} name2nbb'.format(len(name2nbb)))
     with open(f'{opts.output}/{split}/'
                 f'nbb_th{opts.conf_th}_'
                 f'max{opts.max_bb}_min{opts.min_bb}.json', 'w') as f:

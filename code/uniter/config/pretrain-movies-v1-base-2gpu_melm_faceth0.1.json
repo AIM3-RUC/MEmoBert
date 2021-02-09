@@ -1,14 +1,13 @@
 {
-    "output_dir": "/data7/emobert/exp/pretrain/nomask_movies_v1_uniter_4tasks_melm0.5emo4",
-    "model_config": "config/uniter-base-emotype.json",
+    "output_dir": "/data7/emobert/exp/pretrain/nomask_movies_v1_uniter_4tasks_melm0.5_faceth0.1",
+    "model_config": "config/uniter-base.json",
     "checkpoint": "/data7/emobert/resources/pretrained/uniter-base-uncased-init.pt",
     "mrm_prob": 0.15,
     "melm_prob": 0.5,
-    "melm_type_multask": false,
     "itm_neg_prob": 0.5,
     "itm_ot_lambda": 0.1,
     "max_txt_len": 30,
-    "conf_th": 0.0,
+    "conf_th": 0.1,
     "max_bb": 100,
     "min_bb": 10,
     "num_bb": 36,
@@ -16,7 +15,7 @@
     "val_batch_size": 10240,
     "gradient_accumulation_steps": 2,
     "learning_rate": 5e-05,
-    "valid_steps": 10000,
+    "valid_steps": 5000,
     "num_train_steps": 100000,
     "optim": "adamw",
     "betas": [
@@ -35,7 +34,7 @@
         {
             "name": "movies_v1",
             "db": [
-                "/data7/emobert/txt_db/movies_v1_th0.0_emowords_emotype4_trn.db/"
+                "/data7/emobert/txt_db/movies_v1_th0.1_emowords_all_trn.db/"
             ],
             "img": [
                 "/data7/emobert/img_db_nomask/movies_v1/"
@@ -60,7 +59,7 @@
         {
             "name": "movies_v1_2000",
             "db": [
-                "/data7/emobert/txt_db/movies_v1_th0.0_emowords_emotype4_trn_2000.db/"            
+                "/data7/emobert/txt_db/movies_v1_th0.1_emowords_all_2000.db/"            
             ],
             "img": [
                 "/data7/emobert/img_db_nomask/movies_v1/"

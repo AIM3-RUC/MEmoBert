@@ -19,12 +19,11 @@ def random_emo_word(melm_prob, tokens, vocab_range, emo_tokens, mask):
     :param melm_prob: prob of masked emotional words
     :param tokens: list of int, tokenized sentence.
     :param vocab_range: for choosing a random word
-    :param emo_tokens: emotional tokens in tokens
+    :param emo_tokens: emotional tokens in tokens and the token's emotion
     :return: (list of int, list of int), masked tokens and related labels for
         LM prediction
     """
     output_label = []
-
     for i, token in enumerate(tokens):
         prob = random.random()
         if token in emo_tokens:
@@ -80,25 +79,28 @@ class MelmDataset(DetectFeatTxtTokDataset):
         # Jinming: add for emo_type_ids (0~4), 
         # 0 is the no-emotion-words
         if example.get('emo_type_ids') is not None:
-            # print("emo_type_ids in examples")
+            # for emotion type embedding
             emo_type_ids = torch.tensor([0] + example['emo_type_ids'] + [0])
+            # generate the labels for multitask emotion, 保持跟 txt_labels 一致，txt_labels 中为 -1 的位置同样置为-1.
+            txt_emo_labels = torch.where(txt_labels<0, txt_labels, emo_type_ids)
+            # print("[Debug] txt_labels {}".format(txt_labels))
+            # print("[Debug] emo_type_ids {}".format(emo_type_ids))
+            # print("[Debug] txt_emo_labels {}".format(txt_emo_labels))
         else:
             emo_type_ids = None
+            txt_emo_labels = None
 
         # img input Jinming remove the norm-bbx fts
-        img_feat, num_bb = self._get_img_feat(
-            example['img_fname'])
+        img_feat, num_bb = self._get_img_feat(example['img_fname'])
 
         attn_masks = torch.ones(len(input_ids) + num_bb, dtype=torch.long)
 
-        return input_ids, img_feat, attn_masks, txt_labels, emo_type_ids
+        return input_ids, img_feat, attn_masks, txt_labels, emo_type_ids, txt_emo_labels
 
     def create_melm_io(self, input_ids, emo_input_ids):
         input_ids, txt_labels = random_emo_word(self.melm_prob, input_ids, 
                                                     self.txt_db.v_range, emo_input_ids, self.txt_db.mask)
-        input_ids = torch.tensor([self.txt_db.cls_]
-                                 + input_ids
-                                 + [self.txt_db.sep])            
+        input_ids = torch.tensor([self.txt_db.cls_] + input_ids + [self.txt_db.sep])
         txt_labels = torch.tensor([-1] + txt_labels + [-1])
         return input_ids, txt_labels
 
@@ -116,18 +118,23 @@ def melm_collate(inputs):
     :attn_masks   (n, max_{L + num_bb}) padded with 0
     :txt_labels   (n, max_L) padded with -1
     :emo_type_ids (n, max_L) padded with 0
+    :txt_emo_labels (n, max_L) padded with -1, similar with the emo_type_ids
     """
-    (input_ids, img_feats, attn_masks, txt_labels, batch_emo_type_ids) = map(list, unzip(inputs))
+    (input_ids, img_feats, attn_masks, txt_labels, batch_emo_type_ids, \
+             batch_txt_emo_labels) = map(list, unzip(inputs))
 
     # text batches
     txt_lens = [i.size(0) for i in input_ids]
 
     # Jinming: here emo_type_ids is batch, so judge the element is none or not 
+    # batch_emo_type_ids is also can used for 
     if batch_emo_type_ids[0] is not None:
         # print(emo_type_ids)
         batch_emo_type_ids = pad_sequence(batch_emo_type_ids, batch_first=True, padding_value=0)
+        batch_txt_emo_labels = pad_sequence(batch_txt_emo_labels, batch_first=True, padding_value=-1)
     else:
         batch_emo_type_ids = None
+        batch_txt_emo_labels = None
     
     input_ids = pad_sequence(input_ids, batch_first=True, padding_value=0)
     txt_labels = pad_sequence(txt_labels, batch_first=True, padding_value=-1)
@@ -154,5 +161,7 @@ def melm_collate(inputs):
              'attn_masks': attn_masks,
              'gather_index': gather_index,
              'txt_labels': txt_labels, 
-             'emo_type_ids': batch_emo_type_ids}
+             'emo_type_ids': batch_emo_type_ids,
+             'txt_emo_labels': batch_txt_emo_labels
+             }
     return batch

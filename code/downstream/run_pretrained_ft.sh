@@ -10,7 +10,7 @@ do
     for i in `seq 1 12`;
     do
         cmd="python run_baseline.py --gpu_id $gpu --modality=$modality 
-            --pretained_ft_type nomask_movies_v1_uniter_mlm_mrfr_mrckl_3tasks_melm0.5_openface_finetuned
+            --pretained_ft_type nomask_movies_v1_uniter_4tasks_melm0.5emo4_emotypeinput_openface_nofinetune
             --num_threads 0 --cvNo=$i --run_idx=$run_idx
             --dropout_rate 0.5 --postfix self
             --l_hidden_size 128 --v_hidden_size 128 --mid_fusion_layers '256,128'

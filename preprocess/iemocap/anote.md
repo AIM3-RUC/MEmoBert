@@ -33,6 +33,8 @@ cv8: [trn] spk1-6;9,10 [val] spk8 [tst]spk7     leave out session: session4
 cv9: [trn] spk1-8 [val] spk9 [tst]spk10         leave out session: session5
 cv10: [trn] spk1-8 [val] spk10 [tst]spk9        leave out session: session5
 
+denote ang hap neu sad is [0,1,2,3] respectively
+
 # Case1: Extract features
 code/uniter/extract_fts.sh
 保存抽取的特征以及对应的target, 正好读txt_db 就一块保存了
