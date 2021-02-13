@@ -3,9 +3,9 @@ gpu_id=$1
 frozens=$2
 dropout=$3
 
-corpus_name='iemocap'
+corpus_name='msp'
 
-for i in `seq 10 10`;
+for i in `seq 1 12`;
 do
     CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
             --cvNo ${i} --config config/train-emo-${corpus_name}-openface-base-4gpuTM4.json \

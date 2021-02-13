@@ -2,8 +2,8 @@ export PYTHONPATH=/data7/MEmoBert
 setname=$1
 gpu_id=$2
 
-corpus_name='IEMOCAP' # 'MSP-IMPROV'
-corpus_name_small='iemocap' # 
+corpus_name='MSP-IMPROV' # 'MSP-IMPROV'
+corpus_name_small='msp' # 
 
 for cv_no in $(seq 1 12);
 do

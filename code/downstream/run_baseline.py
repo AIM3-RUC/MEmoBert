@@ -99,6 +99,7 @@ def main(opt):
     num_parameters = sum(torch.numel(parameter) for parameter in model.parameters())
     logger.info('[Model] parameters {}'.format(num_parameters))
 
+
     # Prepare model
     if opt.is_test and opt.restore_checkpoint:
         logger.info('[Model] At testing stage and restore from {}'.format(opt.restore_checkpoint))

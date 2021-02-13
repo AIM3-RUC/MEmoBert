@@ -88,13 +88,12 @@ class VideoFaceTrackerTool(BaseWorker):
         return is_exists
     
     def __call__(self, frames_dir, save_dir):
-        if not self.check_exists(save_dir):
-            mkdir(save_dir)
-            cmd = '{}/FaceLandmarkVidMulti -nomask -fdir {} -out_dir {} > /dev/null 2>&1'.format(
-                        self.openface_dir, frames_dir, save_dir
-                    )
-            os.system(cmd)
-            self.print('Face Track in {}, result save to {}'.format(frames_dir, save_dir))
+        mkdir(save_dir)
+        cmd = '{}/FaceLandmarkVidMulti -nomask -fdir {} -out_dir {} > /dev/null 2>&1'.format(
+                    self.openface_dir, frames_dir, save_dir
+                )
+        os.system(cmd)
+        self.print('Face Track in {}, result save to {}'.format(frames_dir, save_dir))
         return save_dir
 
 class DensefaceExtractor(BaseWorker):

@@ -1,9 +1,8 @@
 {
     "compressed_db": false,
     "checkpoint": "/data7/emobert/exp/pretrain/nomask_movies_v1_uniter_4tasks/ckpt/model_step_100000.pt",
-    "model_config": "config/uniter-base.json",
+    "model_config": "config/uniter-base-emotype.json",
     "output_dir": "/data7/emobert/exp/finetune/msp_baseon_nomask_movies_v1_uniter_4tasks/",
-    "melm_type_multask": false,
     "max_txt_len": 30,
     "conf_th": 0.0,
     "max_bb": 100,
@@ -34,13 +33,13 @@
     "n_workers": 4,
     "pin_mem": true,
     "train_txt_dbs": [
-        "/data7/emobert/exp/evaluation/MSP-IMPROV/txt_db/{}/trn.db"
+        "/data7/emobert/exp/evaluation/MSP-IMPROV/txt_db/{}/trn_emo4.db"
     ],
     "train_img_dbs": [
         "/data7/emobert/exp/evaluation/MSP-IMPROV/feature/denseface_openface_msp_mean_std/img_db/msp/"
     ],
-    "val_txt_db": "/data7/emobert/exp/evaluation/MSP-IMPROV/txt_db/{}/val.db",
+    "val_txt_db": "/data7/emobert/exp/evaluation/MSP-IMPROV/txt_db/{}/val_emo4.db",
     "val_img_db": "/data7/emobert/exp/evaluation/MSP-IMPROV/feature/denseface_openface_msp_mean_std/img_db/msp/",
-    "test_txt_db": "/data7/emobert/exp/evaluation/MSP-IMPROV/txt_db/{}/tst.db",
+    "test_txt_db": "/data7/emobert/exp/evaluation/MSP-IMPROV/txt_db/{}/tst_emo4.db",
     "test_img_db": "/data7/emobert/exp/evaluation/MSP-IMPROV/feature/denseface_openface_msp_mean_std/img_db/msp/"
 }

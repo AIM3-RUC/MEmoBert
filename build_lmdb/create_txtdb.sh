@@ -11,12 +11,12 @@ export PYTHONPATH=/data7/MEmoBert
 #                 --num_samples 2000
 
 ### build the trn set by the all set and the all_2000 set. to build a new filter path
-python mk_txtdb_by_faces.py --input /data7/emobert/data_nomask/movies_v1/ref_captions.json \
-                --output /data7/emobert/txt_db/movies_v1_th0.1_emowords_emotype4_all_trn.db \
-                --filter_path /data7/emobert/img_db_nomask/movies_v1/nbb_th0.1_max100_min10.json \
-                --filter_path_val /data7/emobert/txt_db/movies_v1_th0.1_emowords_emotype4_all_2000.db/img2txts.json \
-                --toker bert-base-uncased  --dataset_name movies_v1 \
-                --use_emo --use_emo_type 'emo4' 
+# python mk_txtdb_by_faces.py --input /data7/emobert/data_nomask/movies_v1/ref_captions.json \
+#                 --output /data7/emobert/txt_db/movies_v1_th0.1_emowords_emotype4_all_trn.db \
+#                 --filter_path /data7/emobert/img_db_nomask/movies_v1/nbb_th0.1_max100_min10.json \
+#                 --filter_path_val /data7/emobert/txt_db/movies_v1_th0.1_emowords_emotype4_all_2000.db/img2txts.json \
+#                 --toker bert-base-uncased  --dataset_name movies_v1 \
+#                 --use_emo --use_emo_type 'emo4' 
 
 # for iemocap
 # for i in `seq 2 10`; do

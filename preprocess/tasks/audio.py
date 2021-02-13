@@ -3,7 +3,7 @@ import torch
 import pandas as pd
 import soundfile as sf
 import numpy as np
-from utils import get_basename, mkdir
+from preprocess.utils import get_basename, mkdir
 import scipy.signal as spsig
 from fairseq.models.wav2vec import Wav2VecModel
 
@@ -31,6 +31,16 @@ class AudioSplitor(BaseWorker):
             os.system(_cmd)
         return save_path
 
+class AudioSplitorTool(BaseWorker):
+    def __init__(self, logger=None):
+        super().__init__()
+        self.logger = logger
+
+    def __call__(self, video_path, save_path):
+        if not os.path.exists(save_path):
+            _cmd = "ffmpeg -i {} -vn -f wav -acodec pcm_s16le -ac 1 -ar 16000 {} -y > /dev/null 2>&1".format(video_path, save_path)
+            os.system(_cmd)
+        return save_path
         
 class ComParEExtractor(BaseWorker):
     ''' 抽取comparE特征, 输入音频路径, 输出npy数组, 每帧130d
