@@ -19,6 +19,9 @@ model_cfg = {
   'batch_size': 64,
   'max_epoch': 200,
   'optimizer': 'adam',
+  'nesterov': True, # for sgd
+  'momentum': 0.9, # for sgd
+  'weight_decay': 0, # for sgd
   'learning_rate': 0.001,
   'reduce_half_lr_epoch': 40,
   'reduce_half_lr_rate': 0.5,  # epochs * 0.5

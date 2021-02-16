@@ -76,7 +76,12 @@ def main(opt):
         checkpoint = {}
 
     # initialized the optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=opt.learning_rate)
+    if opt.optimizer == 'adam':
+        optimizer = torch.optim.Adam(model.parameters(), lr=opt.learning_rate)
+    else:
+        optimizer = torch.optim.SGD(model.parameters(), lr=opt.learning_rate, 
+                                momentum=opt.momentum, nesterov=opt.nesterov,
+                                weight_decay=opt.weight_decay)
     scheduler = lr_scheduler.StepLR(optimizer, step_size=opt.reduce_half_lr_epoch, gamma=opt.reduce_half_lr_rate)
 
     best_eval_f1 = 0              # record the best eval UAR

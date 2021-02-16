@@ -6,3 +6,5 @@ FER+ 数据地址：
 
 ## Step2
 加入更多的数据进行训练
+/data3/zjm/dataset/SFEW_2.0
+/data3/zjm/dataset/ExpW

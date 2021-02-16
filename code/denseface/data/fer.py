@@ -7,7 +7,7 @@ import numpy as np
 from os.path import join
 from .base_provider import ImagesDataSet
 
-def augment_image(image, pad):
+def augment_image(image, pad=8):
     '''
     Perform zero padding, randomly crop image to original size,
     maybe mirror horizontally

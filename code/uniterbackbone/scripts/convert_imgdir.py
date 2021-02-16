@@ -44,10 +44,7 @@ def load_npz(conf_th, max_bb, fname):
         for key, arr in img_dump.items():
             if arr.dtype == np.float32:
                 arr = arr.astype(np.float16)
-            if arr.ndim == 3:
-                # shape=(n, dim, dim)
-                dump[key] = arr[valid_indexs, :, :]
-            elif arr.ndim == 2:
+            if arr.ndim == 2:
                 dump[key] = arr[valid_indexs, :]
             elif arr.ndim == 1:
                 dump[key] = arr[valid_indexs]
