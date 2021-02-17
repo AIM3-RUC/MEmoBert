@@ -31,7 +31,9 @@ model_cfg = {
   'data_augmentation': True,
   'validation_set': True,
   'validation_split': None,
-  'num_threads': 4
+  'num_threads': 4,
+  # for finetune
+  "frozen_dense_blocks": 2
 }
 
 #

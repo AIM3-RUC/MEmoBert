@@ -1,8 +1,9 @@
 {
-    "output_dir": "/data7/emobert/exp/pretrain/rawimg_nomask_movies_v1_uniter_4tasks_initbypretained",
-    "model_config": "config/uniter-base.json",
+    "output_dir": "/data7/emobert/exp/pretrain/rawimg_nomask_movies_v1_uniter_4tasks_initbypretained_fix2blocks",
+    "model_config": "config/uniter-base-backbone.json",
     "checkpoint": "/data7/emobert/resources/pretrained/uniter-base-uncased-init.pt",
-    "face_checkpoint": "/data7/MEmoBert/emobert/exp/face_model/densenet100_adam0.001_0.0/model_step_43.pt",
+    "joint_face_backbone": true,
+    "face_checkpoint": "/data7/emobert/exp/face_model/densenet100_adam0.001_0.0/ckpts/model_step_43.pt",
     "face_from_scratch": false,
     "face_data_augmentation": true,
     "mrm_prob": 0.15,
@@ -13,12 +14,12 @@
     "max_bb": 100,
     "min_bb": 10,
     "num_bb": 36,
-    "train_batch_size": 10240,
-    "val_batch_size": 10240,
+    "train_batch_size": 800,
+    "val_batch_size": 800,
     "gradient_accumulation_steps": 2,
     "learning_rate": 5e-05,
-    "valid_steps": 100,
-    "num_train_steps": 100000,
+    "valid_steps": 5000,
+    "num_train_steps": 200000,
     "optim": "adamw",
     "betas": [
         0.9,
@@ -31,7 +32,7 @@
     "seed": 42,
     "fp16": true,
     "n_workers": 2,
-    "pin_mem": true,
+    "pin_mem": false,
     "train_datasets": [
         {
             "name": "movies_v1",

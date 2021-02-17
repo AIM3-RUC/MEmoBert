@@ -12,7 +12,7 @@ from cytoolz import partition_all
 
 class TokenBucketSampler(Sampler):
     def __init__(self, lens, bucket_size, batch_size,
-                 droplast=False, size_multiple=8):
+                 droplast=False, size_multiple=4):
         self._lens = lens
         self._max_tok = batch_size
         self._bucket_size = bucket_size

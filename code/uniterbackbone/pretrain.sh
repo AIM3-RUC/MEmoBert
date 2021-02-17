@@ -12,7 +12,10 @@ export PYTHONPATH=/data7/MEmoBert
 # CUDA_VISIBLE_DEVICES=4,5 horovodrun -np 2 python pretrain.py \
 #         --config config/pretrain-movies-v1-base-2gpu_melm_faceth0.1_multitask.json
 
-CUDA_VISIBLE_DEVICES=6 horovodrun -np 1 python pretrain.py \
+# CUDA_VISIBLE_DEVICES=3,4 horovodrun -np 2 python pretrain.py \
+#         --config config/pretrain-movies-v1-base-2gpu_rawimg.json
+
+CUDA_VISIBLE_DEVICES=2,6 horovodrun -np 2 python pretrain.py \
         --config config/pretrain-movies-v1-base-2gpu_rawimg.json
 
 # CUDA_VISIBLE_DEVICES=2,3 horovodrun -np 2 python pretrain.py \

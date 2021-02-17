@@ -11,11 +11,15 @@ import json
 import logging
 from io import open
 
+import numpy as np
 import torch
 from torch import nn
 from apex.normalization.fused_layer_norm import FusedLayerNorm
 
 from code.uniterbackbone.model.layer import BertLayer, BertPooler
+from torch import tensor
+from code.denseface.model.dense_net import DenseNet, DenseNetEncoder
+from code.denseface.config.conf_fer import model_cfg as denseface_config
 
 logger = logging.getLogger(__name__)
 
@@ -263,22 +267,61 @@ class UniterTextEmbeddings(nn.Module):
 class UniterImageEmbeddings(nn.Module):
     def __init__(self, config, img_dim):
         super().__init__()
+        self.config = config
         self.img_linear = nn.Linear(img_dim, config.hidden_size)
         self.img_layer_norm = FusedLayerNorm(config.hidden_size, eps=1e-12)
         self.position_embeddings = nn.Embedding(config.max_position_embeddings,
                                                 config.hidden_size)
         self.mask_embedding = nn.Embedding(2, img_dim, padding_idx=0)
 
+        # Jinming add for joint training denseface backbone
+        if self.config.joint_face_backbone is True:
+            self.denseface_encoder = DenseNetEncoder(**denseface_config)
+            if not self.config.face_from_scratch:
+                state_dict = torch.load(self.config.face_checkpoint)
+                for key in list(state_dict.keys()):
+                    if 'classifier' in key:
+                        del state_dict[key]
+                # print('[Debug]****** original layer weights')
+                # print(state_dict['features.denseblock2.denselayer10.conv1.weight'])
+                # print(state_dict['features.denseblock3.denselayer10.conv1.weight'])
+                # print("****************"*5)
+                # print(list(state_dict.keys())[:20])
+                # print("****************"*5)
+                # print(list(self.denseface_encoder.state_dict().keys())[:20])
+                # print("****************"*5)
+                # input()
+                # for key in self.denseface_encoder.state_dict().keys():
+                #     if key not in state_dict.keys():
+                #         print(key)
+                # input()
+                self.denseface_encoder.load_state_dict(state_dict)
+
         # tf naming convention for layer norm
         self.LayerNorm = FusedLayerNorm(config.hidden_size, eps=1e-12)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
     def forward(self, img_feat, img_position_ids, img_type_embeddings, img_masks=None):
+        # print('[Debug]****** traning layer weights')
+        # print(self.denseface_encoder.state_dict()['features.denseblock2.denselayer10.conv1.weight'])
+        # print(self.denseface_encoder.state_dict()['features.denseblock3.denselayer10.conv1.weight'])
+        # Jinming add for joint training denseface backbone
+        if self.config.joint_face_backbone is True:
+            # 输入的是原始的图片信息, 
+            new_img_feat = []
+            # print('[Debug] Raw images {}'.format(img_feat.shape))
+            for raw_img_4video in img_feat:
+                raw_img_ft = self.denseface_encoder.forward(raw_img_4video)
+                # print('[Debug]raw_img_ft {}'.format(raw_img_ft.shape))
+                new_img_feat.append(raw_img_ft)
+            img_feat = torch.stack(new_img_feat)
+            # print("[Debug] densenet output {}".format(img_feat.shape))
+
         if img_masks is not None:
             self.mask_embedding.weight.data[0, :].fill_(0)
             mask = self.mask_embedding(img_masks.long())
             img_feat = img_feat + mask
-
+        
         transformed_im = self.img_layer_norm(self.img_linear(img_feat))
         position_embeddings = self.position_embeddings(img_position_ids)
         # print('transformed_im {} position_embeddings {} img_type_embeddings {}'.format(
@@ -338,8 +381,15 @@ class UniterModel(UniterPreTrainedModel):
 
     def _compute_img_embeddings(self, img_feat, img_position_ids, img_masks=None,
                                 img_type_ids=None):
+        
+        # Jinming add: if img_feat is raw images, the img_type_ids is 
         if img_type_ids is None:
-            img_type_ids = torch.ones_like(img_feat[:, :, 0].long())
+            if len(list(img_feat.shape)) == 4:
+                img_type_ids = torch.ones_like(img_feat[:, :, 0, 0].long())
+            elif len(list(img_feat.shape)) == 3:
+                img_type_ids = torch.ones_like(img_feat[:, :, 0].long())
+            else:
+                print('[Error] The input image feature shape is error {}'.format(img_feat.shape))
         # share the embedding defined in txtEmbedding
         img_type_embeddings = self.embeddings.token_type_embeddings(
             img_type_ids)
@@ -371,6 +421,8 @@ class UniterModel(UniterPreTrainedModel):
         
         input_ids = batch['input_ids']
         position_ids = batch['position_ids']
+        # Jinming add note: if img_feat are raw images, 
+        # then the img_feat with shape (batchsize, max-len, img-dim, img-dim)
         img_feat = batch['img_feat']
         img_position_ids = batch['img_position_ids']
         attention_mask = batch['attn_masks']

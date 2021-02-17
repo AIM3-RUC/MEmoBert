@@ -1,4 +1,5 @@
 import torch
+from torch import tensor
 import torch.nn.functional as F
 from torch import nn 
 from torch.nn import CrossEntropyLoss
@@ -58,7 +59,7 @@ class _Transition(nn.Sequential):
 class DenseNet(nn.Module):
     "DenseNet-BC model"
     def __init__(self, gpu_id, growth_rate=32, block_config=(6, 12, 24, 16), num_init_features=64,
-                 bn_size=4, compression_rate=0.5, drop_rate=0, num_classes=8):
+                 bn_size=4, compression_rate=0.5, drop_rate=0, num_classes=8, **kwargs):
         """
         default is the densenet121 setting
         :param growth_rate: (int) number of filters used in DenseLayer, `k` in the paper
@@ -118,7 +119,8 @@ class DenseNet(nn.Module):
         bs_images = batch['images'].float().to(self.device)
         # (batch, channel, heigh, width)
         self.bs_images = bs_images.permute(0, 3, 1, 2)
-        self.bs_labels = batch['labels'].to(self.device)
+        if batch.get('labels') is not None:
+            self.bs_labels = batch['labels'].to(self.device)
 
     def forward(self):
         #input-shape: (N, Cin, H, W) 
@@ -137,3 +139,71 @@ class DenseNet(nn.Module):
         if max_grad > 0:
             print('[Debug] Use clip_grad_norm')
             torch.nn.utils.clip_grad_norm_(self.parameters(), max_grad)
+
+class DenseNetEncoder(nn.Module):
+    "DenseNet-BC model"
+    def __init__(self, growth_rate=32, block_config=(6, 12, 24, 16), num_init_features=64,
+                 bn_size=4, compression_rate=0.5, drop_rate=0, frozen_dense_blocks=0, **kwargs):
+        """
+        default is the densenet121 setting
+        :param growth_rate: (int) number of filters used in DenseLayer, `k` in the paper
+        :param block_config: (list of 4 ints) number of layers in each DenseBlock
+        :param num_init_features: (int) number of filters in the first Conv2d -- growth_rate*2
+        :param bn_size: (int) the factor using in the bottleneck layer  --4
+        :param compression_rate: (float) the compression rate used in Transition Layer --0.5
+        :param drop_rate: (float) the drop rate after each DenseLayer
+        :param num_classes: (int) number of classes for classification
+        """
+        super(DenseNetEncoder, self).__init__()
+        # first Conv2d # kernel_size=3, strides=[1, 2, 2, 1]
+        self.features = nn.Sequential(OrderedDict([
+            ("conv0", nn.Conv2d(1, num_init_features, kernel_size=3, stride=2, padding=1, bias=False))
+            # ("norm0", nn.BatchNorm2d(num_init_features)), # remove this 
+            # ("relu0", nn.ReLU(inplace=True)), # remove this 
+            # ("pool0", nn.MaxPool2d(3, stride=2, padding=1)) # remove this 
+        ]))
+
+        # DenseBlock
+        num_features = num_init_features
+        for i, num_layers in enumerate(block_config):
+            # Jinming add: only finetune last blocks
+            if i <= frozen_dense_blocks - 1:
+                print("the {} block is fixed".format(i))
+                with torch.no_grad():
+                    block = _DenseBlock(num_layers, num_features, bn_size, growth_rate, drop_rate)
+                    self.features.add_module("denseblock%d" % (i + 1), block)
+                    num_features += num_layers*growth_rate
+                    if i != len(block_config) - 1:
+                        transition = _Transition(num_features, int(num_features*compression_rate))
+                        self.features.add_module("transition%d" % (i + 1), transition)
+                        num_features = int(num_features * compression_rate)
+            else:
+                block = _DenseBlock(num_layers, num_features, bn_size, growth_rate, drop_rate)
+                self.features.add_module("denseblock%d" % (i + 1), block)
+                num_features += num_layers*growth_rate
+                if i != len(block_config) - 1:
+                    transition = _Transition(num_features, int(num_features*compression_rate))
+                    self.features.add_module("transition%d" % (i + 1), transition)
+                    num_features = int(num_features * compression_rate)
+
+        # final bn+ReLU
+        self.features.add_module("norm{}".format(len(block_config)), nn.BatchNorm2d(num_features))
+        self.features.add_module("relu{}".format(len(block_config)), nn.ReLU(inplace=True))
+
+        # params initialization
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.bias, 0)
+                nn.init.constant_(m.weight, 1)
+            elif isinstance(m, nn.Linear):
+                nn.init.constant_(m.bias, 0)
+
+    def forward(self, images):
+        # (T, H, W)
+        images = images.unsqueeze(1) # (T, 1, H, W)
+        features = self.features(images) # torch.Size([64, 342, 8, 8])
+        # print('dense output {}'.format(features.size())) 
+        out_ft = F.avg_pool2d(features, kernel_size=8, stride=1).view(features.size(0), -1)  # torch.Size([64, 342])
+        return out_ft
