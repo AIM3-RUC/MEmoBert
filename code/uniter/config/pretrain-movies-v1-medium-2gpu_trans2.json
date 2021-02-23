@@ -1,32 +1,23 @@
 {
-    "output_dir": "/data7/emobert/exp/pretrain/rawimg_nomask_movies_v1_uniter_4tasks_initbypretained_fix2blocks",
-    "model_config": "config/uniter-base-backbone.json",
-    "checkpoint": "/data7/emobert/resources/pretrained/uniter-base-uncased-init.pt",
-    "joint_face_backbone": true,
-    "face_checkpoint": "/data7/emobert/exp/face_model/densenet100_adam0.001_0.0/ckpts/model_step_43.pt",
-    "face_from_scratch": false,
-    "face_data_augmentation": true,
+    "output_dir": "/data7/emobert/exp/pretrain/nomask_movies_v1_uniter_medium_4tasks_trans2_faceth0.1",
+    "model_config": "config/uniter-medium.json",
+    "checkpoint": "/data7/emobert/resources/pretrained/uniter-medium-uncased-init.pt",
     "mrm_prob": 0.15,
     "itm_neg_prob": 0.5,
     "itm_ot_lambda": 0.1,
     "max_txt_len": 30,
     "conf_th": 0.1,
-    "max_bb": 100,
+    "max_bb": 64,
     "min_bb": 10,
     "num_bb": 36,
-    "train_batch_size": 800,
-    "val_batch_size": 800,
+    "IMG_DIM": 300,
+    "train_batch_size": 10240,
+    "val_batch_size": 10240,
     "gradient_accumulation_steps": 2,
     "learning_rate": 5e-05,
     "valid_steps": 5000,
     "num_train_steps": 200000,
     "optim": "adamw",
-    "use_backbone_optim": false,
-    "backbone_learning_rate": 1e-2, 
-    "backbone_optim": "sgd",
-    "backbone_nesterov": true,
-    "backbone_momentum": 0.9, 
-    "backbone_weight_decay": 5e-04,
     "betas": [
         0.9,
         0.98
@@ -37,8 +28,8 @@
     "warmup_steps": 10000,
     "seed": 42,
     "fp16": true,
-    "n_workers": 2,
-    "pin_mem": false,
+    "n_workers": 4,
+    "pin_mem": true,
     "train_datasets": [
         {
             "name": "movies_v1",
@@ -46,13 +37,17 @@
                 "/data7/emobert/txt_db/movies_v1_th0.1_all_trn.db/"
             ],
             "img": [
-                "/data7/emobert/rawimg_db_nomask/movies_v1/"
+                "/data7/emobert/img_db_nomask/movies_v1_trans2/"
             ],
             "tasks": [
                 "itm",
-                "mlm"
+                "mlm",
+                "mrfr",
+                "mrckl"
             ],
             "mix_ratio": [
+                2,
+                2,
                 1,
                 1
             ]
@@ -65,11 +60,28 @@
                 "/data7/emobert/txt_db/movies_v1_th0.1_all_2000.db/"            
             ],
             "img": [
-                "/data7/emobert/rawimg_db_nomask/movies_v1/"
+                "/data7/emobert/img_db_nomask/movies_v1_trans2/"
             ],
             "tasks": [
                 "itm",
-                "mlm"
+                "mlm",
+                "mrfr",
+                "mrckl"
+            ]
+        },
+        {
+            "name": "movies_v1_trn_2000",
+            "db": [
+                "/data7/emobert/txt_db/movies_v1_th0.1_all_trn_2000.db/"            
+            ],
+            "img": [
+                "/data7/emobert/img_db_nomask/movies_v1_trans2/"
+            ],
+            "tasks": [
+                "itm",
+                "mlm",
+                "mrfr",
+                "mrckl"
             ]
         }
     ]

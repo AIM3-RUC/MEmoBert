@@ -9,10 +9,8 @@ import random
 import torch
 from torch.nn.utils.rnn import pad_sequence
 from toolz.sandbox import unzip
-
 from code.uniter.data.data import (DetectFeatTxtTokDataset, TxtTokLmdb,
                    pad_tensors, get_gather_index)
-
 
 def random_word(tokens, vocab_range, mask):
     """
@@ -30,17 +28,15 @@ def random_word(tokens, vocab_range, mask):
         # mask token with 15% probability
         if prob < 0.15:
             prob /= 0.15
-
             # 80% randomly change token to mask token
             if prob < 0.8:
+                # print('[Debug] 0.8 predict mask token {}'.format(token))
                 tokens[i] = mask
-
             # 10% randomly change token to random token
             elif prob < 0.9:
+                # print('[Debug] 0.1 predict random token {}'.format(token))
                 tokens[i] = random.choice(list(range(*vocab_range)))
-
             # -> rest 10% randomly keep current token
-
             # append current token to output (we will predict these later)
             output_label.append(token)
         else:
@@ -74,14 +70,13 @@ class MlmDataset(DetectFeatTxtTokDataset):
         input_ids, txt_labels = self.create_mlm_io(example['input_ids'])
 
         # img input Jinming remove the norm-bbx fts
-        img_feat, num_bb = self._get_img_feat(
-            example['img_fname'])
-
+        img_feat, num_bb = self._get_img_feat(example['img_fname'])
         attn_masks = torch.ones(len(input_ids) + num_bb, dtype=torch.long)
 
         return input_ids, img_feat, attn_masks, txt_labels
 
     def create_mlm_io(self, input_ids):
+        # print('[Debug] In MLM, the original input ids: {}'.format(input_ids))
         input_ids, txt_labels = random_word(input_ids,
                                             self.txt_db.v_range,
                                             self.txt_db.mask)
@@ -89,8 +84,9 @@ class MlmDataset(DetectFeatTxtTokDataset):
                                  + input_ids
                                  + [self.txt_db.sep])
         txt_labels = torch.tensor([-1] + txt_labels + [-1])
+        # print('[Debug] In MLM, the input ids: {} {}'.format(len(input_ids[1:-1]), input_ids[1:-1]))
+        # print('[Debug] In MLM, the text labels: {} {}'.format(len(txt_labels[1:-1]), txt_labels[1:-1]))
         return input_ids, txt_labels
-
 
 def mlm_collate(inputs):
     """
@@ -112,15 +108,18 @@ def mlm_collate(inputs):
     txt_lens = [i.size(0) for i in input_ids]
     input_ids = pad_sequence(input_ids, batch_first=True, padding_value=0)
     txt_labels = pad_sequence(txt_labels, batch_first=True, padding_value=-1)
-    position_ids = torch.arange(0, input_ids.size(1), dtype=torch.long
-                                ).unsqueeze(0)
+    # padded input_ids.size(1) is max-len
+    position_ids = torch.arange(0, input_ids.size(1), dtype=torch.long).unsqueeze(0)
 
-    # image batches
+    ## image batches
     num_bbs = [f.size(0) for f in img_feats]
+    # Jinming: just for debug will restore above line for just text input.
+    # num_bbs = [0 for f in img_feats]
+
     img_feat = pad_tensors(img_feats, num_bbs)
-    # img_feat = (n, max_num_nbb, dim)
+    # print('[Debug] the batch input {}'.format(img_feat.shape)) # (n, max_num_nbb, dim)
     img_position_ids = torch.arange(0, max(num_bbs), dtype=torch.long
-                                ).unsqueeze(0)
+                                ).unsqueeze(0)       
 
     attn_masks = pad_sequence(attn_masks, batch_first=True, padding_value=0)
 

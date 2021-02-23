@@ -394,7 +394,7 @@ class UniterModel(UniterPreTrainedModel):
             embedding_output = self._compute_img_embeddings(
                 img_feat, img_position_ids, img_masks, img_type_ids)
         elif img_feat is None:
-            # text only
+            # print('[Debug] ****** only use text info')
             embedding_output = self._compute_txt_embeddings(
                 input_ids, position_ids, txt_type_ids, emo_type_ids)
         else:

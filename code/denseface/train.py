@@ -75,6 +75,13 @@ def main(opt):
     else:
         checkpoint = {}
 
+    if opt.is_test:
+        # only inference
+        val_log = evaluation(model, val_db, save_dir=log_dir, set_name='val')
+        print(val_log)
+        print('Only for evaluation and exist')
+        exit(0)
+
     # initialized the optimizer
     if opt.optimizer == 'adam':
         optimizer = torch.optim.Adam(model.parameters(), lr=opt.learning_rate)
@@ -91,6 +98,7 @@ def main(opt):
         for i, batch in enumerate(trn_db):  # inner loop within one epoch
             model.set_input(batch)   
             model.forward()
+            print(model.parameters)
             batch_loss = model.loss
             optimizer.zero_grad()  
             model.backward()            
@@ -114,6 +122,7 @@ def main(opt):
             logger.info(test_log['cm'])
             logger.info('Save model at {} epoch'.format(epoch))
             model_saver.save(model, epoch)
+            logger.info('Out features {}'.format(model.out_ft.shape))
             # update the current best model based on validation results
             if val_log['F1'] > best_eval_f1:
                 best_eval_epoch = epoch
@@ -148,10 +157,12 @@ def evaluation(model, loader, set_name='val', save_dir=None):
     model.eval()
     total_pred = []
     total_target = []
+    total_features = []
     eval_loss = 0
     for i, batch in enumerate(loader):  # inner loop within one epoch
         model.set_input(batch)
         model.forward()
+        total_features.append(model.out_ft.detach().cpu().numpy())
         eval_loss += model.loss
         # the predicton reuslts
         preds = model.pred.argmax(dim=1).detach().cpu().numpy()
@@ -161,6 +172,7 @@ def evaluation(model, loader, set_name='val', save_dir=None):
     avg_loss = eval_loss / len(total_pred)
     total_pred = np.concatenate(total_pred)
     total_label = np.concatenate(total_target)
+    total_features = np.concatenate(total_features)
     # calculate metrics
     acc = accuracy_score(total_label, total_pred)
     uar = recall_score(total_label, total_pred, average='macro')
@@ -171,13 +183,15 @@ def evaluation(model, loader, set_name='val', save_dir=None):
     if save_dir is not None:
         np.save(os.path.join(save_dir, '{}_pred.npy'.format(set_name)), total_pred)
         np.save(os.path.join(save_dir, '{}_label.npy'.format(set_name)), total_label)
+        print('Total features {}'.format(total_features.shape))
+        np.save(os.path.join(save_dir, '{}_features.npy'.format(set_name)), total_features)
     return {'loss': avg_loss,  'WA': acc,  'UA': uar, 'F1': f1, 'cm':cm}
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     # Required parameters
     parser.add_argument('--is_test', action='store_true', help='Test model')
-    parser.add_argument("--checkpoint",
+    parser.add_argument("--restore_checkpoint",
                         default=None, type=str,
                         help="pretrained model for testing")
     parser.add_argument("--config_file",

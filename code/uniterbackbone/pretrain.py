@@ -28,8 +28,8 @@ from code.uniterbackbone.data import (TokenBucketSampler, TokenBucketSamplerForI
                   ItmDataset, itm_collate)
 
 from code.uniterbackbone.model.pretrain import UniterForPretraining
-from code.uniterbackbone.optim import get_lr_sched
-from code.uniterbackbone.optim.misc import build_optimizer
+from code.uniterbackbone.optim import get_lr_sched, get_backbone_lr_sched
+from code.uniterbackbone.optim.misc import build_backbone_optimizer, build_optimizer
 
 from code.uniterbackbone.utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
 from code.uniterbackbone.utils.distributed import (all_reduce_and_rescale_tensors, all_gather_list,
@@ -239,13 +239,24 @@ def main(opts):
     broadcast_tensors([p.data for p in model.parameters()], 0)
     set_dropout(model, opts.dropout)
 
-    # Prepare optimizer
-    optimizer = build_optimizer(model, opts)
     task2scaler = {t: i for i, t in enumerate(train_dataloaders.keys())}
-    model, optimizer = amp.initialize(model, optimizer,
-                                      num_losses=len(task2scaler),
-                                      enabled=opts.fp16, opt_level='O2')
-
+    if opts.use_backbone_optim:
+        LOGGER.info('[INFO] Use 2 optimizers for backbone and bert model')
+        backbone = model.uniter.img_embeddings.denseface_encoder
+        backbone_optimizer = build_backbone_optimizer(backbone, opts)   # 只包含denseface的参数
+        optimizer = build_optimizer(model, opts, except_model=backbone) # 除去denseface的参数
+        model, [optimizer, backbone_optimizer]  = amp.initialize(model, [optimizer, backbone_optimizer],
+                                        num_losses=len(task2scaler),
+                                        enabled=opts.fp16, opt_level='O2')
+    else:
+        # Prepare optimizer
+        LOGGER.info('[INFO] Use 1 optimizers for backbone and bert model')
+        optimizer = build_optimizer(model, opts)
+        model, optimizer = amp.initialize(model, optimizer,
+                                        num_losses=len(task2scaler),
+                                        enabled=opts.fp16, opt_level='O2')
+        
+    task2scaler = {t: i for i, t in enumerate(train_dataloaders.keys())}
     global_step = 0
     LOGGER.info(f"***** Running training with {n_gpu} GPUs *****")
     LOGGER.info("  Batch size = %d", opts.train_batch_size)
@@ -265,6 +276,10 @@ def main(opts):
     # quick hack for amp delay_unscale bug
     optimizer.zero_grad()
     optimizer.step()
+    if opts.use_backbone_optim:
+        backbone_optimizer.zero_grad()
+        backbone_optimizer.step()
+    
     for step, (name, batch) in enumerate(meta_loader):
         # forward pass
         n_examples[name] += batch['input_ids'].size(0)
@@ -283,16 +298,28 @@ def main(opts):
 
         # backward pass
         delay_unscale = (step+1) % opts.gradient_accumulation_steps != 0
-        with amp.scale_loss(loss, optimizer, delay_unscale=delay_unscale,
-                            loss_id=task2scaler[name]) as scaled_loss:
-            scaled_loss.backward()
-            if not delay_unscale:
-                # gather gradients from every processes
-                # do this before unscaling to make sure every process uses
-                # the same gradient scale
-                grads = [p.grad.data for p in model.parameters()
-                         if p.requires_grad and p.grad is not None]
-                all_reduce_and_rescale_tensors(grads, float(1))
+        if opts.use_backbone_optim:
+            with amp.scale_loss(loss, [optimizer, backbone_optimizer], delay_unscale=delay_unscale,
+                                loss_id=task2scaler[name]) as scaled_loss:
+                scaled_loss.backward()
+                if not delay_unscale:
+                    # gather gradients from every processes
+                    # do this before unscaling to make sure every process uses
+                    # the same gradient scale
+                    grads = [p.grad.data for p in model.parameters()
+                            if p.requires_grad and p.grad is not None]
+                    all_reduce_and_rescale_tensors(grads, float(1))
+        else:
+            with amp.scale_loss(loss, optimizer, delay_unscale=delay_unscale,
+                                loss_id=task2scaler[name]) as scaled_loss:
+                scaled_loss.backward()
+                if not delay_unscale:
+                    # gather gradients from every processes
+                    # do this before unscaling to make sure every process uses
+                    # the same gradient scale
+                    grads = [p.grad.data for p in model.parameters()
+                            if p.requires_grad and p.grad is not None]
+                    all_reduce_and_rescale_tensors(grads, float(1))
         task2loss[name](loss.item())
 
         # optimizer update and logging
@@ -304,7 +331,12 @@ def main(opts):
             for param_group in optimizer.param_groups:
                 param_group['lr'] = lr_this_step
             TB_LOGGER.add_scalar('lr', lr_this_step, global_step)
-
+            # backbone learning rate 
+            if opts.use_backbone_optim:
+                backbone_lr_this_step = get_backbone_lr_sched(global_step, opts)
+                for param_group in backbone_optimizer.param_groups:
+                    param_group['lr'] = backbone_lr_this_step
+                TB_LOGGER.add_scalar('backbone_lr', backbone_lr_this_step, global_step)
             # log loss
             # NOTE: not gathered across GPUs for efficiency
             TB_LOGGER.log_scaler_dict({l.name: l.val
@@ -317,8 +349,17 @@ def main(opts):
                 grad_norm = clip_grad_norm_(amp.master_params(optimizer),
                                             opts.grad_norm)
                 TB_LOGGER.add_scalar('grad_norm', grad_norm, global_step)
+                if opts.use_backbone_optim:
+                    grad_norm = clip_grad_norm_(amp.master_params(backbone_optimizer),
+                                            opts.grad_norm)
+                    TB_LOGGER.add_scalar('backbone_grad_norm', grad_norm, global_step)
+            
             optimizer.step()
             optimizer.zero_grad()
+            if opts.use_backbone_optim:
+                backbone_optimizer.step()
+                backbone_optimizer.zero_grad()
+                
             pbar.update(1)
 
             if global_step % 100 == 0:

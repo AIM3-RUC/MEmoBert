@@ -44,3 +44,11 @@ def get_lr_sched(global_step, opts):
     if lr_this_step <= 0:
         lr_this_step = 1e-8
     return lr_this_step
+
+def get_backbone_lr_sched(global_step, opts):
+    # learning rate scheduling
+    lr_this_step = opts.backbone_learning_rate * warmup_linear(
+        global_step, opts.warmup_steps, opts.num_train_steps)
+    if lr_this_step <= 0:
+        lr_this_step = 1e-8
+    return lr_this_step

@@ -39,7 +39,12 @@ def _has_overlap(la, lb):
 
 
 def sample_negative(sample_pool, ground_truths, num_sample):
-    """ random and retry """
+    """ random and retry 
+    每次根据一个image的正例生成num_sample 的 image 的负例
+    sample_pool: all_imgs
+    ground_truths: 正确的 image-frame
+    num_sample: 每次根据一个image的正例生成num_sample 的 image 的负例
+    """
     outputs = ground_truths[:1]
     while _has_overlap(outputs, ground_truths):
         outputs = random.sample(sample_pool, num_sample)
@@ -63,7 +68,10 @@ class ItmDataset(DetectFeatTxtTokDataset):
         self.new_epoch()
 
     def new_epoch(self):
-        """ should be called every epoch for more randomness"""
+        """ should be called every epoch for more randomness
+        every epoch to random this
+        首先随机生成0or1的labels, 如果label=0, 那么就根据文本构建一个image的负例。
+        """
         self.labels = np.random.choice(
             [0, 1], size=len(self.ids),
             p=[self.neg_sample_p, 1-self.neg_sample_p])
@@ -78,6 +86,7 @@ class ItmDataset(DetectFeatTxtTokDataset):
             self.lens.append(tl + self.img_db.name2nbb[img_fname])
 
     def __getitem__(self, i):
+        # i only the index not the real text-id in txtdb
         example = super().__getitem__(i)
         # labels and negative images should be sampled every epoch
         ground_truth_label = self.labels[i]
@@ -94,6 +103,10 @@ class ItmDataset(DetectFeatTxtTokDataset):
         target = torch.Tensor(1).long()
         target.data.fill_(ground_truth_label)
 
+        # 注意, ids[i] 和 i 并不是一致的, 原因是
+        # print('[Debug] Index {} {} input_ids {}'.format(i, self.ids[i], input_ids))
+        # print('[Debug] Index {} img_fname {}'.format(self.ids[i], img_fname))
+        # print('[Debug] Index {} target {}'.format(self.ids[i], target))
         return input_ids, img_feat, attn_masks, target
 
 

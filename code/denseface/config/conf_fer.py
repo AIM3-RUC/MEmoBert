@@ -8,7 +8,7 @@ model_cfg = {
   'model_name': 'densenet100',
   'num_blocks': 3,
   'growth_rate': 12, 
-  'block_config': (16,16,16), 
+  'block_config': (16, 16, 16), 
   'init_kernel_size': 3,
   'num_init_features': 24, # growth_rate*2
   'reduction': 0.5,
@@ -33,16 +33,26 @@ model_cfg = {
   'validation_split': None,
   'num_threads': 4,
   # for finetune
-  "frozen_dense_blocks": 2
+  "frozen_dense_blocks": 1,
 }
 
-#
-# denenet121 = {
-#   'growth_rate': 32, 
-#   'block_config': (6, 12, 24, 16), 
-#   'num_init_features': 64,
-#   'reduction': 0.5,
-#   'compression_rate': 0.5,
-#   'dropout_rate': 0.0
+# denenetsmall = {
+#   'num_blocks': 3,
+#   'growth_rate': 12, 
+#   'block_config': (4, 4, 4), 
 # }
+
+# denenetmiddle = {
+#   'num_blocks': 3,
+#   'growth_rate': 12, 
+#   'block_config': (8, 8, 8), 
+# }
+
+#### default
+# denenet100 = {
+#   'num_blocks': 3,
+#   'growth_rate': 12, 
+#   'block_config': (16, 16, 16), 
+# }
+
 

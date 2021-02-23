@@ -6,9 +6,11 @@ UNITER pre-training
 """
 import argparse
 from collections import defaultdict
+from io import BufferedIOBase
 import json
 from os.path import join
 from time import time
+import numpy as np
 
 import torch
 from torch.utils.data import DataLoader
@@ -36,7 +38,7 @@ from code.uniter.utils.distributed import (all_reduce_and_rescale_tensors, all_g
                                broadcast_tensors)
 from code.uniter.utils.save import ModelSaver, save_training_meta
 from code.uniter.utils.misc import NoOp, parse_with_config, set_dropout, set_random_seed
-from code.uniter.utils.const import IMG_DIM, IMG_LABEL_DIM, BUCKET_SIZE
+from code.uniter.utils.const import IMG_LABEL_DIM, BUCKET_SIZE
 
 
 def build_dataloader(dataset, collate_fn, is_train, opts):
@@ -229,7 +231,7 @@ def main(opts):
         checkpoint = {}
     model = UniterForPretraining.from_pretrained(
         opts.model_config, checkpoint,
-        img_dim=IMG_DIM, img_label_dim=IMG_LABEL_DIM)
+        img_dim=opts.IMG_DIM, img_label_dim=IMG_LABEL_DIM)
     model.to(device)
     model.train()
     # make sure every process has same model parameters in the beginning
@@ -263,6 +265,10 @@ def main(opts):
     optimizer.zero_grad()
     optimizer.step()
     for step, (name, batch) in enumerate(meta_loader):
+        if global_step == 0:
+            LOGGER.info(f'Fisrt Step for init validation')
+            validate(model, val_dataloaders)
+            exit(0)
         # forward pass
         n_examples[name] += batch['input_ids'].size(0)
         n_in_units[name] += (batch['attn_masks'] == 1).sum().item()
@@ -372,7 +378,6 @@ def validate(model, val_dataloaders):
             {f'valid_{task}/{k}': v for k, v in val_log.items()})
     model.train()
 
-
 @torch.no_grad()
 def validate_mlm(model, val_loader):
     LOGGER.info("start running MLM validation...")
@@ -380,14 +385,30 @@ def validate_mlm(model, val_loader):
     n_correct = 0
     n_word = 0
     st = time()
+    # for manually verification 
+    # total_labels_words = []
+    # total_predict_words = []
+    # real_mask_words = 0
     for i, batch in enumerate(val_loader):
         scores = model(batch, task='mlm', compute_loss=False)
         labels = batch['txt_labels']
         labels = labels[labels != -1]
         loss = F.cross_entropy(scores, labels, reduction='sum')
         val_loss += loss.item()
+        # scores.max(dim=-1) return (max-values, max-value-indexs)
         n_correct += (scores.max(dim=-1)[1] == labels).sum().item()
         n_word += labels.numel()
+        ### Jinming add for manaual evaluation
+        # print("[Debug] batch {} Manaual Evaualtion".format(i))
+        # print("\tinput ids {}".format(batch['input_ids'][:5]))
+        # real_mask_words += len(batch['input_ids'][batch['input_ids']==103])
+        # total_labels_words.append(labels)
+        # total_predict_words.append(scores.max(dim=-1)[1])
+    # total_labels_words = torch.cat(total_labels_words).detach().cpu().numpy()
+    # total_predict_words = torch.cat(total_predict_words).detach().cpu().numpy()
+    # print(total_labels_words.shape, total_predict_words.shape, real_mask_words)
+    # np.save('val2000_lable_words.npy', total_labels_words)
+    # np.save('val2000_predict_words.npy', total_predict_words)
     val_loss = sum(all_gather_list(val_loss))
     n_correct = sum(all_gather_list(n_correct))
     n_word = sum(all_gather_list(n_word))
@@ -533,7 +554,6 @@ def validate_itm(model, val_loader):
         targets = batch['targets']
         loss = F.cross_entropy(scores, targets, reduction='sum')
         val_loss += loss.item()
-
         tot_score += (scores.max(dim=-1)[1] == targets).sum().item()
         n_ex += len(targets)
     val_loss = sum(all_gather_list(val_loss))
@@ -553,7 +573,6 @@ def validate_itm(model, val_loader):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-
     # Required parameters
     # NOTE: train tasks and val tasks cannot take command line arguments
     parser.add_argument('--compressed_db', action='store_true',
@@ -592,6 +611,8 @@ if __name__ == "__main__":
                         help='min number of bounding boxes')
     parser.add_argument('--num_bb', type=int, default=36,
                         help='static number of bounding boxes')
+    parser.add_argument('--IMG_DIM', type=int, default=342,
+                        help='visual features as transformer input')
 
     # training parameters
     parser.add_argument("--train_batch_size", default=4096, type=int,

@@ -3,8 +3,10 @@
 set -e
 # img_dir=/data7/emobert/ft_npzs_nomask/movies_v1
 # output_dir=/data7/emobert/img_db_nomask
-img_dir=/data7/emobert/rawimg_npzs_nomask/movies_v1
-output_dir=/data7/emobert/rawimg_db_nomask
+# img_dir=/data7/emobert/rawimg_npzs_nomask/movies_v1
+# output_dir=/data7/emobert/rawimg_db_nomask
+img_dir=/data7/emobert/ft_trans2_npzs_nomask/movies_v1
+output_dir=/data7/emobert/img_db_nomask/movies_v1_trans2
 # img_dir=/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_seetaface_iemocap_mean_std/ft_npzs/iemocap
 # img_dir=/data7/emobert/exp/evaluation/MSP-IMPROV/feature/denseface_openface_msp_mean_std/ft_npzs/msp
 # output_dir=/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_seetaface_iemocap_mean_std/img_db

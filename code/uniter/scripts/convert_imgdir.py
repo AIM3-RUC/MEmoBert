@@ -78,14 +78,13 @@ def dumps_msgpack(dump):
 def main(opts):
     if opts.img_dir[-1] == '/':
         opts.img_dir = opts.img_dir[:-1]
-    split = basename(opts.img_dir)
     db_name = (f'feat_th{opts.conf_th}_max{opts.max_bb}'
                     f'_min{opts.min_bb}')
     if opts.compress:
         db_name += '_compressed'
-    if not exists(f'{opts.output}/{split}'):
-        os.makedirs(f'{opts.output}/{split}')
-    env = lmdb.open(f'{opts.output}/{split}/{db_name}', map_size=1024**4)
+    if not exists(f'{opts.output}'):
+        os.makedirs(f'{opts.output}')
+    env = lmdb.open(f'{opts.output}/{db_name}', map_size=1024**4)
     txn = env.begin(write=True)
     files = glob.glob(f'{opts.img_dir}/*.npz')
     load = load_npz(opts.conf_th, opts.max_bb)
@@ -110,7 +109,7 @@ def main(opts):
         txn.commit()
         env.close()
     print('total {} name2nbb'.format(len(name2nbb)))
-    with open(f'{opts.output}/{split}/'
+    with open(f'{opts.output}/'
                 f'nbb_th{opts.conf_th}_'
                 f'max{opts.max_bb}_min{opts.min_bb}.json', 'w') as f:
         json.dump(name2nbb, f)

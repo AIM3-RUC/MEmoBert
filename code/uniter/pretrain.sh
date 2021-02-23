@@ -9,8 +9,8 @@ export PYTHONPATH=/data7/MEmoBert
 # CUDA_VISIBLE_DEVICES=2,3 horovodrun -np 2 python pretrain.py \
 #         --config config/pretrain-movies-v1-base-2gpu_melm_faceth0.1.json
 
-CUDA_VISIBLE_DEVICES=4,5 horovodrun -np 2 python pretrain.py \
-        --config config/pretrain-movies-v1-base-2gpu_melm_faceth0.1_multitask.json
+# CUDA_VISIBLE_DEVICES=4,5 horovodrun -np 2 python pretrain.py \
+#         --config config/pretrain-movies-v1-base-2gpu_melm_faceth0.1_multitask.json
 
 # CUDA_VISIBLE_DEVICES=2,3 horovodrun -np 2 python pretrain.py \
 #         --config config/pretrain-movies-v1-base-2gpu_mlm_mrfr_melm.json
@@ -24,5 +24,24 @@ CUDA_VISIBLE_DEVICES=4,5 horovodrun -np 2 python pretrain.py \
 # CUDA_VISIBLE_DEVICES=4,5 horovodrun -np 2 python pretrain.py \
 #         --config config/pretrain-movies-v1-base-2gpu_mlm_mrckl.json
 
-# CUDA_VISIBLE_DEVICES=6,7, horovodrun -np 2 python pretrain.py \
-#         --config config/pretrain-movies-v1-base-2gpu_mlm_mrfr_mrckl.json
+# CUDA_VISIBLE_DEVICES=3 horovodrun -np 1 python pretrain.py \
+#         --config config/pretrain-movies-v1-base-2gpu.json
+
+# CUDA_VISIBLE_DEVICES=0 horovodrun -np 1 python pretrain.py \
+#         --config config/pretrain-movies-v1-small-2gpu_mlm.json \
+#         --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1_uniter_small_onlymlm_faceth0.1/ckpt/model_step_100000.pt
+
+# CUDA_VISIBLE_DEVICES=1 horovodrun -np 1 python pretrain.py \
+#         --config config/pretrain-movies-v1-small-2gpu_mlm.json 
+        
+# CUDA_VISIBLE_DEVICES=6,7 horovodrun -np 2 python pretrain.py \
+#         --config config/pretrain-movies-v1-medium-2gpu_mlm.json
+
+# CUDA_VISIBLE_DEVICES=3,4 horovodrun -np 2 python pretrain.py \
+#         --config config/pretrain-movies-v1-medium-2gpu_mlm_itm.json
+
+# CUDA_VISIBLE_DEVICES=2,5 horovodrun -np 2 python pretrain.py \
+#         --config config/pretrain-movies-v1-medium-2gpu_trans1.json
+
+# CUDA_VISIBLE_DEVICES=6,7 horovodrun -np 2 python pretrain.py \
+#         --config config/pretrain-movies-v1-medium-2gpu_trans2.json

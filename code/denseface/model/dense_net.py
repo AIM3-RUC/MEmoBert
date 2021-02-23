@@ -72,6 +72,7 @@ class DenseNet(nn.Module):
         """
         super(DenseNet, self).__init__()
         self.device = torch.device("cuda:{}".format(gpu_id))
+
         # first Conv2d # kernel_size=3, strides=[1, 2, 2, 1]
         self.features = nn.Sequential(OrderedDict([
             ("conv0", nn.Conv2d(1, num_init_features, kernel_size=3, stride=2, padding=1, bias=False))
@@ -80,6 +81,7 @@ class DenseNet(nn.Module):
             # ("pool0", nn.MaxPool2d(3, stride=2, padding=1)) # remove this 
         ]))
 
+        self.end_points = {}
         # DenseBlock
         num_features = num_init_features
         for i, num_layers in enumerate(block_config):
@@ -131,7 +133,8 @@ class DenseNet(nn.Module):
         logits = self.classifier(self.out_ft)
         # print('out logits {}'.format(logits.size()))    
         self.pred = F.softmax(logits, dim=-1)
-        self.loss = self.criterion(logits, self.bs_labels)
+        if getattr(self, 'bs_label', None):
+            self.loss = self.criterion(logits, self.bs_labels)
         
     def backward(self, max_grad=0.0):
         """Calculate the loss for back propagation"""
