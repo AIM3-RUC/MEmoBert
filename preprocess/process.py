@@ -79,8 +79,7 @@ def find_exists(movie_name):
     return True if os.path.exists(act_spk_file) else False
 
 if __name__ == '__main__':
-    movie_indexs = list(range(0, 120))
-    # movie_indexs = [71,92,93,94,95,96,98,100,102,103,104,106,107]
+    movie_indexs = list(range(500, 610))
     num_worker = 24
     chunk_size = 20
     print()
@@ -172,6 +171,10 @@ if __name__ == '__main__':
             
             utt_ids = list(map(lambda x: movie_name + '/' + str(x['index']), transcript_info))
             save_uttid(utt_ids, os.path.join(meta_dir, 'base.txt'))
+            
+            if len(transcript_info) == 0:
+                print("There is not avalible transcripts!!!")
+                continue
             
             # 切视频
             print('[Main]: Start cutting video')

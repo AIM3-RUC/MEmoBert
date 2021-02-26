@@ -19,9 +19,10 @@ has_active_spk.txt: 是否包含说话人，说话人的条件比较严格。
 
 ori_info_dir = '/data7/emobert/data_nomask/transcripts/json'
 meta_data_dir = '/data7/emobert/data_nomask/meta'
-feature_dir = '/data7/emobert/feature'
-fileter_details_path = '/data7/emobert/data_nomask/analyse/fileter_details.txt'
-movie_names_path = '/data7/emobert/data_nomask/movies_v1/movie_names.npy'
+feature_dir = '/data7/emobert/feature_nomask_torch'
+fileter_details_path = '/data7/emobert/data_nomask/analyse/fileter_details_moviesv2.txt'
+filter_movie_names_path = '/data7/emobert/data_nomask/movies_v1/movie_names.npy'
+movie_names_path = '/data7/emobert/data_nomask/movies_v2/movie_names.npy'
 
 total_lines = 0 
 final_lines = 0
@@ -38,11 +39,20 @@ def compute_stastic_info(lens):
     m80_len = lens[int(len(lens)*0.8)]
     return avg_len, mid_len, m80_len
 
+if filter_movie_names_path is not None:
+    filter_movie_names = np.load(filter_movie_names_path)
+    filter_movie_names = {n:1 for n in filter_movie_names}
+    print('There are {} movies have processed'.format(len(filter_movie_names)))
+else:
+    filter_movie_names = {}
+
 movie_list = os.listdir(ori_info_dir)
 print('there are total {} movies'.format(len(movie_list)))
 for filename in movie_list:
     ori_segments2info = read_json(os.path.join(ori_info_dir, filename))
     movie_name = filename[:-5]  # remove '.json'
+    if filter_movie_names.get(movie_name) is not None:
+        continue
     movie_meta_dir = os.path.join(meta_data_dir, movie_name)
     # base filter 
     base_filepath = os.path.join(movie_meta_dir, 'base.txt')
@@ -61,17 +71,17 @@ for filename in movie_list:
     active_spk_lines = read_file(active_spk_filepath)
     details_lines.append('\t ActiveSpk {} \t {:.2f}'.format(len(active_spk_lines), len(active_spk_lines)/len(ori_segments2info))+ '\n')
     if len(has_face_lines) == 0:
-        print('{} movie is empty, Please Check this'.format(movie_name))
+        print('\tMovie is empty{} , Please Check this'.format(movie_name))
         continue
-    # get the face frames info
+    #### get the face frames info
     movie_faces_lens = []
-    denseface_ft_path = os.path.join(feature_dir, movie_name, 'has_active_spk_denseface.h5')
+    denseface_ft_path = os.path.join(feature_dir, movie_name, 'has_active_spk_denseface_with_trans.h5')
     if not os.path.exists(denseface_ft_path):
-        print('We ignore this moive {}'.format(movie_name))
+        print('\t We ignore this moive {}'.format(movie_name))
         continue
     total_lines += len(ori_segments2info)
     final_lines += len(active_spk_lines)
-
+    print("---- Valid {}".format(movie_name))
     denseface_ft = h5py.File(denseface_ft_path)
     for segment_index in denseface_ft[movie_name].keys():
         _len = denseface_ft[movie_name][segment_index]['pred'].shape[0]

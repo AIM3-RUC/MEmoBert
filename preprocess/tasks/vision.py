@@ -1,15 +1,22 @@
+# import tensorflow as tf
+# import collections
+# from preprocess.tools.denseface.vision_network.models.dense_net import DenseNet
+
 import os, glob
+import torch
+import torch.nn.functional as F
 import cv2
 import numpy as np
-import tensorflow as tf
-import collections
 import pandas as pd
 from preprocess.utils import get_basename, mkdir
 from preprocess.tasks.base_worker import BaseWorker
-from preprocess.tools.denseface.vision_network.models.dense_net import DenseNet
+
 from preprocess.tools.VAD import VAD
 from preprocess.FileOps import read_csv
 import math
+from code.denseface.config.conf_fer import model_cfg
+from code.denseface.model.dense_net import DenseNet
+from preprocess.tools.hook import MultiLayerFeatureExtractor
 
 class Video2Frame(BaseWorker):
     def __init__(self, fps=10, save_root='./test', logger=None):
@@ -26,7 +33,7 @@ class Video2Frame(BaseWorker):
             cmd = 'ffmpeg -i {} -r {} -q:v 2 -f image2 {}/'.format(video_path, self.fps, save_dir) + '%4d.jpg' + " > /dev/null 2>&1"
             os.system(cmd)
             frames_count = len(glob.glob(os.path.join(save_dir, '*.jpg')))
-            self.print('Extract frames from {}, totally {} frames, save to {}'.format(video_path, frames_count, save_dir))
+            # self.print('Extract frames from {}, totally {} frames, save to {}'.format(video_path, frames_count, save_dir))
         return save_dir
 
 class Video2FrameTool(BaseWorker):
@@ -97,85 +104,147 @@ class VideoFaceTrackerTool(BaseWorker):
         return save_dir
 
 class DensefaceExtractor(BaseWorker):
-    def __init__(self, restore_path=None, mean=96.3801, std=53.615868, device=0, smooth=False, logger=None):
-        """ extract densenet feature
-            Parameters:
-            ------------------------
-            model: model class returned by function 'load_model'
-        """
-        super().__init__(logger=logger)
-        if restore_path is None:
-            restore_path = '/data2/zjm/tools/FER_models/denseface/DenseNet-BC_growth-rate12_depth100_FERPlus/model/epoch-200'
-        self.model = self.load_model(restore_path)
+    def __init__(self, mean=63.987095, std=43.00519, model_path=None, cfg=None, gpu_id=0):
+        if cfg is None:
+            cfg = model_cfg
+        if model_path is None:
+            model_path = "/data7/MEmoBert/emobert/exp/face_model/densenet100_adam0.001_0.0/ckpts/model_step_43.pt"
+        self.device = torch.device("cuda:{}".format(gpu_id))
+        self.extractor = DenseNet(gpu_id, **cfg)
+        self.extractor.to(self.device)
+        state_dict = torch.load(model_path)
+        self.extractor.load_state_dict(state_dict)
+        self.extractor.eval()
+        self.dim = 342
         self.mean = mean
         self.std = std
-        self.previous_img = None        # smooth 的情况下, 如果没有人脸则用上一张人脸填充
-        self.previous_img_path = None
-        self.smooth = smooth
-        self.dim = 342                  # returned feature dim
-        self.device = device
+        
+    def register_midlayer_hook(self, layer_names):
+        self.ex_hook = MultiLayerFeatureExtractor(self.extractor, layer_names)
     
-    def load_model(self, restore_path):
-        self.print("Initialize the model..")
-        # fake data_provider
-        growth_rate = 12
-        img_size = 64
-        depth = 100
-        total_blocks = 3
-        reduction = 0.5
-        keep_prob = 1.0
-        bc_mode = True
-        model_path = restore_path
-        dataset = 'FER+'
-        num_class = 8
-
-        DataProvider = collections.namedtuple('DataProvider', ['data_shape', 'n_classes'])
-        data_provider = DataProvider(data_shape=(img_size, img_size, 1), n_classes=num_class)
-        model = DenseNet(data_provider=data_provider, growth_rate=growth_rate, depth=depth,
-                        total_blocks=total_blocks, keep_prob=keep_prob, reduction=reduction,
-                        bc_mode=bc_mode, dataset=dataset)
-
-        model.saver.restore(model.sess, model_path)
-        self.print("Successfully load model from model path: {}".format(model_path))
-        return model
+    def get_mid_layer_output(self):
+        if getattr(self, 'ex_hook') is None:
+            raise RuntimeError('Call register_midlayer_hook before calling get_mid_layer_output')
+        return self.ex_hook.extract()
     
-    def __call__(self, img_path):
-        if os.path.exists(img_path):
-            img = cv2.imread(img_path)
-            if not isinstance(img, np.ndarray):
-                print(f'Warning: Error in {img_path}')
-                return None
+    def print_network(self):
+        self.print(self.extractor)
+    
+    def __call__(self, img):
+        if not isinstance(img, (np.ndarray, str)):
+            raise ValueError('Input img parameter must be either str of img path or img np.ndarrays')
+        if isinstance(img, np.ndarray):
+            if img.shape == (64, 64):
+                raise ValueError('Input img ndarray must have shape (64, 64), gray scale img')
+        if isinstance(img, str):
+            img_path = img
+            if os.path.exists(img_path):
+                img = cv2.imread(img_path)
+                if not isinstance(img, np.ndarray):
+                    raise IOError(f'Warning: Error in {img_path}')
+                
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                img = cv2.resize(img, (64, 64))
+        
+            else:
+                feat = np.zeros([1, self.dim]) # smooth的话第一张就是黑图的话就直接返回0特征, 不smooth缺图就返回0
+                return feat, np.ones([1, 8]) / 8
             
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            img = cv2.resize(img, (64, 64))
-            if self.smooth:
-                self.previous_img = img
-                self.previous_img_path = img_path
-
-        elif self.smooth and self.previous_img is not None:
-            # print('Path {} does not exists. Use previous img: {}'.format(img_path, self.previous_img_path))
-            img = self.previous_img
-        
-        else:
-            feat = np.zeros([1, self.dim]) # smooth的话第一张就是黑图的话就直接返回0特征, 不smooth缺图就返回0
-            return feat
-        
+        # preprocess 
         img = (img - self.mean) / self.std
         img = np.expand_dims(img, -1) # channel = 1
         img = np.expand_dims(img, 0) # batch_size=1
-        with tf.device('/gpu:{}'.format(self.device)):
-            feed_dict = {
-                self.model.images: img,
-                self.model.is_training: False
-            }
 
-            # emo index
-            # fer_idx_to_class = ['neu', 'hap', 'sur', 'sad', 'ang', 'dis', 'fea', 'con']
+        # forward
+        img = torch.from_numpy(img).to(self.device)
+        self.extractor.set_input({"images": img})
+        self.extractor.forward()
+        ft, soft_label = self.extractor.out_ft, self.extractor.pred
 
-            ft, soft_label = \
-                self.model.sess.run([self.model.end_points['fc'], 
-                                     self.model.end_points['preds']], feed_dict=feed_dict)
-        return ft, soft_label
+        return ft.detach().cpu().numpy(), soft_label.detach().cpu().numpy()
+
+
+# Deprecated old version
+# class DensefaceExtractor(BaseWorker):
+#     def __init__(self, restore_path=None, mean=96.3801, std=53.615868, device=0, smooth=False, logger=None):
+#         """ extract densenet feature
+#             Parameters:
+#             ------------------------
+#             model: model class returned by function 'load_model'
+#         """
+#         super().__init__(logger=logger)
+#         if restore_path is None:
+#             restore_path = '/data2/zjm/tools/FER_models/denseface/DenseNet-BC_growth-rate12_depth100_FERPlus/model/epoch-200'
+#         self.model = self.load_model(restore_path)
+#         self.mean = mean
+#         self.std = std
+#         self.previous_img = None        # smooth 的情况下, 如果没有人脸则用上一张人脸填充
+#         self.previous_img_path = None
+#         self.smooth = smooth
+#         self.dim = 342                  # returned feature dim
+#         self.device = device
+    
+#     def load_model(self, restore_path):
+#         self.print("Initialize the model..")
+#         # fake data_provider
+#         growth_rate = 12
+#         img_size = 64
+#         depth = 100
+#         total_blocks = 3
+#         reduction = 0.5
+#         keep_prob = 1.0
+#         bc_mode = True
+#         model_path = restore_path
+#         dataset = 'FER+'
+#         num_class = 8
+
+#         DataProvider = collections.namedtuple('DataProvider', ['data_shape', 'n_classes'])
+#         data_provider = DataProvider(data_shape=(img_size, img_size, 1), n_classes=num_class)
+#         model = DenseNet(data_provider=data_provider, growth_rate=growth_rate, depth=depth,
+#                         total_blocks=total_blocks, keep_prob=keep_prob, reduction=reduction,
+#                         bc_mode=bc_mode, dataset=dataset)
+
+#         model.saver.restore(model.sess, model_path)
+#         self.print("Successfully load model from model path: {}".format(model_path))
+#         return model
+    
+#     def __call__(self, img_path):
+#         if os.path.exists(img_path):
+#             img = cv2.imread(img_path)
+#             if not isinstance(img, np.ndarray):
+#                 print(f'Warning: Error in {img_path}')
+#                 return None
+            
+#             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+#             img = cv2.resize(img, (64, 64))
+#             if self.smooth:
+#                 self.previous_img = img
+#                 self.previous_img_path = img_path
+
+#         elif self.smooth and self.previous_img is not None:
+#             # print('Path {} does not exists. Use previous img: {}'.format(img_path, self.previous_img_path))
+#             img = self.previous_img
+        
+#         else:
+#             feat = np.zeros([1, self.dim]) # smooth的话第一张就是黑图的话就直接返回0特征, 不smooth缺图就返回0
+#             return feat
+        
+#         img = (img - self.mean) / self.std
+#         img = np.expand_dims(img, -1) # channel = 1
+#         img = np.expand_dims(img, 0) # batch_size=1
+#         with tf.device('/gpu:{}'.format(self.device)):
+#             feed_dict = {
+#                 self.model.images: img,
+#                 self.model.is_training: False
+#             }
+
+#             # emo index
+#             # fer_idx_to_class = ['neu', 'hap', 'sur', 'sad', 'ang', 'dis', 'fea', 'con']
+
+#             ft, soft_label = \
+#                 self.model.sess.run([self.model.end_points['fc'], 
+#                                      self.model.end_points['preds']], feed_dict=feed_dict)
+#         return ft, soft_label
 
 class ActiveSpeakerSelector(BaseWorker):
     def __init__(self, diff_threshold=4, logger=None):
@@ -456,7 +525,19 @@ if __name__ == '__main__':
     # bbox, landmark = detector.detect(img)
     # print(bbox)
     # detector.draw_detection(img)
-    a = FaceSelector()
-    ans = a('/data7/MEmoBert/preprocess/data/faces/No0011.American.Beauty/20', 0)
-    print(ans)
+
+    # a = FaceSelector()
+    # ans = a('/data7/MEmoBert/preprocess/data/faces/No0011.American.Beauty/20', 0)
+    # print(ans)
    
+    a = DensefaceExtractor()
+    a.register_midlayer_hook([
+        "features.transition1.relu",
+        "features.transition2.relu"
+    ])
+    img = '/data7/MEmoBert/preprocess/data/faces/No0007.Schindler.List/19/19_aligned/frame_det_01_000009.bmp'
+    ft, pred = a(img)
+    print(ft.shape, pred.shape)
+    trans1, trans2 = a.get_mid_layer_output()
+    print(trans1.shape)
+    print(trans2.shape)

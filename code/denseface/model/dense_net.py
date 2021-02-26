@@ -148,6 +148,7 @@ class DenseNetEncoder(nn.Module):
     def __init__(self, growth_rate=32, block_config=(6, 12, 24, 16), num_init_features=64,
                  bn_size=4, compression_rate=0.5, drop_rate=0, frozen_dense_blocks=0, **kwargs):
         """
+        in this model, we use the model densenet100 in code/denseface/config/conf_fer.py
         default is the densenet121 setting
         :param growth_rate: (int) number of filters used in DenseLayer, `k` in the paper
         :param block_config: (list of 4 ints) number of layers in each DenseBlock

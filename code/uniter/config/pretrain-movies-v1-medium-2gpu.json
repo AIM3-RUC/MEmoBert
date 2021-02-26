@@ -1,19 +1,20 @@
 {
-    "output_dir": "/data7/emobert/exp/pretrain/nomask_movies_v1_uniter_medium_onlymlm_lr5_decay0.01",
+    "output_dir": "/data7/emobert/exp/pretrain/nomask_movies_v1_uniter_medium_4tasks_lr5e6_decay0.01",
     "model_config": "config/uniter-medium.json",
     "checkpoint": "/data7/emobert/resources/pretrained/uniter-medium-uncased-init.pt",
     "mrm_prob": 0.15,
     "itm_neg_prob": 0.5,
     "itm_ot_lambda": 0.1,
-    "max_txt_len": 50,
+    "max_txt_len": 30,
     "conf_th": 0.1,
     "max_bb": 100,
     "min_bb": 10,
     "num_bb": 36,
-    "IMG_DIM": 342,
+    "IMG_DIM":342,
     "train_batch_size": 10240,
     "val_batch_size": 10240,
     "gradient_accumulation_steps": 2,
+    "learning_rate": 5e-06,
     "valid_steps": 5000,
     "num_train_steps": 200000,
     "optim": "adamw",
@@ -21,9 +22,8 @@
         0.9,
         0.98
     ],
-    "learning_rate": 1e-05,
-    "weight_decay": 0.01,
     "dropout": 0.1,
+    "weight_decay": 0.01,
     "grad_norm": 5.0,
     "warmup_steps": 10000,
     "seed": 42,
@@ -40,9 +40,15 @@
                 "/data7/emobert/img_db_nomask/movies_v1/"
             ],
             "tasks": [
-                "mlm"
+                "itm",
+                "mlm",
+                "mrfr",
+                "mrckl"
             ],
             "mix_ratio": [
+                2,
+                2,
+                1,
                 1
             ]
         }
@@ -57,7 +63,10 @@
                 "/data7/emobert/img_db_nomask/movies_v1/"
             ],
             "tasks": [
-                "mlm"
+                "itm",
+                "mlm",
+                "mrfr",
+                "mrckl"
             ]
         },
         {
@@ -69,7 +78,10 @@
                 "/data7/emobert/img_db_nomask/movies_v1/"
             ],
             "tasks": [
-                "mlm"
+                "itm",
+                "mlm",
+                "mrfr",
+                "mrckl"
             ]
         }
     ]

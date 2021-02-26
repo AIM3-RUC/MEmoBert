@@ -5,8 +5,9 @@ import torch
 import sys
 sys.path.insert(0, '/data7/MEmoBert/')
 from code.denseface.model.dense_net import DenseNet, DenseNetEncoder
-from code.denseface.config.conf_fer import model_cfg
+from code.denseface.model.vggnet import VggNet, VggNetEncoder
 from code.denseface.hook_demo import MultiLayerFeatureExtractor
+
 
 def normalize_image_by_chanel(image):
     new_image = np.zeros(image.shape)
@@ -26,6 +27,16 @@ def save_feature_to_img(feature, feature_map_ind=0, image_name='val_img3', layer
     cv2.imwrite('./pics/{}_{}.jpg'.format(image_name, layer_name), feature[feature_map_ind])
 
 if __name__ == '__main__':
+    model_type = 'vggnet'
+    if model_type == 'vggnet':
+        print("--- Use Vggnet")
+        from code.denseface.config.vgg_fer import model_cfg
+    elif model_type == 'densenet':
+        print("--- Use Densenet")
+        from code.denseface.config.dense_fer import model_cfg
+    else:
+        print("[Error] model type {}".format(model_type))
+        exit(0)
     imgs_path = '/data3/zjm/dataset/ferplus/npy_data/val_img.npy'
     image_index = 2
     imgs = np.load(imgs_path)
@@ -37,9 +48,16 @@ if __name__ == '__main__':
     print(image.shape)
 
     device = torch.device('cuda:0')
-    extractor = DenseNetEncoder(**model_cfg)
+    if 'vgg' in model_cfg['model_name']:
+        model_path = "/data7/MEmoBert/emobert/exp/face_model/vggnet_adam0.0001_0.25/ckpts/model_step_68.pt"
+        extractor = VggNetEncoder(**model_cfg)
+    elif 'dense' in model_cfg['model_name']:
+        extractor = DenseNetEncoder(**model_cfg)
+        model_path = "/data7/MEmoBert/emobert/exp/face_model/densenet100_adam0.001_0.0/ckpts/model_step_43.pt"
+    else:
+        extractor =None
+
     print(extractor)
-    model_path = "/data7/MEmoBert/emobert/exp/face_model/densenet100_adam0.001_0.0/ckpts/model_step_43.pt"
     state_dict = torch.load(model_path)
     for key in list(state_dict.keys()):
         if 'classifier' in key:
@@ -48,30 +66,28 @@ if __name__ == '__main__':
     extractor.eval()
     extractor.to(device)
 
-    select_layers = ['features.conv0', 
-        'features.denseblock1.denselayer16.conv1',
-        'features.transition1.relu',
-        'features.denseblock2.denselayer16.conv1',
-        'features.transition2.relu',
-        'features.denseblock3.denselayer16.conv1',
+    ### for densenet
+    # select_layers = ['features.conv0', 
+    #     'features.denseblock1.denselayer16.conv1',
+    #     'features.transition1.relu',
+    #     'features.denseblock2.denselayer16.conv1',
+    #     'features.transition2.relu',
+    #     'features.denseblock3.denselayer16.conv1',
+    # ]
+    ### for vggnet
+    select_layers = [
+        'conv_block1.conv2',
+        'conv_block1.relu2',
+        'conv_block2.conv2',
+        'conv_block3.conv2',
+        'conv_block4.conv2',
     ]
     ex = MultiLayerFeatureExtractor(extractor, select_layers)
     x = torch.FloatTensor([image]).to(device)
-    x = x.squeeze(-1)
-    print(x.shape)
-    extractor.forward(x)
-    conv0, b1l1conv1, trans1, b1l1conv2, trans2, b2l2conv1 = ex.extract()
-    print(conv0.shape)
-    print(b1l1conv1.shape)
-    print('tans1 {}'.format(trans1.shape))
-    # out_tans1_ft = F.avg_pool2d(trans1, kernel_size=32, stride=1).view(trans1.size(0), -1)  # torch.Size([64, 216])
-    print(b1l1conv2.shape)
-    print('tans2 {}'.format(trans2.shape))
-    # out_tans2_ft = F.avg_pool2d(trans2, kernel_size=16, stride=1).view(trans2.size(0), -1)  # torch.Size([64, 300])
-    print(b2l2conv1.shape)
-    save_feature_to_img(conv0, image_name='val_img{}'.format(image_index), layer_name=select_layers[0])
-    save_feature_to_img(b1l1conv1, image_name='val_img{}'.format(image_index), layer_name=select_layers[1])
-    save_feature_to_img(trans1, image_name='val_img{}'.format(image_index), layer_name=select_layers[2])
-    save_feature_to_img(b1l1conv2, image_name='val_img{}'.format(image_index), layer_name=select_layers[3])
-    save_feature_to_img(trans2, image_name='val_img{}'.format(image_index), layer_name=select_layers[4])
-    save_feature_to_img(b2l2conv1, image_name='val_img{}'.format(image_index), layer_name=select_layers[5])
+    x = x.squeeze(-1) ## torch.Size([1, 64, 64])
+    extractor.forward(x) 
+    outputs = ex.extract()
+    assert len(outputs) == len(select_layers)
+    for i in range(len(select_layers)):
+        print('save {} {}'.format(select_layers[i], outputs[i].shape))
+        save_feature_to_img(outputs[i], image_name='val_img{}'.format(image_index), layer_name=select_layers[i])

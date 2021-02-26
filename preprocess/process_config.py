@@ -9,7 +9,8 @@ meta_root = '/data7/emobert/data_nomask/meta'
 check_data_dir = '/data7/emobert/data_nomask/check_data'
 tmp_dir = '/data7/emobert/data_nomask/tmp'
 #
-feature_dir = '/data7/emobert/feature_no_mask'
+# feature_dir = '/data7/emobert/feature_no_mask'
+feature_dir = '/data7/MEmoBert/emobert/feature_nomask_torch'
 
 # tools path, all in avec2230 docker
 openface_dir='/root/tools/openface_tool/OpenFace/build/bin'

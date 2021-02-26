@@ -76,7 +76,7 @@ def get_emo_type_ids(emo_category_list, input_ids, emo_input_ids, emo_input_ids_
             emo_type_ids.append(0)
     return emo_type_ids
 
-def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, filter_path_val=None, num_samples=0, 
+def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, filter_path_val=None, include_path=None, num_samples=0, 
                     use_emo=False, use_emo_type=None):
     '''
     {
@@ -113,6 +113,12 @@ def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, filter_pa
         print('val filter_dict has {} imgs'.format(len(filter_dict_val)))
     else:
         filter_dict_val = None
+    
+    if include_path is not None:
+        include_dict = json.load(open(include_path))
+        print('include dict has {} imgs'.format(len(include_dict)))
+    else:
+        include_dict = None
 
     id2len = {}
     txt2img = {}  # not sure if useful
@@ -127,6 +133,8 @@ def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, filter_pa
         if filter_dict is not None and filter_dict.get(img_fname) is None:
             continue
         if filter_dict_val is not None and filter_dict_val.get(img_fname) is not None:
+            continue
+        if include_dict is not None and include_dict.get(img_fname) is None:
             continue
         for sent in value:
             example = {}
@@ -188,7 +196,7 @@ def main(opts):
     with open_db() as db:
         id2lens, txt2img, img2txt = process_jsonl(opts.input, db, toker, dataset_name=opts.dataset_name, \
                                 filter_path=opts.filter_path, filter_path_val=opts.filter_path_val, \
-                                num_samples=opts.num_samples, \
+                                include_path=opts.include_path, num_samples=opts.num_samples, \
                                 use_emo=opts.use_emo, use_emo_type=opts.use_emo_type)
     print('generate id2lens {} txt2img {} img2txt {}'.format(len(id2lens), len(txt2img), len(img2txt)))
     with open(f'{opts.output}/id2len.json', 'w') as f:
@@ -208,6 +216,8 @@ if __name__ == '__main__':
                         help='used to filter the segment Id')
     parser.add_argument('--filter_path_val', default=None,
                         help='remove the val to get the trn, ')
+    parser.add_argument('--include_path', default=None,
+                        help='must in this db')
     parser.add_argument('--num_samples', type=int, default=0,
                         help='sample number samples from input JSON as a test set')
     parser.add_argument('--toker', default='bert-base-uncased',

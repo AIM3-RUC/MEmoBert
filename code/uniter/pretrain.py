@@ -268,7 +268,6 @@ def main(opts):
         if global_step == 0:
             LOGGER.info(f'Fisrt Step for init validation')
             validate(model, val_dataloaders)
-            exit(0)
         # forward pass
         n_examples[name] += batch['input_ids'].size(0)
         n_in_units[name] += (batch['attn_masks'] == 1).sum().item()
@@ -577,12 +576,10 @@ if __name__ == "__main__":
     # NOTE: train tasks and val tasks cannot take command line arguments
     parser.add_argument('--compressed_db', action='store_true',
                         help='use compressed LMDB')
-
     parser.add_argument("--model_config", type=str,
                         help="path to model structure config json")
     parser.add_argument("--checkpoint", default=None, type=str,
                         help="path to model checkpoint (*.pt)")
-
     parser.add_argument(
         "--output_dir", default=None, type=str,
         help="The output directory where the model checkpoints will be "
@@ -660,6 +657,7 @@ if __name__ == "__main__":
 
     args = parse_with_config(parser)
 
+    IMG_DIM = args.IMG_DIM
     # options safe guard
     if args.conf_th == -1:
         assert args.max_bb + args.max_txt_len + 2 <= 512

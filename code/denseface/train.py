@@ -7,9 +7,10 @@ import numpy as np
 import torch
 from torch.optim import lr_scheduler
 
-import code.denseface.config.conf_fer as config
 from code.denseface.data.fer import CustomDatasetDataLoader
 from code.denseface.model.dense_net import DenseNet
+from code.denseface.model.vggnet import VggNet
+from code.denseface.model.resnet import ResNet
 from code.downstream.utils.logger import get_logger
 from code.uniter.utils.save import ModelSaver
 from sklearn.metrics import accuracy_score, recall_score, f1_score, confusion_matrix
@@ -29,6 +30,12 @@ def parse_with_config(main_args):
         if k not in override_keys:
             setattr(main_args, k, v)
     return main_args
+
+def clean_chekpoints(ckpt_dir, store_epoch):
+    # model_step_number.pt
+    for checkpoint in os.listdir(ckpt_dir):
+        if not checkpoint.endswith('_{}.pt'.format(store_epoch)):
+            os.remove(os.path.join(ckpt_dir, checkpoint))
 
 def main(opt):
     output_dir = join(config.result_dir, opt.model_name + '_{}{}_{}'.format(opt.optimizer, 
@@ -57,15 +64,19 @@ def main(opt):
 
     model_saver = ModelSaver(checkpoint_dir)
 
-    model = DenseNet(opt.gpu_id, growth_rate=opt.growth_rate, block_config=opt.block_config, 
-                    num_init_features=opt.num_init_features, bn_size=opt.bn_size, 
-                    compression_rate=opt.reduction, drop_rate=opt.drop_rate, 
-                    num_classes=opt.num_classes)
+    if opt.model_type == 'densenet':
+        model = DenseNet(opt.gpu_id, **config.model_cfg)
+    elif opt.model_type == 'vggnet':
+        model = VggNet(opt.gpu_id, **config.model_cfg)
+    elif opt.model_type == 'resnet':
+        model = ResNet(opt.gpu_id, **config.model_cfg)
+    else:
+        logger.info('[Error] model type is error {}'.format(opt.model_type))
     # to gpu card
     model.to(model.device)
     num_parameters = sum(torch.numel(parameter) for parameter in model.parameters())
     logger.info('[Model] parameters {}'.format(num_parameters))
-    # logger.info(model)
+    logger.info(model)
 
     # Prepare model
     if opt.is_test and opt.restore_checkpoint:
@@ -98,7 +109,7 @@ def main(opt):
         for i, batch in enumerate(trn_db):  # inner loop within one epoch
             model.set_input(batch)   
             model.forward()
-            print(model.parameters)
+            # print(model.parameters)
             batch_loss = model.loss
             optimizer.zero_grad()  
             model.backward()            
@@ -151,6 +162,7 @@ def main(opt):
     tst_log = evaluation(model, tst_db, save_dir=log_dir, set_name='tst')
     logger.info('[Tst] result WA: %.4f UAR %.4f F1 %.4f' % (tst_log['WA'], tst_log['UA'], tst_log['F1']))
     logger.info('\n{}'.format(tst_log['cm']))
+    clean_chekpoints(checkpoint_dir, best_eval_epoch)
 
 @torch.no_grad()
 def evaluation(model, loader, set_name='val', save_dir=None):
@@ -194,14 +206,24 @@ if __name__ == '__main__':
     parser.add_argument("--restore_checkpoint",
                         default=None, type=str,
                         help="pretrained model for testing")
-    parser.add_argument("--config_file",
+    parser.add_argument("--model_type",
                         default=None, type=str,
-                        help="config filepath")
+                        help="judge filepath [densenet, vggnet, resnet]")
     parser.add_argument('--gpu_id', type=int, required=True,
                         help='which gpu to run')
     parser.add_argument('--learning_rate', type=float, help='init learning rate')
     parser.add_argument('--drop_rate', type=float, help='dropout rate')
     main_args = parser.parse_args()
     # 根据主函数传入的参数判断采用的config文件
+
+    if main_args.model_type == 'densenet':
+        from code.denseface.config import dense_fer as config 
+    elif main_args.model_type == 'vggnet':
+        from code.denseface.config import vgg_fer as config 
+    elif main_args.model_type == 'resnet':
+        from code.denseface.config import res_fer as config 
+    else:
+        print("[Error] of model name")
+
     opt = parse_with_config(main_args)
     main(opt)

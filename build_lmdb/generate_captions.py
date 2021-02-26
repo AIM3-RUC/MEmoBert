@@ -10,8 +10,8 @@ import numpy as np
 '''
 
 transcripts_dir = '/data7/emobert/data_nomask/transcripts/json'
-save_path = '/data7/emobert/data_nomask/movies_v1/ref_captions.json'
-movie_names_path = '/data7/emobert/data_nomask/movies_v1/movie_names.npy'
+movie_names_path = '/data7/emobert/data_nomask/movies_v2/movie_names.npy'
+save_path = '/data7/emobert/data_nomask/movies_v2/ref_captions.json'
 
 ref_captions = {}
 

@@ -27,7 +27,7 @@ def convert_hdf5_to_npz(hdf5_dir, output_dir, meta_data_dir, movie_names_path, s
         end = len(valid_movie_names)
     print('total valid movies {} and start {} end {}'.format(len(valid_movie_names), start, end))
     for movie_name in tqdm(valid_movie_names[start:end]):
-        ft_path = os.path.join(hdf5_dir, movie_name, 'has_active_spk_denseface.h5')
+        ft_path = os.path.join(hdf5_dir, movie_name, 'has_active_spk_denseface_with_trans.h5')
         denseface_ft = h5py.File(ft_path)
         segment_indexs = list(denseface_ft[movie_name].keys())
         if len(segment_indexs) != movie2utts[movie_name]:
@@ -51,10 +51,10 @@ def convert_hdf5_to_npz(hdf5_dir, output_dir, meta_data_dir, movie_names_path, s
 if __name__ == "__main__":
     start = int(sys.argv[1])  # 0
     end =  int(sys.argv[2]) # 100
-    npzs_dir = '/data7/emobert/ft_npzs_nomask/movies_v1' 
-    hdf5_dir = '/data7/emobert/feature_nomask'
+    hdf5_dir = '/data7/emobert/feature_nomask_torch/'
     meta_data_dir = '/data7/emobert/data_nomask/meta'
     movie_names_path = '/data7/emobert/data_nomask/movies_v1/movie_names.npy'
+    npzs_dir = '/data8/emobert/ft_npzs_nomask/movies_v1_torch' 
 
     if not os.path.exists(npzs_dir):
         os.makedirs(npzs_dir)
