@@ -119,7 +119,7 @@ if __name__ == '__main__':
     extract_denseface = partial(extract_denseface_trans_dir, denseface_model=denseface, face_selector=face_selector)
    
     all_utt_files, movie_names = get_utt_id_files(meta_dir, utt_file_name)
-    ss = 176
+    ss = 199
     #
     all_utt_files, movie_names = all_utt_files[ss:], movie_names[ss:]
     #
@@ -148,14 +148,12 @@ if __name__ == '__main__':
         utt_ids = list(map(lambda x: x.strip(), utt_ids))
         if len(utt_ids) == 0:
             continue
-
         # denseface
         # save_path = os.path.join(feature_dir, f'{utt_file_name}_denseface.h5')
         save_path = os.path.join(feature_dir, f'{utt_file_name}_denseface_with_trans.h5')
         print(save_path)
         extract_features_h5(extract_denseface, lambda x: os.path.join(face_dir, x), 
                     utt_ids, save_path)
-
         # # emo_word
         # save_path = os.path.join(feature_dir, f'{utt_file_name}_emoword.json')
         # process_emo_word(utt_ids, emol, save_path, multiprocessing=False)

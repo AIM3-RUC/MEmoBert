@@ -88,5 +88,5 @@ def build_backbone_optimizer(model, opts, except_model=None):
         print('[INFO] Use the ADAM as backbone optimizer!')
         optimizer = OptimCls(optimizer_grouped_parameters,
                         lr=opts.backbone_learning_rate, betas=opts.backbone_betas,
-                        weight_decay=opts.weight_decay, )
+                        weight_decay=opts.weight_decay)
     return optimizer

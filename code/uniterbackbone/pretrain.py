@@ -239,7 +239,7 @@ def main(opts):
     broadcast_tensors([p.data for p in model.parameters()], 0)
     set_dropout(model, opts.dropout)
 
-    task2scaler = {t: i for i, t in enumerate(train_dataloaders.keys())}
+    task2scaler = {t: i for i, t in enumerate(trainbuild_backbone_optimizer_dataloaders.keys())}
     if opts.use_backbone_optim:
         LOGGER.info('[INFO] Use 2 optimizers for backbone and bert model')
         backbone = model.uniter.img_embeddings.denseface_encoder

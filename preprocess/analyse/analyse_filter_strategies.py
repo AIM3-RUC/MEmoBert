@@ -20,9 +20,10 @@ has_active_spk.txt: 是否包含说话人，说话人的条件比较严格。
 ori_info_dir = '/data7/emobert/data_nomask/transcripts/json'
 meta_data_dir = '/data7/emobert/data_nomask/meta'
 feature_dir = '/data7/emobert/feature_nomask_torch'
-fileter_details_path = '/data7/emobert/data_nomask/analyse/fileter_details_moviesv2.txt'
-filter_movie_names_path = '/data7/emobert/data_nomask/movies_v1/movie_names.npy'
-movie_names_path = '/data7/emobert/data_nomask/movies_v2/movie_names.npy'
+fileter_details_path = '/data7/emobert/data_nomask/analyse/fileter_details_moviesv3.txt'
+filter_movie_names_path = ['/data7/emobert/data_nomask/movies_v1/movie_names.npy', 
+    '/data7/emobert/data_nomask/movies_v2/movie_names.npy']
+movie_names_path = '/data7/emobert/data_nomask/movies_v3/movie_names.npy'
 
 total_lines = 0 
 final_lines = 0
@@ -40,8 +41,11 @@ def compute_stastic_info(lens):
     return avg_len, mid_len, m80_len
 
 if filter_movie_names_path is not None:
-    filter_movie_names = np.load(filter_movie_names_path)
-    filter_movie_names = {n:1 for n in filter_movie_names}
+    filter_movie_names = {}
+    for filter_path in filter_movie_names_path:
+        names = np.load(filter_path)
+        filter_names = {n:1 for n in names}
+        filter_movie_names.update(filter_names)
     print('There are {} movies have processed'.format(len(filter_movie_names)))
 else:
     filter_movie_names = {}

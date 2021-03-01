@@ -103,47 +103,31 @@ class Bottleneck(nn.Module):
 
         return out
 
+
 class ResNet(nn.Module):
     def __init__(self, gpu_id, block_type, resblocks, num_classes=8, zero_init_residual=False,
-                    groups=1,  width_per_group=64, frozen_dense_blocks=0, **kwargs):
+                    groups=1,  width_per_group=64, **kwargs):
         super(ResNet, self).__init__()
         self.device = torch.device("cuda:{}".format(gpu_id))
-
         self.inplanes = 64
         self.dilation = 1
         self.groups = groups
         self.base_width = width_per_group
         # first conv, gray image, only has one channel
-        self.features = nn.Sequential(OrderedDict([
-            ("conv0", nn.Conv2d(1, self.inplanes, kernel_size=3, stride=2, padding=1, bias=False)),
-            ("norm0", nn.BatchNorm2d(self.inplanes)),
-            ("relu0", nn.ReLU(inplace=True)),
-            ("pool0", nn.MaxPool2d(2, stride=2, padding=1)) 
-        ]))
-        # self.conv1 = nn.Conv2d(1, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False)
-        # self.bn1 = nn.BatchNorm2d(self.inplanes)
-        # self.relu = nn.ReLU(inplace=True)
-        # self.maxpool = nn.MaxPool2d(kernel_size=2, stride=2, padding=1)
+        self.conv1 = nn.Conv2d(1, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(self.inplanes)
+        self.relu = nn.ReLU(inplace=True)
+        self.maxpool = nn.MaxPool2d(kernel_size=2, stride=2, padding=1)
 
         if block_type == 'basic':
             print('[Info] Use basic block')
             block = BasicBlock
         else:
             block = Bottleneck
-        temp_inplanes = self.inplanes
-        for i, num_layers in enumerate(resblocks):
-            stride = 1 if i == 0 else 2
-            if i <= frozen_dense_blocks - 1 and i >= 0:
-                print("the {} block is fixed".format(i))
-                with torch.no_grad():
-                    self.features.add_module('resblock{}'.format(i+1), self._make_layer(block, temp_inplanes, num_layers, stride=stride))
-            else:
-                self.features.add_module('resblock{}'.format(i+1), self._make_layer(block, temp_inplanes, num_layers, stride=stride))
-            temp_inplanes = temp_inplanes * 2
-        # self.layer1 = self._make_layer(block, 64, resblocks[0])
-        # self.layer2 = self._make_layer(block, 128, resblocks[1], stride=2)
-        # self.layer3 = self._make_layer(block, 256, resblocks[2], stride=2)
-        # self.layer4 = self._make_layer(block, 512, resblocks[3], stride=2)
+        self.layer1 = self._make_layer(block, 64, resblocks[0])
+        self.layer2 = self._make_layer(block, 128, resblocks[1], stride=2)
+        self.layer3 = self._make_layer(block, 256, resblocks[2], stride=2)
+        self.layer4 = self._make_layer(block, 512, resblocks[3], stride=2)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.classifier = nn.Linear(512 * block.expansion, num_classes)
         self.criterion = CrossEntropyLoss()
@@ -200,10 +184,23 @@ class ResNet(nn.Module):
             self.bs_labels = batch['labels'].to(self.device)
 
     def forward(self):
-        x = self.features(self.bs_images)
-        # print('[debug] after block4 {}'.format(x.shape))
+        # first layer
+        x = self.conv1(self.bs_images)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+        # print('[debug] after first layer {}'.format(x.shape)) # ([64, 64, 33, 33]
+        # four blocks
+        x = self.layer1(x)
+        # print('[debug] after block1 {}'.format(x.shape)) # ([64, 64, 33, 33])
+        x = self.layer2(x)
+        # print('[debug] after block2 {}'.format(x.shape)) # ([64, 128, 17, 17])
+        x = self.layer3(x)
+        # print('[debug] after block3 {}'.format(x.shape)) # ([64, 256, 9, 9])
+        x = self.layer4(x)
+        # print('[debug] after block4 {}'.format(x.shape)) # ([64, 512, 5, 5])
         x = self.avgpool(x)
-        # print('[debug] after block4 and avgpool {}'.format(x.shape))
+        # print('[debug] after block4 and avgpooling {}'.format(x.shape))
         self.out_ft = torch.flatten(x, 1)  # ([64, 512])
         # print('[debug] final fc {}'.format(self.out_ft.shape))
         logits = self.classifier(self.out_ft)
@@ -216,92 +213,3 @@ class ResNet(nn.Module):
         if max_grad > 0:
             print('[Debug] Use clip_grad_norm')
             torch.nn.utils.clip_grad_norm_(self.parameters(), max_grad)
-
-class ResNetEncoder(nn.Module):
-    def __init__(self, block_type, resblocks, num_classes=8, zero_init_residual=False,
-                    groups=1,  width_per_group=64, frozen_dense_blocks=0, **kwargs):
-        super(ResNetEncoder, self).__init__()
-        self.frozen_dense_blocks = frozen_dense_blocks
-        self.inplanes = 64
-        self.dilation = 1
-        self.groups = groups
-        self.base_width = width_per_group
-        # first conv, gray image, only has one channel
-        self.features = nn.Sequential(OrderedDict([
-            ("conv0", nn.Conv2d(1, self.inplanes, kernel_size=3, stride=2, padding=1, bias=False)),
-            ("norm0", nn.BatchNorm2d(self.inplanes)),
-            ("relu0", nn.ReLU(inplace=True)),
-            ("pool0", nn.MaxPool2d(kernel_size=2, stride=2, padding=1)) 
-        ]))
-        ## same as above
-        # self.conv1 = nn.Conv2d(1, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False)
-        # self.bn1 = nn.BatchNorm2d(self.inplanes)
-        # self.relu = nn.ReLU(inplace=True)
-        # self.maxpool = nn.MaxPool2d(kernel_size=2, stride=2, padding=1)
-        if block_type == 'basic':
-            print('[Info] Use basic block')
-            block = BasicBlock
-        else:
-            block = Bottleneck
-        # feature maps for 4 blocks: 64, 128, 256, 512
-        temp_inplanes = self.inplanes
-        for i, num_layers in enumerate(resblocks):
-            stride = 1 if i == 0 else 2
-            if i <= frozen_dense_blocks - 1 and i >= 0:
-                print("the {} block is fixed".format(i))
-                with torch.no_grad():
-                    self.features.add_module('resblock{}'.format(i+1), self._make_layer(block, temp_inplanes, num_layers, stride=stride))
-            else:
-                self.features.add_module('resblock{}'.format(i+1), self._make_layer(block, temp_inplanes, num_layers, stride=stride))
-            temp_inplanes = temp_inplanes * 2
-        ## same as above 
-        # self.layer1 = self._make_layer(block, 64, resblocks[0])
-        # self.layer2 = self._make_layer(block, 128, resblocks[1], stride=2)
-        # self.layer3 = self._make_layer(block, 256, resblocks[2], stride=2)
-        # self.layer4 = self._make_layer(block, 512, resblocks[3], stride=2)
-        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-
-        # Zero-initialize the last BN in each residual branch,
-        # so that the residual branch starts with zeros, and each residual block behaves like an identity.
-        # This improves the model by 0.2~0.3% according to https://arxiv.org/abs/1706.02677
-        if zero_init_residual:
-            for m in self.modules():
-                if isinstance(m, Bottleneck):
-                    nn.init.constant_(m.bn3.weight, 0)  # type: ignore[arg-type]
-                elif isinstance(m, BasicBlock):
-                    nn.init.constant_(m.bn2.weight, 0)  # type: ignore[arg-type]
-
-    def _make_layer(self, block, planes, num_blocks, stride=1, dilate=False):
-        downsample = None
-        previous_dilation = self.dilation
-        if dilate:
-            self.dilation *= stride
-            stride = 1
-        if stride != 1 or self.inplanes != planes * block.expansion:
-            downsample = nn.Sequential(
-                conv1x1(self.inplanes, planes * block.expansion, stride),
-                nn.BatchNorm2d(planes * block.expansion),
-            )
-        layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample, self.groups,
-                            self.base_width, previous_dilation))
-        self.inplanes = planes * block.expansion
-        for _ in range(1, num_blocks):
-            layers.append(block(self.inplanes, planes, groups=self.groups,
-                                base_width=self.base_width, dilation=self.dilation))
-
-        return nn.Sequential(*layers)
-
-    def forward(self, images):
-        images = images.unsqueeze(1) # (T, 1, H, W)
-        x = self.features(images)
-        x = self.avgpool(x)
-        out_ft = torch.flatten(x, 1)  # ([64, 512])
-        return out_ft

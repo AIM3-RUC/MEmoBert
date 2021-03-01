@@ -17,7 +17,7 @@ model_cfg = {
   'learning_rate': 0.0001,
   'reduce_half_lr_epoch': 40,
   'reduce_half_lr_rate': 0.5,  # epochs * 0.5
-  'patience': 8,
+  'patience': 5,
   'shuffle': 'every_epoch',  # None, once_prior_train, every_epoch
   'normalization': 'by_chanels',  # None, divide_256, divide_255, by_chanels
   'data_augmentation': True,

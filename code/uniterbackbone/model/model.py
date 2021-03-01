@@ -18,8 +18,9 @@ from apex.normalization.fused_layer_norm import FusedLayerNorm
 
 from code.uniterbackbone.model.layer import BertLayer, BertPooler
 from torch import tensor
-from code.denseface.model.dense_net import DenseNet, DenseNetEncoder
-from code.denseface.config.conf_fer import model_cfg as denseface_config
+from code.denseface.model.dense_net import DenseNetEncoder
+from code.denseface.model.vggnet import VggNetEncoder
+from code.denseface.model.resnet import ResNetEncoder
 
 logger = logging.getLogger(__name__)
 
@@ -276,26 +277,28 @@ class UniterImageEmbeddings(nn.Module):
 
         # Jinming add for joint training denseface backbone
         if self.config.joint_face_backbone is True:
-            self.denseface_encoder = DenseNetEncoder(**denseface_config)
+            if self.config.backbone_type == 'resnet':
+                from code.denseface.config.res_fer import model_cfg as backbone_config
+                self.face_encoder = ResNetEncoder(**backbone_config)
+            elif self.config.backbone_type == 'densenet':
+                from code.denseface.config.dense_fer import model_cfg as backbone_config
+                self.face_encoder = DenseNetEncoder(**backbone_config)
+            elif self.config.backbone_type == 'vggnet':
+                from code.denseface.config.vgg_fer import model_cfg as backbone_config
+                self.face_encoder = VggNetEncoder(**backbone_config)
+            else:
+                print('[Error] backbone type {}'.format(self.config.backbone_type))
             if not self.config.face_from_scratch:
                 state_dict = torch.load(self.config.face_checkpoint)
                 for key in list(state_dict.keys()):
                     if 'classifier' in key:
                         del state_dict[key]
-                # print('[Debug]****** original layer weights')
+                # print('[Debug]****** densenet original layer weights')
                 # print(state_dict['features.denseblock2.denselayer10.conv1.weight'])
                 # print(state_dict['features.denseblock3.denselayer10.conv1.weight'])
-                # print("****************"*5)
                 # print(list(state_dict.keys())[:20])
-                # print("****************"*5)
-                # print(list(self.denseface_encoder.state_dict().keys())[:20])
-                # print("****************"*5)
-                # input()
-                # for key in self.denseface_encoder.state_dict().keys():
-                #     if key not in state_dict.keys():
-                #         print(key)
-                # input()
-                self.denseface_encoder.load_state_dict(state_dict)
+                # print(list(self.face_encoder.state_dict().keys())[:20])
+                self.face_encoder.load_state_dict(state_dict)
 
         # tf naming convention for layer norm
         self.LayerNorm = FusedLayerNorm(config.hidden_size, eps=1e-12)

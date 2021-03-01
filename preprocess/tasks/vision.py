@@ -14,7 +14,7 @@ from preprocess.tasks.base_worker import BaseWorker
 from preprocess.tools.VAD import VAD
 from preprocess.FileOps import read_csv
 import math
-from code.denseface.config.conf_fer import model_cfg
+from code.denseface.config.dense_fer import model_cfg
 from code.denseface.model.dense_net import DenseNet
 from preprocess.tools.hook import MultiLayerFeatureExtractor
 

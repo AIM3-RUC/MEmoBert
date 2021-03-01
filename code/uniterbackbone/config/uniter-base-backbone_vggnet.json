@@ -12,7 +12,8 @@
   "melm_multitask": false,
   "vocab_size": 30522,
   "joint_face_backbone": true,
-  "face_checkpoint": "/data7/emobert/exp/face_model/densenet100_adam0.001_0.0/ckpts/model_step_43.pt",
+  "backbone_type": "vggnet",
+  "face_checkpoint": "/data7/emobert/exp/face_model/vggnet_adam0.0001_0.25/ckpts/model_step_68.pt",
   "face_from_scratch": false,
   "face_data_augmentation": true
 }

@@ -6,6 +6,7 @@ import sys
 sys.path.insert(0, '/data7/MEmoBert/')
 from code.denseface.model.dense_net import DenseNet, DenseNetEncoder
 from code.denseface.model.vggnet import VggNet, VggNetEncoder
+from code.denseface.model.resnet import ResNet, ResNetEncoder
 from code.denseface.hook_demo import MultiLayerFeatureExtractor
 
 
@@ -27,13 +28,15 @@ def save_feature_to_img(feature, feature_map_ind=0, image_name='val_img3', layer
     cv2.imwrite('./pics/{}_{}.jpg'.format(image_name, layer_name), feature[feature_map_ind])
 
 if __name__ == '__main__':
-    model_type = 'vggnet'
+    model_type = 'resnet'
     if model_type == 'vggnet':
         print("--- Use Vggnet")
         from code.denseface.config.vgg_fer import model_cfg
     elif model_type == 'densenet':
         print("--- Use Densenet")
         from code.denseface.config.dense_fer import model_cfg
+    elif model_type == 'resnet':
+        from code.denseface.config.res_fer import model_cfg
     else:
         print("[Error] model type {}".format(model_type))
         exit(0)
@@ -54,9 +57,11 @@ if __name__ == '__main__':
     elif 'dense' in model_cfg['model_name']:
         extractor = DenseNetEncoder(**model_cfg)
         model_path = "/data7/MEmoBert/emobert/exp/face_model/densenet100_adam0.001_0.0/ckpts/model_step_43.pt"
+    elif 'res' in model_cfg['model_name']:
+        extractor = ResNetEncoder(**model_cfg)
+        model_path = "/data7/MEmoBert/emobert/exp/face_model/resnet18_adam_warmup_run2_adam0.0005_0.0/ckpts/model_step_68.pt"
     else:
         extractor =None
-
     print(extractor)
     state_dict = torch.load(model_path)
     for key in list(state_dict.keys()):
@@ -75,16 +80,22 @@ if __name__ == '__main__':
     #     'features.denseblock3.denselayer16.conv1',
     # ]
     ### for vggnet
+    # select_layers = [
+    #     'conv_block1.conv2',
+    #     'conv_block1.relu2',
+    #     'conv_block2.conv2',
+    #     'conv_block3.conv2',
+    #     'conv_block4.conv2',
+    # ]
+    ### for resnet
     select_layers = [
-        'conv_block1.conv2',
-        'conv_block1.relu2',
-        'conv_block2.conv2',
-        'conv_block3.conv2',
-        'conv_block4.conv2',
+        'features.pool0',
+        'features.resblock1.0.conv2',
+        'features.resblock2.0.conv2',
     ]
     ex = MultiLayerFeatureExtractor(extractor, select_layers)
     x = torch.FloatTensor([image]).to(device)
-    x = x.squeeze(-1) ## torch.Size([1, 64, 64])
+    x = x.squeeze(-1)  ## torch.Size([1, 64, 64])
     extractor.forward(x) 
     outputs = ex.extract()
     assert len(outputs) == len(select_layers)

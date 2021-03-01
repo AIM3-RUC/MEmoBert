@@ -12,6 +12,7 @@ from code.denseface.model.dense_net import DenseNet
 from code.denseface.model.vggnet import VggNet
 from code.denseface.model.resnet import ResNet
 from code.downstream.utils.logger import get_logger
+from code.downstream.run_baseline import lambda_rule
 from code.uniter.utils.save import ModelSaver
 from sklearn.metrics import accuracy_score, recall_score, f1_score, confusion_matrix
 
@@ -36,6 +37,16 @@ def clean_chekpoints(ckpt_dir, store_epoch):
     for checkpoint in os.listdir(ckpt_dir):
         if not checkpoint.endswith('_{}.pt'.format(store_epoch)):
             os.remove(os.path.join(ckpt_dir, checkpoint))
+
+def lambda_rule(epoch):
+    if epoch < opt.warmup_epoch:
+        return opt.warmup_decay
+    else:
+        assert opt.fix_lr_epoch < opt.max_epoch
+        niter = opt.fix_lr_epoch
+        niter_decay = opt.max_epoch - opt.fix_lr_epoch
+        lr_l = 1.0 - max(0, epoch + 1 - niter) / float(niter_decay + 1)
+        return lr_l
 
 def main(opt):
     output_dir = join(config.result_dir, opt.model_name + '_{}{}_{}'.format(opt.optimizer, 
@@ -100,7 +111,9 @@ def main(opt):
         optimizer = torch.optim.SGD(model.parameters(), lr=opt.learning_rate, 
                                 momentum=opt.momentum, nesterov=opt.nesterov,
                                 weight_decay=opt.weight_decay)
-    scheduler = lr_scheduler.StepLR(optimizer, step_size=opt.reduce_half_lr_epoch, gamma=opt.reduce_half_lr_rate)
+
+    scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda_rule)
+    # scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, step_size=opt.reduce_half_lr_epoch, gamma=opt.reduce_half_lr_rate)
 
     best_eval_f1 = 0              # record the best eval UAR
     patience = opt.patience
@@ -190,13 +203,13 @@ def evaluation(model, loader, set_name='val', save_dir=None):
     uar = recall_score(total_label, total_pred, average='macro')
     f1 = f1_score(total_label, total_pred, average='macro')
     cm = confusion_matrix(total_label, total_pred)
-    model.train()
-    # save test results
+     # save test results
     if save_dir is not None:
         np.save(os.path.join(save_dir, '{}_pred.npy'.format(set_name)), total_pred)
         np.save(os.path.join(save_dir, '{}_label.npy'.format(set_name)), total_label)
-        print('Total features {}'.format(total_features.shape))
+        print('Total features {} pred {}'.format(total_features.shape, total_pred.shape))
         np.save(os.path.join(save_dir, '{}_features.npy'.format(set_name)), total_features)
+    model.train()
     return {'loss': avg_loss,  'WA': acc,  'UA': uar, 'F1': f1, 'cm':cm}
 
 if __name__ == '__main__':
@@ -213,6 +226,7 @@ if __name__ == '__main__':
                         help='which gpu to run')
     parser.add_argument('--learning_rate', type=float, help='init learning rate')
     parser.add_argument('--drop_rate', type=float, help='dropout rate')
+    parser.add_argument('--frozen_dense_blocks', type=int, default=0, help='keep num blocks to fix')
     main_args = parser.parse_args()
     # 根据主函数传入的参数判断采用的config文件
 

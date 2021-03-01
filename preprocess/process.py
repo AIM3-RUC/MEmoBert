@@ -79,7 +79,7 @@ def find_exists(movie_name):
     return True if os.path.exists(act_spk_file) else False
 
 if __name__ == '__main__':
-    movie_indexs = list(range(500, 610))
+    movie_indexs = list(range(500, 506))
     num_worker = 24
     chunk_size = 20
     print()
