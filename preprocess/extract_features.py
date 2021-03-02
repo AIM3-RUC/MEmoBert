@@ -108,6 +108,11 @@ if __name__ == '__main__':
     feature_root = path_config.feature_dir
     tmp_dir = path_config.tmp_dir
 
+    ## 
+    ss = 200
+    tt = 201
+    #
+
     mean = 63.987095
     std = 43.00519
     denseface = DensefaceExtractor()
@@ -119,10 +124,9 @@ if __name__ == '__main__':
     extract_denseface = partial(extract_denseface_trans_dir, denseface_model=denseface, face_selector=face_selector)
    
     all_utt_files, movie_names = get_utt_id_files(meta_dir, utt_file_name)
-    ss = 199
-    #
-    all_utt_files, movie_names = all_utt_files[ss:], movie_names[ss:]
-    #
+
+    all_utt_files, movie_names = all_utt_files[ss:tt], movie_names[ss:tt]
+    ## 
     length = len(all_utt_files)
     start = int(part_no * length / total)
     end = int((part_no + 1) * length / total)

@@ -304,4 +304,5 @@ class ResNetEncoder(nn.Module):
         x = self.features(images)
         x = self.avgpool(x)
         out_ft = torch.flatten(x, 1)  # ([64, 512])
+        self.v_emb = out_ft
         return out_ft

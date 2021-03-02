@@ -1,22 +1,23 @@
 {
-    "output_dir": "/data7/emobert/exp/pretrain/nomask_movies_v1_uniter_medium_3tasks",
-    "model_config": "config/uniter-medium.json",
-    "checkpoint": "/data7/emobert/resources/pretrained/uniter-medium-uncased-init.pt",
+    "output_dir": "/data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter_4tasks_faceth0.1",
+    "model_config": "config/uniter-base.json",
+    "checkpoint": "/data7/emobert/resources/pretrained/uniter-base-uncased-init.pt",
     "mrm_prob": 0.15,
     "itm_neg_prob": 0.5,
     "itm_ot_lambda": 0.1,
     "max_txt_len": 30,
     "conf_th": 0.1,
-    "max_bb": 100,
+    "max_bb": 64,
     "min_bb": 10,
     "num_bb": 36,
-    "IMG_DIM": 216,
-    "train_batch_size": 15120,
-    "val_batch_size": 15120,
-    "gradient_accumulation_steps": 1,
-    "learning_rate": 5e-06,
+    "IMG_DIM":342,
+    "train_batch_size": 10240,
+    "val_batch_size": 10240,
+    "gradient_accumulation_steps": 2,
+    "learning_rate": 5e-05,
     "valid_steps": 5000,
-    "num_train_steps": 200000,
+    "warmup_steps": 5000,
+    "num_train_steps": 100000,
     "optim": "adamw",
     "betas": [
         0.9,
@@ -25,7 +26,6 @@
     "dropout": 0.1,
     "weight_decay": 0.01,
     "grad_norm": 5.0,
-    "warmup_steps": 5000,
     "seed": 42,
     "fp16": true,
     "n_workers": 4,
@@ -37,16 +37,18 @@
                 "/data7/emobert/txt_db/movies_v1_th0.1_all_trn.db/"
             ],
             "img": [
-                "/data7/emobert/img_db_nomask/movies_v1_trans1/"
+                "/data7/emobert/img_db_nomask/movies_v1_torch/"
             ],
             "tasks": [
                 "itm",
                 "mlm",
-                "mrfr"
+                "mrfr",
+                "mrckl"
             ],
             "mix_ratio": [
                 2,
                 2,
+                1,
                 1
             ]
         },
@@ -56,16 +58,39 @@
                 "/data7/emobert/txt_db/movies_v2_th0.1_all_trn.db/"
             ],
             "img": [
-                "/data7/emobert/img_db_nomask/movies_v2_trans1/"
+                "/data7/emobert/img_db_nomask/movies_v2/"
             ],
             "tasks": [
                 "itm",
                 "mlm",
-                "mrfr"
+                "mrfr",
+                "mrckl"
             ],
             "mix_ratio": [
                 2,
                 2,
+                1,            
+                1            
+            ]
+        },
+        {
+            "name": "movies_v3",
+            "db": [
+                "/data7/emobert/txt_db/movies_v3_th0.1_all_trn.db/"
+            ],
+            "img": [
+                "/data7/emobert/img_db_nomask/movies_v3/"
+            ],
+            "tasks": [
+                "itm",
+                "mlm",
+                "mrfr",
+                "mrckl"
+            ],
+            "mix_ratio": [
+                2,
+                2,
+                1,            
                 1            
             ]
         }
@@ -77,12 +102,13 @@
                 "/data7/emobert/txt_db/movies_v1_th0.1_all_2000.db/"            
             ],
             "img": [
-                "/data7/emobert/img_db_nomask/movies_v1_trans1/"
+                "/data7/emobert/img_db_nomask/movies_v1_torch/"
             ],
             "tasks": [
                 "itm",
                 "mlm",
-                "mrfr"            
+                "mrfr" ,           
+                "mrckl"            
             ]
         },
         {
@@ -91,12 +117,13 @@
                 "/data7/emobert/txt_db/movies_v1_th0.1_all_trn_2000.db/"            
             ],
             "img": [
-                "/data7/emobert/img_db_nomask/movies_v1_trans1/"
+                "/data7/emobert/img_db_nomask/movies_v1_torch/"
             ],
             "tasks": [
                 "itm",
                 "mlm",
-                "mrfr"            
+                "mrfr",            
+                "mrckl"            
             ]
         },
         {
@@ -105,12 +132,28 @@
                 "/data7/emobert/txt_db/movies_v2_th0.1_all_2000.db/"            
             ],
             "img": [
-                "/data7/emobert/img_db_nomask/movies_v2_trans1/"
+                "/data7/emobert/img_db_nomask/movies_v2/"
             ],
             "tasks": [
                 "itm",
                 "mlm",
-                "mrfr"            
+                "mrfr",            
+                "mrckl"            
+            ]
+        },
+        {
+            "name": "movies_v3_2000",
+            "db": [
+                "/data7/emobert/txt_db/movies_v3_th0.1_all_2000.db/"            
+            ],
+            "img": [
+                "/data7/emobert/img_db_nomask/movies_v3/"
+            ],
+            "tasks": [
+                "itm",
+                "mlm",
+                "mrfr",            
+                "mrckl"            
             ]
         }
     ]

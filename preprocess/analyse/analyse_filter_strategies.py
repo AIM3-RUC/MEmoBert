@@ -2,6 +2,7 @@ import h5py
 import os
 import numpy as np
 from numpy.lib.function_base import append
+from time import sleep
 
 from numpy.testing._private.utils import assert_raises
 from preprocess.FileOps import read_json, read_file, write_file
@@ -31,6 +32,15 @@ total_words_lens = []
 total_faces_lens = []
 details_lines = []
 valid_movies = []
+
+def open_hdf5(filename, *args, **kwargs):
+    while True:
+        try:
+            hdf5_file = h5py.File(filename, *args, **kwargs)
+            break  # Success!
+        except OSError:
+            sleep(5)  # Wait a bit
+    return hdf5_file
 
 def compute_stastic_info(lens):
     # 返回长度的中位数和80%分位点
@@ -86,7 +96,7 @@ for filename in movie_list:
     total_lines += len(ori_segments2info)
     final_lines += len(active_spk_lines)
     print("---- Valid {}".format(movie_name))
-    denseface_ft = h5py.File(denseface_ft_path)
+    denseface_ft = open_hdf5(denseface_ft_path, mode='r')
     for segment_index in denseface_ft[movie_name].keys():
         _len = denseface_ft[movie_name][segment_index]['pred'].shape[0]
         movie_faces_lens.append(_len)

@@ -306,15 +306,15 @@ class UniterImageEmbeddings(nn.Module):
 
     def forward(self, img_feat, img_position_ids, img_type_embeddings, img_masks=None):
         # print('[Debug]****** traning layer weights')
-        # print(self.denseface_encoder.state_dict()['features.denseblock2.denselayer10.conv1.weight'])
-        # print(self.denseface_encoder.state_dict()['features.denseblock3.denselayer10.conv1.weight'])
+        # print(self.face_encoder.state_dict()['features.denseblock2.denselayer10.conv1.weight'])
+        # print(self.face_encoder.state_dict()['features.denseblock3.denselayer10.conv1.weight'])
         # Jinming add for joint training denseface backbone
         if self.config.joint_face_backbone is True:
             # 输入的是原始的图片信息, 
             new_img_feat = []
             # print('[Debug] Raw images {}'.format(img_feat.shape))
             for raw_img_4video in img_feat:
-                raw_img_ft = self.denseface_encoder.forward(raw_img_4video)
+                raw_img_ft = self.face_encoder.forward(raw_img_4video)
                 # print('[Debug]raw_img_ft {}'.format(raw_img_ft.shape))
                 new_img_feat.append(raw_img_ft)
             img_feat = torch.stack(new_img_feat)

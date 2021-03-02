@@ -59,7 +59,7 @@ def build_backbone_optimizer(model, opts, except_model=None):
     optimizer_grouped_parameters = [
         {'params': [p for n, p in param_optimizer
                     if not any(nd in n for nd in no_decay)],
-         'weight_decay': opts.weight_decay},
+         'weight_decay': opts.backbone_weight_decay},
         {'params': [p for n, p in param_optimizer
                     if any(nd in n for nd in no_decay)],
          'weight_decay': 0.0}
@@ -85,8 +85,8 @@ def build_backbone_optimizer(model, opts, except_model=None):
                 nesterov=opts.backbone_nesterov
             )
     else:
-        print('[INFO] Use the ADAM as backbone optimizer!')
+        print('[INFO] Use the {} as backbone optimizer!'.format(opts.backbone_optim))
         optimizer = OptimCls(optimizer_grouped_parameters,
                         lr=opts.backbone_learning_rate, betas=opts.backbone_betas,
-                        weight_decay=opts.weight_decay)
+                        weight_decay=opts.backbone_weight_decay)
     return optimizer

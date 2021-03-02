@@ -35,8 +35,8 @@ from code.uniterbackbone.utils.logger import LOGGER, TB_LOGGER, RunningMeter, ad
 from code.uniterbackbone.utils.distributed import (all_reduce_and_rescale_tensors, all_gather_list,
                                broadcast_tensors)
 from code.uniterbackbone.utils.save import ModelSaver, save_training_meta
-from code.uniterbackbone.utils.misc import NoOp, parse_with_config, set_dropout, set_random_seed
-from code.uniterbackbone.utils.const import IMG_DIM, IMG_LABEL_DIM, BUCKET_SIZE
+from code.uniterbackbone.utils.misc import NoOp, parse_with_config, set_dropout, set_random_seed, get_grad_flow
+from code.uniterbackbone.utils.const import IMG_LABEL_DIM, BUCKET_SIZE
 
 
 def build_dataloader(dataset, collate_fn, is_train, opts):
@@ -239,10 +239,11 @@ def main(opts):
     broadcast_tensors([p.data for p in model.parameters()], 0)
     set_dropout(model, opts.dropout)
 
-    task2scaler = {t: i for i, t in enumerate(trainbuild_backbone_optimizer_dataloaders.keys())}
+    task2scaler = {t: i for i, t in enumerate(train_dataloaders.keys())}
     if opts.use_backbone_optim:
-        LOGGER.info('[INFO] Use 2 optimizers for backbone and bert model')
-        backbone = model.uniter.img_embeddings.denseface_encoder
+        LOGGER.info('[INFO] Use 2 optimizers for backbone {} and bert model {}'.format(
+            opts.optim, opts.backbone_optim))
+        backbone = model.uniter.img_embeddings.face_encoder
         backbone_optimizer = build_backbone_optimizer(backbone, opts)   # 只包含denseface的参数
         optimizer = build_optimizer(model, opts, except_model=backbone) # 除去denseface的参数
         model, [optimizer, backbone_optimizer]  = amp.initialize(model, [optimizer, backbone_optimizer],
@@ -309,6 +310,13 @@ def main(opts):
                     grads = [p.grad.data for p in model.parameters()
                             if p.requires_grad and p.grad is not None]
                     all_reduce_and_rescale_tensors(grads, float(1))
+                    # Jinming add, for get the grad of the last layer
+                    if global_step % 100 == 0:
+                        # uniter.img_embeddings.face_encoder.features.resblock4.1.bn2.weight
+                        LOGGER.info("[Debug] Step {} backbone_last_layer_grad {}".format(global_step, 1))
+                        layers, mean_grads = get_grad_flow(model.named_parameters())
+                        for layer_name, mean_grad in zip(layers, mean_grads):
+                            print('[Debug] Layer {} and mean grad {}'.format(layer_name, mean_grad))
         else:
             with amp.scale_loss(loss, optimizer, delay_unscale=delay_unscale,
                                 loss_id=task2scaler[name]) as scaled_loss:
@@ -325,7 +333,6 @@ def main(opts):
         # optimizer update and logging
         if (step + 1) % opts.gradient_accumulation_steps == 0:
             global_step += 1
-
             # learning rate scheduling
             lr_this_step = get_lr_sched(global_step, opts)
             for param_group in optimizer.param_groups:
@@ -350,9 +357,10 @@ def main(opts):
                                             opts.grad_norm)
                 TB_LOGGER.add_scalar('grad_norm', grad_norm, global_step)
                 if opts.use_backbone_optim:
-                    grad_norm = clip_grad_norm_(amp.master_params(backbone_optimizer),
-                                            opts.grad_norm)
-                    TB_LOGGER.add_scalar('backbone_grad_norm', grad_norm, global_step)
+                    if opts.backbone_grad_norm > 0:
+                        grad_norm = clip_grad_norm_(amp.master_params(backbone_optimizer),
+                                                opts.backbone_grad_norm)
+                        TB_LOGGER.add_scalar('backbone_grad_norm', grad_norm, global_step)
             
             optimizer.step()
             optimizer.zero_grad()
@@ -636,6 +644,8 @@ if __name__ == "__main__":
                         help='min number of bounding boxes')
     parser.add_argument('--num_bb', type=int, default=36,
                         help='static number of bounding boxes')
+    parser.add_argument('--IMG_DIM', type=int, default=342,
+                        help='visual features as transformer input')
 
     # training parameters
     parser.add_argument("--train_batch_size", default=4096, type=int,
@@ -683,6 +693,7 @@ if __name__ == "__main__":
 
     args = parse_with_config(parser)
 
+    IMG_DIM = args.IMG_DIM
     # options safe guard
     if args.conf_th == -1:
         assert args.max_bb + args.max_txt_len + 2 <= 512
