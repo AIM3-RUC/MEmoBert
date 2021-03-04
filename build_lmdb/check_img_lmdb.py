@@ -8,8 +8,9 @@ def compute_stastic_info(lens):
     m80_len = lens[int(len(lens)*0.8)]
     return avg_len, mid_len, m80_len
 
-lmdb_name = 'movies_v3'
-filepath = '/data7/emobert/img_db_nomask/{}/nbb_th0.1_max64_min10.json'.format(lmdb_name)
+lmdb_name = 'fc'
+# filepath = '/data7/emobert/img_db_nomask/{}/nbb_th0.1_max64_min10.json'.format(lmdb_name)
+filepath = '/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/{}/nbb_th0.1_max64_min10.json'.format(lmdb_name)
 
 video2lens = json.load(open(filepath))
 movie_faces_lens = []

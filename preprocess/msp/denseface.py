@@ -57,11 +57,9 @@ class FeatureExtractor(object):
             if self.smooth:
                 self.previous_img = img
                 self.previous_img_path = img_path
-
         elif self.smooth and self.previous_img is not None:
             # print('Path {} does not exists. Use previous img: {}'.format(img_path, self.previous_img_path))
             img = self.previous_img
-        
         else:
             feat = np.zeros([1, self.dim]) # smooth的话第一张就是黑图的话就直接返回0特征, 不smooth缺图就返回0
             return feat
@@ -84,14 +82,6 @@ def get_model_path(key):
         'lrc_fix': '/data7/lrc/MuSe2020/MuSe2020_features/code/wild/finetune_model/denseface_lrc_tune_av_fix/DenseNet-BC_growth_rate=12_depth=100_dataset_MUSE/model/epoch-12',
         'lrc_aug': '/data7/lrc/MuSe2020/MuSe2020_features/code/wild/finetune_model/denseface_lrc_tune_av_fix_aug/DenseNet-BC_growth_rate=12_depth=100_dataset_MUSE/model/epoch-10'
     }[key]
-
-def read_timestamp(csv_path):
-    ''' 读取timestamp, 读取路径为:
-        /data7/lrc/MuSe2020/MuSe2020_raw/labels/data/processed_tasks/c1_muse_wild/label_segments/arousal
-    '''
-    data = pd.read_csv(csv_path)
-    timestamp = data['timestamp']
-    return np.array(timestamp)
 
 def make_denseface(model_name, start, end): 
     mean = 96.3801
@@ -135,4 +125,3 @@ if __name__ == '__main__':
     if not os.path.exists(save_root):
         os.mkdir(save_root)
     make_denseface('csz', start, end)
-    

@@ -440,6 +440,8 @@ class ActiveSpeakerSelector(BaseWorker):
         
         landmarks = self.get_clean_landmark(face_dir)
         if landmarks is None:
+            f = open(save_path, 'w')
+            f.write("None")
             return None
         
         open_person2scores = {}

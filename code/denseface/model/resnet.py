@@ -247,7 +247,7 @@ class ResNetEncoder(nn.Module):
         temp_inplanes = self.inplanes
         for i, num_layers in enumerate(resblocks):
             stride = 1 if i == 0 else 2
-            if i <= frozen_dense_blocks - 1 and i >= 0:
+            if i <= frozen_dense_blocks - 1:
                 print("the {} block is fixed".format(i))
                 with torch.no_grad():
                     self.features.add_module('resblock{}'.format(i+1), self._make_layer(block, temp_inplanes, num_layers, stride=stride))
@@ -304,5 +304,4 @@ class ResNetEncoder(nn.Module):
         x = self.features(images)
         x = self.avgpool(x)
         out_ft = torch.flatten(x, 1)  # ([64, 512])
-        self.v_emb = out_ft
         return out_ft

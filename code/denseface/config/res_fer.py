@@ -29,7 +29,7 @@ model_cfg = {
   'validation_split': None,
   'num_threads': 4,
   # for finetune
-  "frozen_dense_blocks": 2,
+  "frozen_dense_blocks": 0,
 }
 
 #  resnet18: resblocks=[2, 2, 2, 2], block_type=basic

@@ -10,9 +10,10 @@ import json
 '''
 
 root_dir = '/data7/emobert/exp/evaluation/MSP-IMPROV/'
-feature_dir = root_dir + 'feature/denseface_seetaface_msp_mean_std/'
-npyz_dir = feature_dir + '/ft_npzs/msp'
-img_db_dir = feature_dir + '/img_db'
+feature_dir = root_dir + 'feature/denseface_openface_msp_mean_std_torch/'
+IMD_DIM=342
+npyz_dir = feature_dir + '/ft_npzs/fc'
+img_db_dir = feature_dir + '/img_db/fc'
 if not os.path.exists(npyz_dir):
     os.makedirs(npyz_dir)
 if not os.path.exists(img_db_dir):
@@ -49,7 +50,7 @@ for setname in ['trn', 'val', 'tst']:
                 label = int(label)
             soft_labels = np.zeros((1, 4), dtype=np.float)
             soft_labels[0][label] = 1.0
-            feat = np.zeros((1, 342), dtype=np.float32)
+            feat = np.zeros((1, IMD_DIM), dtype=np.float32)
         else:
             soft_labels = np.array(data[segment_id]['pred'])
             feat = np.array(data[segment_id]['feat'])
@@ -57,4 +58,5 @@ for setname in ['trn', 'val', 'tst']:
         np.savez_compressed(outputfile,
                             soft_labels=soft_labels.astype(np.float16),
                             features=feat.astype(np.float16))
+    print('{} feat {}'.format(setname, feat.shape))
 print('total {} and empty {}'.format(total_video, empty_video))

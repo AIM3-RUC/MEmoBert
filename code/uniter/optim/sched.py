@@ -44,3 +44,11 @@ def get_lr_sched(global_step, opts):
     if lr_this_step <= 0:
         lr_this_step = 1e-8
     return lr_this_step
+
+def get_lr_sched_fix(global_step, opts):
+    # learning rate scheduling
+    if global_step < opts.warmup_steps:
+        lr_this_step = 1e-8
+    else:
+        lr_this_step = opts.learning_rate
+    return lr_this_step

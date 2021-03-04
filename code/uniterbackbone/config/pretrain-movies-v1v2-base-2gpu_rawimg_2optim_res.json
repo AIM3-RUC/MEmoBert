@@ -1,5 +1,5 @@
 {
-    "output_dir": "/data7/emobert/exp/pretrain/rawimg_nomask_movies_v1_uniter_2tasks",
+    "output_dir": "/data7/emobert/exp/pretrain/rawimg_nomask_movies_v1v2_uniter_2tasks_2optim_5e5_1e3_ferinit_res_fix0",
     "model_config": "config/uniter-base-backbone_resnet.json",
     "checkpoint": "/data7/emobert/resources/pretrained/uniter-base-uncased-init.pt",
     "joint_face_backbone": true,
@@ -12,8 +12,8 @@
     "min_bb": 10,
     "num_bb": 36,
     "IMG_DIM": 512,
-    "train_batch_size": 1000,
-    "val_batch_size": 1000,
+    "train_batch_size": 2000,
+    "val_batch_size": 2000,
     "gradient_accumulation_steps": 2,
     "optim": "adamw",
     "learning_rate": 5e-05,
@@ -34,7 +34,7 @@
         0.98
     ],
     "num_train_steps": 100000,
-    "valid_steps": 10000,
+    "valid_steps": 5000,
     "dropout": 0.1,
     "grad_norm": 5.0,
     "seed": 42,

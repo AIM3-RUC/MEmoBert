@@ -285,6 +285,7 @@ def main(opts):
         # forward pass
         n_examples[name] += batch['input_ids'].size(0)
         n_in_units[name] += (batch['attn_masks'] == 1).sum().item()
+        # LOGGER.info('[Debug] batch size {}'.format(batch['input_ids'].size(0)))
         task = name.split('_')[0]
         loss = model(batch, task=task, compute_loss=True)
         if task.startswith('itm'):
@@ -310,13 +311,19 @@ def main(opts):
                     grads = [p.grad.data for p in model.parameters()
                             if p.requires_grad and p.grad is not None]
                     all_reduce_and_rescale_tensors(grads, float(1))
-                    # Jinming add, for get the grad of the last layer
-                    if global_step % 100 == 0:
-                        # uniter.img_embeddings.face_encoder.features.resblock4.1.bn2.weight
-                        LOGGER.info("[Debug] Step {} backbone_last_layer_grad {}".format(global_step, 1))
+                    # Jinming add, for get the grad of the last layer and the uniter first layer.
+                    if global_step % 200 == 0:
                         layers, mean_grads = get_grad_flow(model.named_parameters())
                         for layer_name, mean_grad in zip(layers, mean_grads):
-                            print('[Debug] Layer {} and mean grad {}'.format(layer_name, mean_grad))
+                            if layer_name == 'uniter.img_embeddings.face_encoder.features.resblock4.1.bn2.weight':
+                                LOGGER.info('[Debug] Layer {} and mean grad {}'.format(layer_name, mean_grad))
+                                TB_LOGGER.add_scalar('backbone_last1_layer_grad', mean_grad, global_step)
+                            if layer_name == 'uniter.img_embeddings.face_encoder.features.resblock3.1.bn2.weight':
+                                LOGGER.info('[Debug] Layer {} and mean grad {}'.format(layer_name, mean_grad))
+                                TB_LOGGER.add_scalar('backbone_last2_layer_grad', mean_grad, global_step)
+                            if layer_name == 'uniter.img_embeddings.LayerNorm.weight':
+                                LOGGER.info('[Debug] Layer {} and mean grad {}'.format(layer_name, mean_grad))
+                                TB_LOGGER.add_scalar('transformer_first_layer_grad', mean_grad, global_step)
         else:
             with amp.scale_loss(loss, optimizer, delay_unscale=delay_unscale,
                                 loss_id=task2scaler[name]) as scaled_loss:

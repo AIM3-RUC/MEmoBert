@@ -22,14 +22,12 @@ from tqdm import tqdm
 from  code.uniter.data import (PrefetchLoader, TxtTokLmdb, ImageLmdbGroup, EmoCLsDataset,
                                 emocls_collate)
 from code.uniter.model.emocls import UniterForEmoRecognition, evaluation
-from code.uniter.optim import get_lr_sched
+from code.uniter.optim import get_lr_sched_fix
 from code.uniter.optim.misc import build_optimizer
 from code.uniter.utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
-from code.uniter.utils.distributed import (all_reduce_and_rescale_tensors, all_gather_list,
-                               broadcast_tensors)
+from code.uniter.utils.distributed import (all_reduce_and_rescale_tensors, broadcast_tensors)
 from code.uniter.utils.save import ModelSaver, save_training_meta
 from code.uniter.utils.misc import NoOp, parse_with_config, set_random_seed
-from code.uniter.utils.const import IMG_DIM
 
 
 def build_dataloader(dataset, collate_fn, is_train, opts):
@@ -168,7 +166,7 @@ def main(opts):
             if (step + 1) % opts.gradient_accumulation_steps == 0:
                 global_step += 1
                 # learning rate scheduling
-                lr_this_step = get_lr_sched(global_step, opts)
+                lr_this_step = get_lr_sched_fix(global_step, opts)
                 for param_group in optimizer.param_groups:
                     param_group['lr'] = lr_this_step
                 TB_LOGGER.add_scalar('lr', lr_this_step, global_step)
@@ -341,7 +339,8 @@ if __name__ == "__main__":
     parser.add_argument('--config', help='JSON config files')
 
     args = parse_with_config(parser)
-
+    IMG_DIM = args.IMG_DIM
+    
     if args.frozen_en_layers == 0:
         args.train_batch_size = int(args.train_batch_size / 2)
         print('Frozen 0 Layers and batch size is {}'.format(args.train_batch_size))

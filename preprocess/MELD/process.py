@@ -56,6 +56,7 @@ def make_audio(config=None):
 
 def make_active_spk(config=None):
     act = ActiveSpeakerSelector()
+    count_1, count_0 = 0, 0
     if config is None:
         config = get_config()
     for set_name in ['train', 'val', 'test']:
@@ -65,16 +66,21 @@ def make_active_spk(config=None):
         for utt_id in tqdm(int2name):
             face_dir = osp.join(face_root, utt_id)
             audio_path = osp.join(audio_root, utt_id + '.wav')
-            act(face_dir, audio_path)
+            ret = act(face_dir, audio_path)
+            if ret != None and ret != 'None':
+                count_1 += 1
+            else:
+                count_0 += 1
+    print('has spk:', count_1)
+    print('no spk:', count_0)
+
 
 if __name__ == '__main__':
+    config = get_config()
     # make_frames()
-
-    # config = get_config()
     # path = find_video_using_uttid(config, 'val', 'dia0_utt0')
     # print(path)
     # pool = mp.Pool(24)
     # make_openface(pool=pool)
-
     # make_audio()
     make_active_spk()
