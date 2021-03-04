@@ -259,6 +259,10 @@ def main(opts):
         
     task2scaler = {t: i for i, t in enumerate(train_dataloaders.keys())}
     global_step = 0
+    # Jinming add: restore the break checkpoint
+    if opts.checkpoint_step > 0:
+        global_step = opts.checkpoint_step
+        LOGGER.info("Continue train begin at {}".format(global_step))
     LOGGER.info(f"***** Running training with {n_gpu} GPUs *****")
     LOGGER.info("  Batch size = %d", opts.train_batch_size)
     LOGGER.info("  Accumulate steps = %d", opts.gradient_accumulation_steps)
@@ -341,7 +345,10 @@ def main(opts):
         if (step + 1) % opts.gradient_accumulation_steps == 0:
             global_step += 1
             # learning rate scheduling
-            lr_this_step = get_lr_sched(global_step, opts)
+            if opts.is_reinit_lr:
+                lr_this_step = get_lr_sched(global_step - opts.checkpoint_step, opts)
+            else:
+                lr_this_step = get_lr_sched(global_step, opts)
             for param_group in optimizer.param_groups:
                 param_group['lr'] = lr_this_step
             TB_LOGGER.add_scalar('lr', lr_this_step, global_step)
@@ -380,6 +387,7 @@ def main(opts):
             if global_step % 100 == 0:
                 # monitor training throughput
                 LOGGER.info(f'==============Step {global_step}===============')
+                LOGGER.info('Current learning rate {}'.format(lr_this_step))
                 for t in train_dataloaders.keys():
                     assert all(tt == t for tt in all_gather_list(t))
                     tot_ex = sum(all_gather_list(n_examples[t]))
@@ -622,7 +630,10 @@ if __name__ == "__main__":
                         help="path to model structure config json")
     parser.add_argument("--checkpoint", default=None, type=str,
                         help="path to model checkpoint (*.pt)")
-
+    parser.add_argument("--checkpoint_step", default=0, type=int,
+                        help="which step continue to train")
+    parser.add_argument("--is_reinit_lr", action='store_true',
+                        help="Note: use with warmup_steps=0, when continue train and lr is reinit or not!")
     parser.add_argument(
         "--output_dir", default=None, type=str,
         help="The output directory where the model checkpoints will be "
