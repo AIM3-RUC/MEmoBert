@@ -287,6 +287,9 @@ def main(opts):
         backbone_optimizer.step()
     
     for step, (name, batch) in enumerate(meta_loader):
+        if global_step == 0:
+            LOGGER.info(f'Fisrt Step for init validation')
+            validate(model, val_dataloaders)
         # forward pass
         n_examples[name] += batch['input_ids'].size(0)
         n_in_units[name] += (batch['attn_masks'] == 1).sum().item()
