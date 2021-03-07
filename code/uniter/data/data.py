@@ -43,7 +43,7 @@ class DetectFeatLmdb(object):
         # read the generated json file
         db_name = f'feat_th{conf_th}_max{max_bb}_min{min_bb}'
         nbb = f'nbb_th{conf_th}_max{max_bb}_min{min_bb}.json'
-        print("image db name {}".format(db_name))
+        print("[Debug] Loading Image db {}".format(db_name))
         if not exists(f'{img_dir}/{nbb}'):
             print('[Error]: nbb is not pre-computed and the json-file may be error!')
             self.name2nbb = None
@@ -146,8 +146,7 @@ class TxtTokLmdb(object):
         else:
             self.id2len = {
                 id_: len_
-                for id_, len_ in json.load(open(f'{db_dir}/id2len.json')
-                                           ).items()
+                for id_, len_ in json.load(open(f'{db_dir}/id2len.json')).items()
                 if len_ <= max_txt_len
             }
         self.db_dir = db_dir

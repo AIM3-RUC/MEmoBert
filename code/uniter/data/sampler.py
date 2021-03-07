@@ -9,12 +9,11 @@ import random
 from torch.utils.data import Sampler
 from cytoolz import partition_all
 
-
 class TokenBucketSampler(Sampler):
     def __init__(self, lens, bucket_size, batch_size,
-                 droplast=False, size_multiple=8):
+                 droplast=False, size_multiple=4):
         self._lens = lens
-        self._max_tok = batch_size
+        self.batch_size = batch_size
         self._bucket_size = bucket_size
         self._droplast = droplast
         self._size_mul = size_multiple
@@ -31,18 +30,11 @@ class TokenBucketSampler(Sampler):
         buckets = [sorted(ids[i:i+self._bucket_size],
                           key=self._sort_fn, reverse=True)
                    for i in range(0, len(ids), self._bucket_size)]
-        # fill batches until max_token (include padding)
         batches = []
         for bucket in buckets:
-            max_len = 0
             batch_indices = []
             for indices in partition_all(self._size_mul, bucket):
-                max_len = max(max_len, max(self._lens[i] for i in indices))
-                if (max_len * (len(batch_indices) + self._size_mul)
-                        > self._max_tok):
-                    if not batch_indices:
-                        raise ValueError(
-                            "max_tokens too small / max_seq_len too long")
+                if len(batch_indices) >= self.batch_size:
                     assert len(batch_indices) % self._size_mul == 0
                     batches.append(batch_indices)
                     batch_indices = list(indices)
@@ -50,6 +42,7 @@ class TokenBucketSampler(Sampler):
                     batch_indices.extend(indices)
             if not self._droplast and batch_indices:
                 batches.append(batch_indices)
+        # print('[Debug] {} batches'.format(len(batches)))
         random.shuffle(batches)
         return iter(batches)
 

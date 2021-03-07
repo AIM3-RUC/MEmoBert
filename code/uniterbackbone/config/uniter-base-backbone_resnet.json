@@ -14,6 +14,6 @@
   "joint_face_backbone": true,
   "backbone_type": "resnet",
   "face_checkpoint": "/data7/emobert/exp/face_model/resnet18_adam_warmup_run2_adam0.0005_0.0/ckpts/model_step_68.pt",
-  "face_from_scratch": false,
+  "face_from_scratch": true,
   "face_data_augmentation": true
 }

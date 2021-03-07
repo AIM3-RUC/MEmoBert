@@ -433,7 +433,7 @@ class ActiveSpeakerSelector(BaseWorker):
         Q2: 三个得分的融合决策的策略是什么？ rank_score 直接相加。
         :param, landmarks_path, {'p1': [{'frameId':1, 'score':0.99, 'landmark':[[x1,y1], [x2,y2]]}, {'frameId':2}]}
         '''
-        save_path = os.path.join(face_dir, 'activate_spk.txt')
+        save_path = os.path.join(face_dir, 'has_active_spk.txt')
         if os.path.exists(save_path):
             content = open(save_path).read().strip()
             return None if content == 'None' else int(content)

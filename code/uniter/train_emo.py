@@ -81,7 +81,7 @@ def main(opts):
     LOGGER.info("Loading Train Dataset {} {}".format(opts.train_txt_dbs, opts.train_img_dbs))
     train_datasets = []
     for txt_path, img_path in zip(opts.train_txt_dbs, opts.train_img_dbs):
-        # for cross-validation
+        # Jinming add trn: for cross-validation
         txt_path = txt_path.format(opts.cvNo)
         img_db = all_img_dbs[img_path]
         txt_db = TxtTokLmdb(txt_path, opts.max_txt_len)

@@ -305,9 +305,10 @@ def main(opts):
             global_step += 1
             # learning rate scheduling
             if opts.is_reinit_lr:
-                lr_this_step = get_lr_sched(global_step-opts.checkpoint_step, opts)
+                lr_this_step = get_lr_sched(global_step-opts.checkpoint_step, opts.lr_sched_type, opts)
             else:
-                lr_this_step = get_lr_sched(global_step, opts)
+                lr_this_step = get_lr_sched(global_step, opts.lr_sched_type, opts)
+            
             for param_group in optimizer.param_groups:
                 param_group['lr'] = lr_this_step
             TB_LOGGER.add_scalar('lr', lr_this_step, global_step)
@@ -394,6 +395,7 @@ def validate_mlm(model, val_loader):
     # total_predict_words = []
     # real_mask_words = 0
     for i, batch in enumerate(val_loader):
+        # print(batch['input_ids'].size())
         scores = model(batch, task='mlm', compute_loss=False)
         labels = batch['txt_labels']
         labels = labels[labels != -1]
@@ -589,6 +591,8 @@ if __name__ == "__main__":
                         help="which step continue to train")
     parser.add_argument("--is_reinit_lr", action='store_true',
                         help="Note: use with warmup_steps=0, when continue train and lr is reinit or not!")
+    parser.add_argument("--lr_sched_type", default='linear_decay',
+                        help="[fixed, linear_decay]")
     parser.add_argument(
         "--output_dir", default=None, type=str,
         help="The output directory where the model checkpoints will be "

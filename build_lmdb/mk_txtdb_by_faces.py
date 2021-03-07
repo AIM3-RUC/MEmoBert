@@ -11,8 +11,8 @@ import json
 from cytoolz import curry
 from requests.api import options
 from tqdm import tqdm
+import random
 from pytorch_pretrained_bert import BertTokenizer
-import sys
 from preprocess.tools.get_emo_words import EmoLexicon
 from code.uniter.data.data import open_lmdb
 
@@ -76,7 +76,7 @@ def get_emo_type_ids(emo_category_list, input_ids, emo_input_ids, emo_input_ids_
             emo_type_ids.append(0)
     return emo_type_ids
 
-def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, filter_path_val=None, include_path=None, num_samples=0, 
+def process_jsonl(jsonf, db, toker, max_tokens=100, dataset_name="", filter_path=None, filter_path_val=None, include_path=None, num_samples=0, 
                     use_emo=False, use_emo_type=None):
     '''
     {
@@ -128,7 +128,10 @@ def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, filter_pa
     count_emo_utts = 0  # 统计包含情感词的句子
     count_emo_words = 0  # 统计包含情感词的句子中情感词的个数
     _id = 0
-    for segmentId, value in tqdm(contents.items(), desc='building txtdb', total=len(contents.keys())):
+    segmentIds = list(contents.keys())
+    random.shuffle(segmentIds) # 无返回值
+    for segmentId in tqdm(segmentIds, total=len(segmentIds)):
+        value = contents[segmentId]
         img_fname = segmentId + '.npz'
         if filter_dict is not None and filter_dict.get(img_fname) is None:
             continue
@@ -139,6 +142,9 @@ def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, filter_pa
         for sent in value:
             example = {}
             input_ids = bert_tokenize(toker, sent)
+            if len(input_ids) > max_tokens:
+                print('[Debug] inputs len {}'.format(len(input_ids)))
+                input_ids = input_ids[:max_tokens]
             tokens = bert_id2token(toker, input_ids)
             txt2img[_id] = img_fname
             img2txt[img_fname].append(str(_id))
@@ -218,6 +224,8 @@ if __name__ == '__main__':
                         help='remove the val to get the trn, ')
     parser.add_argument('--include_path', default=None,
                         help='must in this db')
+    parser.add_argument('--max_text_tokens', type=int, default=100,
+                        help='max tokens in one sentence')
     parser.add_argument('--num_samples', type=int, default=0,
                         help='sample number samples from input JSON as a test set')
     parser.add_argument('--toker', default='bert-base-uncased',

@@ -263,6 +263,7 @@ def main(opts):
     if opts.checkpoint_step > 0:
         global_step = opts.checkpoint_step
         LOGGER.info("Continue train begin at {}".format(global_step))
+        
     LOGGER.info(f"***** Running training with {n_gpu} GPUs *****")
     LOGGER.info("  Batch size = %d", opts.train_batch_size)
     LOGGER.info("  Accumulate steps = %d", opts.gradient_accumulation_steps)
@@ -346,19 +347,22 @@ def main(opts):
             global_step += 1
             # learning rate scheduling
             if opts.is_reinit_lr:
-                lr_this_step = get_lr_sched(global_step - opts.checkpoint_step, opts)
+                lr_this_step = get_lr_sched(global_step-opts.checkpoint_step, opts.lr_sched_type, opts)
             else:
-                lr_this_step = get_lr_sched(global_step, opts)
+                lr_this_step = get_lr_sched(global_step, opts.lr_sched_type, opts)
+                
             for param_group in optimizer.param_groups:
                 param_group['lr'] = lr_this_step
             TB_LOGGER.add_scalar('lr', lr_this_step, global_step)
             # backbone learning rate 
             if opts.use_backbone_optim:
-                backbone_lr_this_step = get_backbone_lr_sched(global_step, opts)
+                if opts.is_reinit_lr:
+                    backbone_lr_this_step = get_backbone_lr_sched(global_step-opts.checkpoint_step, opts.lr_sched_type, opts)
+                else:
+                    backbone_lr_this_step = get_backbone_lr_sched(global_step, opts.lr_sched_type, opts)
                 for param_group in backbone_optimizer.param_groups:
                     param_group['lr'] = backbone_lr_this_step
                 TB_LOGGER.add_scalar('backbone_lr', backbone_lr_this_step, global_step)
-            # log loss
             # NOTE: not gathered across GPUs for efficiency
             TB_LOGGER.log_scaler_dict({l.name: l.val
                                        for l in task2loss.values()
@@ -634,6 +638,8 @@ if __name__ == "__main__":
                         help="which step continue to train")
     parser.add_argument("--is_reinit_lr", action='store_true',
                         help="Note: use with warmup_steps=0, when continue train and lr is reinit or not!")
+    parser.add_argument("--lr_sched_type", default='linear_decay',
+                        help="[fixed, linear_decay]")
     parser.add_argument(
         "--output_dir", default=None, type=str,
         help="The output directory where the model checkpoints will be "
@@ -677,6 +683,8 @@ if __name__ == "__main__":
                              "performing a backward/update pass.")
     parser.add_argument("--learning_rate", default=3e-5, type=float,
                         help="The initial learning rate for Adam.")
+    parser.add_argument("--backbone_learning_rate", default=1e-3, type=float,
+                        help="The initial learning rate of face or audio backbone for Adam.")
     parser.add_argument("--valid_steps", default=1000, type=int,
                         help="Run validation every X steps")
     parser.add_argument("--num_train_steps", default=100000, type=int,

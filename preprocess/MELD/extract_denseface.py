@@ -4,6 +4,7 @@ import h5py
 from copy import deepcopy
 import sys
 sys.path.append('/data7/MEmoBert/preprocess/tasks')
+import pandas as pd
 from functools import partial
 from tqdm import tqdm
 from toolz.sandbox import unzip
@@ -25,6 +26,8 @@ def extract_features_h5(extract_func, get_input_func, utt_ids, save_path):
     h5f = h5py.File(save_path, 'w')
 
     for utt_id in tqdm(utt_ids):
+        if h5f.get(utt_id):
+            continue
         input_param = get_input_func(utt_id)
         feature = extract_func(input_param)
         if isinstance(feature, dict):
@@ -64,6 +67,23 @@ def extract_one_video(video_dir, denseface_model):
     pred = np.concatenate(pred, axis=0)
     return {'feat': feats, 'pred': pred}
 
+def get_sort_index(path):
+    name = os.path.basename(path).split('.')[0]
+    spk_id, utt_id = name.split('_')[-2:]
+    return int(spk_id) * 1000 + int(utt_id)
+
+def get_confidence(imgs, conf_df):
+    ret = []
+    for img in imgs:
+        name = os.path.basename(img).split('.')[0]
+        spk_id, frame_id = name.split('_')[-2:]
+        face_ridx = conf_df[' face_id'] == int(spk_id)
+        frame_ridx = conf_df['frame'] == int(frame_id)
+        conf = conf_df[face_ridx & frame_ridx][' confidence']
+        assert len(conf) == 1, conf
+        ret.append(conf.iloc[0])
+    return ret
+
 def extract_one_video_mid_layers(video_dir, denseface_model, face_selector):
     using_frame = False
     if detect_type == 'seetaface':
@@ -74,16 +94,28 @@ def extract_one_video_mid_layers(video_dir, denseface_model, face_selector):
     else:
         active_spk_id = open(os.path.join(video_dir, 'has_active_spk.txt')).read().strip()
         if active_spk_id == "None":
+            active_spk_flag = False
             utt_id = video_dir.rstrip('/').split('/')[-1]
             imgs = glob.glob(os.path.join(video_dir, f'{utt_id}_aligned/*.bmp'))
+            if len(imgs) == 0:
+                return None
+            imgs = sorted(imgs, key=lambda x: get_sort_index(x))
+            frames_idx = [get_sort_index(x) for x in imgs]
+            data_frame = pd.read_csv(os.path.join(video_dir, os.path.basename(video_dir).rstrip('/')+'.csv'))
+            confidence = get_confidence(imgs, data_frame)
+            # return None
         else:
+            active_spk_flag = True
             active_spk_id = int(active_spk_id)
-            imgs = face_selector(video_dir, active_spk_id)
-            imgs = [x['img'] for x in imgs]
+            ret_slc = face_selector(video_dir, active_spk_id)
+            imgs = [x['img'] for x in ret_slc]
+            frames_idx = [get_sort_index(x) for x in imgs]
+            confidence = [x['confidence'] for x in ret_slc]
             imgs = sorted(imgs, key=lambda x:int(x.split('/')[-1].split('_')[-1][:-4]))
         if using_frame:
             frames = glob.glob(video_dir.replace('faces', 'frame')+'/*.jpg')
             frames = sorted(frames, key=lambda x:int(x.split('/')[-1][:-4]))
+        
     if len(imgs) == 0:
         print(video_dir, 'has no imgs, double check it')
         if using_frame:
@@ -107,7 +139,7 @@ def extract_one_video_mid_layers(video_dir, denseface_model, face_selector):
     preds = np.concatenate(preds, axis=0)
     trans1s = np.concatenate(trans1s, axis=0)
     trans2s = np.concatenate(trans2s, axis=0)
-    return {'feat': feats, 'pred': preds, 'trans1': trans1s, 'trans2': trans2s}
+    return {'feat': feats, 'pred': preds, 'trans1': trans1s, 'trans2': trans2s, 'confidence': confidence, 'frames_idx': frames_idx, 'has_active_spk': active_spk_flag}
 
 # def get_face_dir_seetaface(utt_id):
 #     # Ses01F_impro06_F002
@@ -134,17 +166,17 @@ def get_trn_val_tst(cv, target_root='target'):
 
 def split_h5(all_h5, save_root='feature/denseface'):
     h5f = h5py.File(all_h5, 'r')
-    for cv in range(1, 11):
-        save_dir = os.path.join(save_root, str(cv))
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-        trn_int2name, val_int2name, tst_int2name, _, _, _ = get_trn_val_tst(cv, target_root='/data7/MEmoBert/evaluation/IEMOCAP/target')
-        trn_int2name = list(map(lambda x: x[0].decode(), trn_int2name.tolist()))
-        val_int2name = list(map(lambda x: x[0].decode(), val_int2name.tolist()))
-        tst_int2name = list(map(lambda x: x[0].decode(), tst_int2name.tolist()))
-        split_by_utt_id(h5f, trn_int2name, os.path.join(save_dir, 'trn.h5'))
-        split_by_utt_id(h5f, val_int2name, os.path.join(save_dir, 'val.h5'))
-        split_by_utt_id(h5f, tst_int2name, os.path.join(save_dir, 'tst.h5'))
+    target_root = '/data7/MEmoBert/evaluation/MELD/target'
+    trn_int2name = np.load(os.path.join(target_root, 'train', f'int2name.npy'))
+    trn_int2name = [transform_utt_id(utt_id, 'train') for utt_id in trn_int2name[:, 0].tolist()]
+    val_int2name = np.load(os.path.join(target_root, 'val', f'int2name.npy'))
+    val_int2name = [transform_utt_id(utt_id, 'train') for utt_id in val_int2name[:, 0].tolist()]
+    tst_int2name = np.load(os.path.join(target_root, 'test', f'int2name.npy'))
+    tst_int2name = [transform_utt_id(utt_id, 'train') for utt_id in tst_int2name[:, 0].tolist()]
+
+    split_by_utt_id(h5f, trn_int2name, os.path.join(save_root, 'trn.h5'))
+    split_by_utt_id(h5f, val_int2name, os.path.join(save_root, 'val.h5'))
+    split_by_utt_id(h5f, tst_int2name, os.path.join(save_root, 'tst.h5'))
     
     h5f.close()
 
@@ -207,12 +239,12 @@ if __name__ == '__main__':
     face_selector = FaceSelector()
     extract_func = partial(extract_one_video_mid_layers, denseface_model=denseface, face_selector=face_selector)
     save_path = os.path.join(output_dir, name, 'all.h5')
-    if detect_type == 'seetaface':
-        raise NotImplemented()
-        extract_features_h5(extract_func, get_face_dir_seetaface, utt_ids, save_path)
-    else:
-        extract_features_h5(extract_func, get_face_dir_openface, utt_ids, save_path)
-    save_path = os.path.join(output_dir, name, 'all.h5')
+    # if detect_type == 'seetaface':
+    #     raise NotImplemented()
+    #     extract_features_h5(extract_func, get_face_dir_seetaface, utt_ids, save_path)
+    # else:
+    #     extract_features_h5(extract_func, get_face_dir_openface, utt_ids, save_path)
+    # save_path = os.path.join(output_dir, name, 'all.h5')
     split_h5(save_path, save_root=os.path.join(output_dir, name))
-    # PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=7 python extract_denseface.py openface
-    # PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=2 python extract_denseface.py seetaface
+    # PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=0 python extract_denseface.py openface
+    # PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=0 python extract_denseface.py seetaface

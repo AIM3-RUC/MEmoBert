@@ -57,7 +57,7 @@ def trans_img_npzs(face_dir, rawimg_npzs_dir, meta_data_dir, movie_names_path, s
     faceselector = FaceSelector()
     valid_movie_names = np.load(movie_names_path)
     print('total valid movies {} and start {} end {}'.format(len(valid_movie_names), start, end))
-    for movie_name in valid_movie_names:
+    for movie_name in valid_movie_names[start:end]:
         active_spk_filepath = os.path.join(meta_data_dir, movie_name, 'has_active_spk.txt')
         active_spk_lines = read_file(active_spk_filepath)
         count = 0
@@ -106,10 +106,10 @@ def trans_img_npzs(face_dir, rawimg_npzs_dir, meta_data_dir, movie_names_path, s
 if __name__ == '__main__':
     start = int(sys.argv[1])  # 0
     end =  int(sys.argv[2])  # 1
-    raw_npzs_dir = '/data8/emobert/rawimg_npzs_nomask/movies_v2' 
+    raw_npzs_dir = '/data8/emobert/rawimg_npzs_nomask/movies_v3' 
     face_dir = '/data7/MEmoBert/emobert/data_nomask/faces/'
     meta_data_dir = '/data7/emobert/data_nomask/meta'
-    movie_names_path = '/data7/emobert/data_nomask/movies_v2/movie_names.npy'
+    movie_names_path = '/data7/emobert/data_nomask/movies_v3/movie_names.npy'
     if not os.path.exists(raw_npzs_dir):
         os.makedirs(raw_npzs_dir)
     trans_img_npzs(face_dir, raw_npzs_dir, meta_data_dir, movie_names_path, start=start, end=end)

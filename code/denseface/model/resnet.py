@@ -58,7 +58,6 @@ class BasicBlock(nn.Module):
         out = self.relu(out)
         return out
 
-
 class Bottleneck(nn.Module):
     # Bottleneck in torchvision places the stride for downsampling at 3x3 convolution(self.conv2)
     # while original implementation places the stride at the first 1x1 convolution(self.conv1)
@@ -120,6 +119,7 @@ class ResNet(nn.Module):
             ("relu0", nn.ReLU(inplace=True)),
             ("pool0", nn.MaxPool2d(2, stride=2, padding=1)) 
         ]))
+        ### same as above
         # self.conv1 = nn.Conv2d(1, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False)
         # self.bn1 = nn.BatchNorm2d(self.inplanes)
         # self.relu = nn.ReLU(inplace=True)
@@ -140,6 +140,7 @@ class ResNet(nn.Module):
             else:
                 self.features.add_module('resblock{}'.format(i+1), self._make_layer(block, temp_inplanes, num_layers, stride=stride))
             temp_inplanes = temp_inplanes * 2
+        ### same as above
         # self.layer1 = self._make_layer(block, 64, resblocks[0])
         # self.layer2 = self._make_layer(block, 128, resblocks[1], stride=2)
         # self.layer3 = self._make_layer(block, 256, resblocks[2], stride=2)
@@ -233,11 +234,6 @@ class ResNetEncoder(nn.Module):
             ("relu0", nn.ReLU(inplace=True)),
             ("pool0", nn.MaxPool2d(kernel_size=2, stride=2, padding=1)) 
         ]))
-        ## same as above
-        # self.conv1 = nn.Conv2d(1, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False)
-        # self.bn1 = nn.BatchNorm2d(self.inplanes)
-        # self.relu = nn.ReLU(inplace=True)
-        # self.maxpool = nn.MaxPool2d(kernel_size=2, stride=2, padding=1)
         if block_type == 'basic':
             print('[Info] Use basic block')
             block = BasicBlock
@@ -254,11 +250,6 @@ class ResNetEncoder(nn.Module):
             else:
                 self.features.add_module('resblock{}'.format(i+1), self._make_layer(block, temp_inplanes, num_layers, stride=stride))
             temp_inplanes = temp_inplanes * 2
-        ## same as above 
-        # self.layer1 = self._make_layer(block, 64, resblocks[0])
-        # self.layer2 = self._make_layer(block, 128, resblocks[1], stride=2)
-        # self.layer3 = self._make_layer(block, 256, resblocks[2], stride=2)
-        # self.layer4 = self._make_layer(block, 512, resblocks[3], stride=2)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 
         for m in self.modules():
@@ -267,10 +258,7 @@ class ResNetEncoder(nn.Module):
             elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
-
-        # Zero-initialize the last BN in each residual branch,
-        # so that the residual branch starts with zeros, and each residual block behaves like an identity.
-        # This improves the model by 0.2~0.3% according to https://arxiv.org/abs/1706.02677
+                
         if zero_init_residual:
             for m in self.modules():
                 if isinstance(m, Bottleneck):

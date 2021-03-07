@@ -289,9 +289,10 @@ class UniterImageEmbeddings(nn.Module):
             else:
                 print('[Error] backbone type {}'.format(self.config.backbone_type))
             if not self.config.face_from_scratch:
+                print('[Debug] Train the face backbone from {}!!!!'.format(self.config.face_checkpoint))
                 state_dict = torch.load(self.config.face_checkpoint)
                 for key in list(state_dict.keys()):
-                    if 'classifier' in key:
+                    if 'classifier' in key or 'features' not in key:
                         del state_dict[key]
                 # print('[Debug]****** densenet original layer weights')
                 # print(state_dict['features.denseblock2.denselayer10.conv1.weight'])
@@ -299,6 +300,8 @@ class UniterImageEmbeddings(nn.Module):
                 # print(list(state_dict.keys())[:20])
                 # print(list(self.face_encoder.state_dict().keys())[:20])
                 self.face_encoder.load_state_dict(state_dict)
+            else:
+                print('[Debug] Train the face backbone from scratch!!!!')
 
         # tf naming convention for layer norm
         self.LayerNorm = FusedLayerNorm(config.hidden_size, eps=1e-12)
