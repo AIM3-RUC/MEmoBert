@@ -119,8 +119,13 @@ def build_itm_dataset(txt_db, img_db, is_train, opts):
 
 def create_dataloaders(datasets, is_train, opts, all_img_dbs=None):
     if all_img_dbs is None:
+        if is_train:
+            image_data_augmentation = opts.image_data_augmentation
+        else:
+            image_data_augmentation = False
         all_img_dbs = ImageLmdbGroup(opts.conf_th, opts.max_bb, opts.min_bb,
-                                     opts.num_bb, opts.compressed_db)
+                                     opts.num_bb, opts.compressed_db, 
+                                     image_data_augmentation)
     dataloaders = {}
     for dset in datasets:
         if is_train:
@@ -215,8 +220,16 @@ def main(opts):
     # build data loaders
     train_dataloaders, all_img_dbs = create_dataloaders(
         opts.train_datasets, True, opts)
-    val_dataloaders, _ = create_dataloaders(
-        opts.val_datasets, False, opts, all_img_dbs)
+    # Jinming: for data-augmentation
+    if opts.image_data_augmentation:
+        LOGGER.info('[INFO] Use the augmentation and validation img is indepently as train set')
+        val_dataloaders, _ = create_dataloaders(
+            opts.val_datasets, False, opts)
+    else:
+        # if no augmentation for train, then the vlaidaiton can use same imgdb
+        LOGGER.info('[INFO] Donot use the augmentation and validation img is same as train set')
+        val_dataloaders, _ = create_dataloaders(
+            opts.val_datasets, False, opts, all_img_dbs)
     meta_loader = MetaLoader(train_dataloaders,
                              accum_steps=opts.gradient_accumulation_steps,
                              distributed=n_gpu > 1)
@@ -287,9 +300,9 @@ def main(opts):
         backbone_optimizer.step()
     
     for step, (name, batch) in enumerate(meta_loader):
-        if global_step == 0:
-            LOGGER.info(f'Fisrt Step for init validation')
-            validate(model, val_dataloaders)
+        # if global_step == 0:
+        #     LOGGER.info(f'Fisrt Step for init validation')
+        #     validate(model, val_dataloaders)
         # forward pass
         n_examples[name] += batch['input_ids'].size(0)
         n_in_units[name] += (batch['attn_masks'] == 1).sum().item()
@@ -388,13 +401,14 @@ def main(opts):
             if opts.use_backbone_optim:
                 backbone_optimizer.step()
                 backbone_optimizer.zero_grad()
-                
             pbar.update(1)
 
             if global_step % 100 == 0:
                 # monitor training throughput
                 LOGGER.info(f'==============Step {global_step}===============')
                 LOGGER.info('Current learning rate {}'.format(lr_this_step))
+                if opts.use_backbone_optim:
+                    LOGGER.info('Current learning rate {}'.format(backbone_lr_this_step))
                 for t in train_dataloaders.keys():
                     assert all(tt == t for tt in all_gather_list(t))
                     tot_ex = sum(all_gather_list(n_examples[t]))
@@ -455,6 +469,7 @@ def validate_mlm(model, val_loader):
     n_word = 0
     st = time()
     for i, batch in enumerate(val_loader):
+        # print('[Debug] Cur batch {} {}'.format(i, batch['txt_labels'].shape))
         scores = model(batch, task='mlm', compute_loss=False)
         labels = batch['txt_labels']
         labels = labels[labels != -1]
@@ -673,6 +688,7 @@ if __name__ == "__main__":
                         help='static number of bounding boxes')
     parser.add_argument('--IMG_DIM', type=int, default=342,
                         help='visual features as transformer input')
+    parser.add_argument("--image_data_augmentation", default=True, type=bool)
 
     # training parameters
     parser.add_argument("--train_batch_size", default=4096, type=int,

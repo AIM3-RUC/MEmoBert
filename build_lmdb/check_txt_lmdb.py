@@ -27,11 +27,11 @@ for key in trn_val_dict.keys():
     if all_trn_dict.get(key) is not None:
         print(all_trn_dict[key], key)
 
-# txt_db_dir = '/data2/ruc_vl_pretrain/vg/txt_db/pretrain_vg_val.db'
-# env = lmdb.open(txt_db_dir)
-# txn = env.begin(buffers=True)
-# item = msgpack.loads(decompress(txn.get('0'.encode('utf-8'))), raw=False)
-# print(item)
+txt_db_dir = '/data2/ruc_vl_pretrain/vg/txt_db/pretrain_vg_val.db'
+env = lmdb.open(txt_db_dir)
+txn = env.begin(buffers=True)
+item = msgpack.loads(decompress(txn.get('0'.encode('utf-8'))), raw=False)
+print(item)
 
 # conf_threshold 的值是否一致, 直接看 nbb_th0.0_max100_min10.json 的数值就行
 # filenames = ['No0026.Mrs.Doubtfire_367.npz',

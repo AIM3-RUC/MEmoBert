@@ -1,0 +1,18 @@
+CUDA_VISIBLE_DEVICES=1,2 python run_mlm.py \
+    --model_name_or_path bert-base-uncased \
+    --train_file /data7/MEmoBert/emobert/exp/pretrain/only_v1v2v3_txt/data/OpenSubtitlesV2018/OpenSubtitles.en-zh_cn.en_trn100w.txt \
+    --validation_file /data7/MEmoBert/emobert/exp/pretrain/only_v1v2v3_txt/data/OpenSubtitlesV2018/OpenSubtitles.en-zh_cn.en_val10w.txt \
+    --line_by_line \
+    --max_seq_length 30 --per_device_train_batch_size 128 \
+    --per_device_eval_batch_size 128 \
+    --gradient_accumulation_steps 4 \
+    --do_train --do_eval \
+    --learning_rate 1e-4 \
+    --max_grad_norm 5.0 \
+    --num_train_epochs 10 \
+    --evaluation_strategy 'epoch' \
+    --save_strategy 'epoch' \
+    --warmup_steps 1000 \
+    --report_to 'tensorboard' \
+    --lr_scheduler_type 'linear' \
+    --output_dir /data7/emobert/exp/pretrain/only_v1v2v3_txt/bert_base_uncased_1e4_epoch10_100w_bs512

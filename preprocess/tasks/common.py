@@ -33,7 +33,8 @@ class VideoCutter(BaseWorker):
         basename = get_basename(video_path)
         save_dir = os.path.join(self.save_root, basename)
         mkdir(save_dir)
-        _cmd = 'ffmpeg -i {} -g 1 -keyint_min 1 -ss {} -t {} -c copy -copyts {} -y > /dev/null 2>&1' # -vcodec copy -acodec copy
+        # _cmd = 'ffmpeg -i {} -g 1 -keyint_min 1 -ss {} -t {} -c copy -copyts {} -y > /dev/null 2>&1' # -vcodec copy -acodec copy
+        _cmd = 'ffmpeg -ss {} -t {} -i {} -c:v libx264 -c:a aac -strict experimental -b:a 180k {} -y >/dev/null 2>&1 '
         for i, info in enumerate(transcripts):
             save_path = os.path.join(save_dir, f"{i}.mp4")
             start = info["start"]
@@ -41,7 +42,9 @@ class VideoCutter(BaseWorker):
             duration = self.calc_time(end) - self.calc_time(start)
             duration = self.strptime(duration)
             # print(_cmd.format(video_path, start, duration, save_path))
-            os.system(_cmd.format(video_path, start, duration, save_path))
+            os.system(_cmd.format(start, duration, video_path, save_path))
+            print(_cmd.format(start, duration, video_path, save_path))
+            input()
             # self.print(f"[{i}/{len(transcripts)}]From {video_path}, cut video of {start}->{end}")
         return save_dir
 
@@ -65,18 +68,20 @@ class VideoCutterOneClip(BaseWorker):
         hour = int(seconds // 3600)
         minite = int(seconds % 3600 // 60)
         second = seconds - hour*3600 - minite*60
-        return f"{hour}:{minite}:{second}"
+        return f"{hour}:{minite}:{second:.2f}"
     
     def __call__(self, video_path, transcript_info):
         basename = get_basename(video_path)
         save_dir = os.path.join(self.save_root, basename)
         mkdir(save_dir)
-        _cmd = 'ffmpeg -ss {} -i {} -to {} -c copy -copyts {} -y > /dev/null 2>&1'
-        save_path = os.path.join(save_dir, f"{transcript_info['index']}.mkv")
+        _cmd = 'ffmpeg -ss {} -t {} -i {} -c:v libx264 -c:a aac -strict experimental -b:a 180k {} -y >/dev/null 2>&1 '
+        save_path = os.path.join(save_dir, f"{transcript_info['index']}.mp4")
         if not os.path.exists(save_path):
             start = transcript_info["start"]
             end = transcript_info["end"]
-            os.system(_cmd.format(start, video_path, end, save_path))
+            duration = self.calc_time(end) - self.calc_time(start)
+            duration = self.strptime(duration)
+            os.system(_cmd.format(start, duration, video_path, save_path))
         return save_dir
 
 class SaverPerVideo(BaseWorker):

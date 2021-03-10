@@ -16,7 +16,7 @@ from torch.utils.data import Dataset, ConcatDataset
 import horovod.torch as hvd
 import lmdb
 from lz4.frame import compress, decompress
-from code.denseface.data.fer import augment_image
+from code.denseface.data.fer import augment_image, augment_batch_images
 
 import msgpack
 import msgpack_numpy
@@ -48,7 +48,7 @@ class DetectFeatLmdb(object):
         # read the generated json file
         db_name = f'feat_th{conf_th}_max{max_bb}_min{min_bb}'
         nbb = f'nbb_th{conf_th}_max{max_bb}_min{min_bb}.json'
-        print("image db name {}".format(db_name))
+        print("[Info] Image db name {} data data_augmentation is {}".format(db_name, data_augmentation))
         if not exists(f'{img_dir}/{nbb}'):
             print('[Error]: nbb is not pre-computed and the json-file may be error!')
             self.name2nbb = None
@@ -93,17 +93,17 @@ class DetectFeatLmdb(object):
             img_dump = msgpack.loads(dump, raw=False)
         # Jinming: now the input is rawimg, and the input is (64, 64)
         if len(img_dump['features'].shape) == 3:
-             # for data-augmentation
             img_feat = img_dump['features'][:nbb, :, :]
+            #Jinming: for data-augmentation
             if self.data_augmentation:
-                print('[Debug] Use data augmentation')
-                img_feat = augment_image(img_feat)
+                # print('[Debug] before augment {} {}'.format(img_feat.shape, type(img_feat)))
+                img_feat = augment_batch_images(img_feat)
+                # print('[Debug] after augment {}'.format(img_feat.shape))
             img_feat = torch.tensor(img_feat).float()
         elif len(img_dump['features'].shape) == 2:
             img_feat = torch.tensor(img_dump['features'][:nbb, :]).float()
         else:
             print("[Error] of img feature dimension {}".format(img_dump['features'].shape))
-
         return img_feat
 
 
@@ -289,17 +289,19 @@ class ConcatDatasetWithLens(ConcatDataset):
 
 
 class ImageLmdbGroup(object):
-    def __init__(self, conf_th, max_bb, min_bb, num_bb, compress):
+    def __init__(self, conf_th, max_bb, min_bb, num_bb, compress, image_data_augmentation=False):
         self.path2imgdb = {}
         self.conf_th = conf_th
         self.max_bb = max_bb
         self.min_bb = min_bb
         self.num_bb = num_bb
         self.compress = compress
+        self.image_data_augmentation = image_data_augmentation
 
     def __getitem__(self, path):
         img_db = self.path2imgdb.get(path, None)
         if img_db is None:
             img_db = DetectFeatLmdb(path, self.conf_th, self.max_bb,
-                                    self.min_bb, self.num_bb, self.compress)
+                                    self.min_bb, self.num_bb, self.compress,
+                                    data_augmentation=self.image_data_augmentation)
         return img_db

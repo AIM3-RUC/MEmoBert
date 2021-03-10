@@ -1,6 +1,7 @@
 import os, glob
 import h5py
 import json
+import numpy as np
 import multiprocessing
 import gc
 from tqdm import tqdm
@@ -78,13 +79,21 @@ def find_exists(movie_name):
     act_spk_file = os.path.join(_dir, 'has_active_spk.txt')
     return True if os.path.exists(act_spk_file) else False
 
+def read_movie_names():
+    path = '/data7/MEmoBert/preprocess/data/movies_v1/movie_names.npy'
+    return np.load(path).tolist()
+
 if __name__ == '__main__':
-    movie_indexs = list(range(501, 502))
+    # movie_indexs = list(range(1, 100))
+    movie_names = read_movie_names()
     num_worker = 24
     chunk_size = 20
     print()
     print('----------------Preprocessing Start---------------- ')
-    print('process movies {} '.format(movie_indexs))
+    print('process movies:')
+    for i, m in enumerate(movie_names):
+        print(i, m)
+    print('--------------------------------------------------- ')
     print('process {} and chunk size {}'.format(num_worker, chunk_size))
     
     all_positive_clips = []
@@ -119,14 +128,27 @@ if __name__ == '__main__':
             'No_transcripts': []
         }
 
-        for movie_index in movie_indexs:
+        # for movie_index in movie_indexs:
+        #     movies = []
+        #     for _format in ['mkv', 'mp4', 'rmvb', 'avi', 'wmv', 'rm', 'ram']:
+        #         movies += glob.glob('{}/No{:04d}*.{}'.format(raw_movies_dir, movie_index, _format))
+        #     if len(movies) == 0:
+        #         print('[Warning]: No {} movie index'.format(movie_index))
+        #         continue
+        #     assert len(movies) == 1, print(movies)
+        #     movie = movies[0]
+    
+        for movie_name in movie_names:
             movies = []
-            for _format in ['mkv', 'mp4', 'rmvb', 'avi', 'wmv', 'rm', 'ram']:
-                movies += glob.glob('{}/No{:04d}*.{}'.format(raw_movies_dir, movie_index, _format))
-            if len(movies) == 0:
-                print('[Warning]: No {} movie index'.format(movie_index))
+            for _format in ['mp4', 'mkv', 'rmvb', 'avi', 'wmv', 'rm', 'ram']:
+                path = os.path.join(raw_movies_dir, movie_name + '.' + _format)
+                if os.path.exists(path):
+                    movies.append(path)
+                if len(movies) == 0:
+                    print('[Warning]: No {} movie index'.format(movie_name))
                 continue
-            assert len(movies) == 1, print(movies)
+            
+            assert len(movies) >= 1, print(movies)
             movie = movies[0]
             print('[Main]: Processing', movie)
             movie_name = get_basename(movie)
@@ -183,7 +205,7 @@ if __name__ == '__main__':
                     total=len(transcript_info)
                 ))[0]
             
-            all_video_clip = sorted(glob.glob(os.path.join(video_clip_dir, '*.mkv')), key=lambda x: int(x.split('/')[-1].split('.')[0]))
+            all_video_clip = sorted(glob.glob(os.path.join(video_clip_dir, '*.mp4')), key=lambda x: int(x.split('/')[-1].split('.')[0]))
             print('[Main]: Total clips found:', len(all_video_clip))
 
             # 切语音:
@@ -246,3 +268,5 @@ if __name__ == '__main__':
     #     if isinstance(value, multiprocessing.managers.DictProxy):
     #         all_count[key] = dict(value)
     # json.dump(dict(all_count), open(json_path, 'w'), indent=4)
+
+    # PYTHONPATH=/data7/MEmoBert/ python process.py 

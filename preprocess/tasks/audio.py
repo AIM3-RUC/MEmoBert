@@ -5,7 +5,7 @@ import soundfile as sf
 import numpy as np
 from preprocess.utils import get_basename, mkdir
 import scipy.signal as spsig
-from fairseq.models.wav2vec import Wav2VecModel
+# from fairseq.models.wav2vec import Wav2VecModel
 
 from .base_worker import BaseWorker
 
