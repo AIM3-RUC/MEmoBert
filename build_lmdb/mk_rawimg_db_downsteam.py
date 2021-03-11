@@ -27,7 +27,7 @@ msgpack_numpy.patch()
 
 '''
 将raw-img，即densenet的输入，做为特征进行编码，这时候不需要soft-label了。
-Step1: 将所有图片经过预处理保存为: (64/112,64/112) .npz
+Step1: 将所有图片经过预处理保存为: (64,64) .npz
 Step2: 构建rawimg_db库文件
 '''
 
@@ -35,6 +35,7 @@ def prepocess_img(img_path):
     # movies_v1's mean and std
     mean = 63.987095
     std = 43.00519
+    img_size = 64
     if os.path.exists(img_path):
         img = cv2.imread(img_path)
         if not isinstance(img, np.ndarray):
@@ -103,13 +104,18 @@ def trans_img_npzs(face_dir, rawimg_npzs_dir, meta_data_dir, movie_names_path, s
 
 
 if __name__ == '__main__':
-    start = int(sys.argv[1])  # 0
-    end =  int(sys.argv[2])  # 1
-    img_size = 112
-    raw_npzs_dir = '/data8/emobert/rawimg_npzs_nomask{}/movies_v1'.format(img_size)
-    face_dir = '/data7/MEmoBert/emobert/data_nomask/faces/'
+    dataset_name = sys.argv[1]
+    if dataset_name == 'iemocap':
+        mean, std = 131.0754, 47.858177
+    elif dataset_name == 'msp':
+        mean, std = 96.3801, 53.615868
+    elif dataset_name == 'meld':
+        mean, std = 67.61417, 37.89171
+    else:
+        print('the dataset name is error {}'.format(dataset_name))
+    raw_npzs_dir = '/data8/emobert/rawimg_npzs_nomask/' 
     meta_data_dir = '/data7/emobert/data_nomask/meta'
-    movie_names_path = '/data7/emobert/data_nomask/movies_v1/movie_names.npy'
+    movie_names_path = '/data7/emobert/data_nomask/movies_v3/'
     if not os.path.exists(raw_npzs_dir):
         os.makedirs(raw_npzs_dir)
-    trans_img_npzs(face_dir, raw_npzs_dir, meta_data_dir, movie_names_path, start=start, end=end)
+    trans_img_npzs(face_dir, raw_npzs_dir, meta_data_dir, movie_names_path)

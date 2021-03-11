@@ -12,6 +12,8 @@ import torch.nn.functional as F
 from preprocess.tasks.vision import DensefaceExtractor, FaceSelector
 from preprocess.extract_features import extract_denseface_trans_dir
 
+import cv2
+
 def extract_features_h5(extract_func, get_input_func, utt_ids, save_path):
     if os.path.exists(save_path):
         try:
@@ -125,8 +127,10 @@ def extract_one_video_mid_layers(video_dir, denseface_model, face_selector):
                 return None
         else:
             return None
-    feats, preds, trans1s, trans2s = [], [], [], []
+    feats, preds, trans1s, trans2s, img_datas = [], [], [], [], []
     for img in imgs:
+        img_data = cv2.imread(img)
+        img_datas.append(img_data)
         feat, pred = denseface_model(img)
         feats.append(feat)
         preds.append(pred)
@@ -139,7 +143,11 @@ def extract_one_video_mid_layers(video_dir, denseface_model, face_selector):
     preds = np.concatenate(preds, axis=0)
     trans1s = np.concatenate(trans1s, axis=0)
     trans2s = np.concatenate(trans2s, axis=0)
-    return {'feat': feats, 'pred': preds, 'trans1': trans1s, 'trans2': trans2s, 'confidence': confidence, 'frames_idx': frames_idx, 'has_active_spk': active_spk_flag}
+    img_datas = np.array(img_datas)
+    # print(feats.shape)
+    # print(img_datas.shape)
+    # input()
+    return {'feat': feats, 'pred': preds, 'trans1': trans1s, 'trans2': trans2s, 'confidence': confidence, 'frames_idx': frames_idx, 'has_active_spk': active_spk_flag, 'img_data':img_datas}
 
 # def get_face_dir_seetaface(utt_id):
 #     # Ses01F_impro06_F002
@@ -227,9 +235,9 @@ if __name__ == '__main__':
         os.mkdir(output_dir + '/' + name)
 
     utt_ids = get_all_utt_ids()
-    # iemocap
-    images_mean = 131.0754
-    images_std = 47.858177
+    # msp
+    images_mean = 67.61417
+    images_std = 37.89171
 
     denseface = DensefaceExtractor(mean=images_mean, std=images_std)
     denseface.register_midlayer_hook([
@@ -239,12 +247,12 @@ if __name__ == '__main__':
     face_selector = FaceSelector()
     extract_func = partial(extract_one_video_mid_layers, denseface_model=denseface, face_selector=face_selector)
     save_path = os.path.join(output_dir, name, 'all.h5')
-    # if detect_type == 'seetaface':
-    #     raise NotImplemented()
-    #     extract_features_h5(extract_func, get_face_dir_seetaface, utt_ids, save_path)
-    # else:
-    #     extract_features_h5(extract_func, get_face_dir_openface, utt_ids, save_path)
-    # save_path = os.path.join(output_dir, name, 'all.h5')
+    if detect_type == 'seetaface':
+        raise NotImplemented()
+        extract_features_h5(extract_func, get_face_dir_seetaface, utt_ids, save_path)
+    else:
+        extract_features_h5(extract_func, get_face_dir_openface, utt_ids, save_path)
+    save_path = os.path.join(output_dir, name, 'all.h5')
     split_h5(save_path, save_root=os.path.join(output_dir, name))
     # PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=0 python extract_denseface.py openface
     # PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=0 python extract_denseface.py seetaface

@@ -31,7 +31,12 @@ class IemocapOriginalDataset(data.Dataset):
             self.exits_modality['lexical'] = lexical_data
             print('[Lfeat-dir] {}'.format(L_feat_dir))
 
-        if 'V' in opt.modality:
+        if 'V3d' in opt.modality:
+            # 数据做归一化～ 和 数据增强
+            visual_data = h5py.File(join(V_feat_dir, setname + '.h5'), 'r')
+            self.exits_modality['visual3d'] = visual_data
+            print('[V3dfeat-dir] {}'.format(V_feat_dir))
+        elif 'V' in opt.modality:
             visual_data = h5py.File(join(V_feat_dir, setname + '.h5'), 'r')
             self.exits_modality['visual'] = visual_data
             print('[Vfeat-dir] {}'.format(V_feat_dir))
@@ -70,11 +75,27 @@ class IemocapOriginalDataset(data.Dataset):
                 example['visual'] = torch.from_numpy(self.exits_modality['visual'][utt_id]['feat'][()])
             except ValueError:
                 example['visual'] = torch.zeros(1, self.opt.v_input_size)
+
             if len(example['visual']) >= self.opt.max_visual_tokens:
                 example['visual'] = example['visual'][:self.opt.max_visual_tokens]
             else:
                 example['visual'] = torch.cat([example['visual'], \
                         torch.zeros([self.opt.max_visual_tokens-len(example['visual']), self.opt.v_input_size])], dim=0)
+        
+        if 'visual3d' in self.exits_modality.keys():
+            try:
+                example['visual3d'] = torch.from_numpy(self.exits_modality['visual3d'][utt_id]['img'][()])
+                # norm and augment
+
+            except ValueError:
+                example['visual3d'] = torch.zeros(1, self.opt.v3d_img_size, self.opt.v3d_img_size)
+
+            if len(example['visual3d']) >= self.opt.max_visual_tokens:
+                example['visual3d'] = example['visual3d'][:self.opt.max_visual_tokens]
+            else:
+                example['visual3d'] = torch.cat([example['visual3d'], \
+                        torch.zeros([self.opt.max_visual_tokens-len(example['visual3d']), 
+                                        self.opt.v3d_img_size, self.opt.v3d_img_size])], dim=0)
 
         if 'lexical' in self.exits_modality.keys():
             example['lexical'] = torch.from_numpy(self.exits_modality['lexical'][utt_id][()])
@@ -86,6 +107,7 @@ class IemocapOriginalDataset(data.Dataset):
             else:
                 example['lexical'] = torch.cat([example['lexical'], \
                         torch.zeros([self.opt.max_lexical_tokens-len(example['lexical']), self.opt.l_input_size])], dim=0)
+        
         label = torch.tensor(self.label[index])
         example['label'] = label
         return example
@@ -109,6 +131,11 @@ class IemocapOriginalDataset(data.Dataset):
             V = [sample['visual'] for sample in batches]
             V = pad_sequence(V, batch_first=True, padding_value=0)
             ret['visual'] = V
+        
+        if 'visual3d' in self.exits_modality.keys():
+            V = [sample['visual3d'] for sample in batches]
+            V = pad_sequence(V, batch_first=True, padding_value=0)
+            ret['visual3d'] = V
         
         label = [sample['label'] for sample in batches]
         label = torch.tensor(label)

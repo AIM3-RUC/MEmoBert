@@ -93,7 +93,7 @@ class ResNet3D(nn.Module):
     def forward(self, inputBatch):
         # inputBatch shape: (batchsize, timesteps, channle, H, W)
         inputBatch = inputBatch.transpose(0, 1).transpose(1, 2)
-        print('[Debug] inputBatch {}'.format(inputBatch.shape))
+        # print('[Debug] inputBatch {}'.format(inputBatch.shape))
         batchsize = inputBatch.shape[0]
         batch = self.frontend3D(inputBatch)
         # print('[Debug] Conv3d Output {}'.format(batch.shape))
@@ -111,5 +111,6 @@ class ResNet3D(nn.Module):
 
 if __name__ == '__main__':
     model = ResNet3D()
-    input = torch.Tensor(32, 10, 1, 112, 112)
+    input = torch.Tensor(32, 10, 112, 112)
+    input = torch.unsqueeze(input, 2)
     model.forward(input)

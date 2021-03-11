@@ -111,9 +111,10 @@ Transformer: AdamW + 5e−5 + weight decay 0.01
 
 ## UniterBackbone的联合的预训练任务问题.
 学习视觉任务有三种方式，分别是 MRCKL，MRFR，NCE-Loss. 
-由于联合训练之后 MRCKL，MRFR 就都无法使用。
+由于联合训练之后 MRCKL，MRFR，NCE-LOSS 就都无法使用。
 目前考虑的是去掉 ITM 任务，那么就只剩 MLM 和 MELM 任务了。
-所以需要加入视觉的 NCE-LOSS. --Going
+---咋办？？？
+
 ## 训练策略
 1. 目前的txt=30, img=64, max-token=10240, 得到的batch-size大约100～120左右。
 共有20w训练数据，200,000/100 = 2000 iters. 2000 * 20 = 4w steps.

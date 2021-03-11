@@ -7,6 +7,7 @@ from .networks.lstm_encoder import LSTMEncoder
 from .networks.textcnn_encoder import TextCNN
 from .networks.classifier import FcClassifier
 from .networks.tools import init_weights
+from .networks.resnet3d import ResNet3D
 
 class EarlyFusionMultiModel(nn.Module):
     def __init__(self, opt):
@@ -34,7 +35,11 @@ class EarlyFusionMultiModel(nn.Module):
             fusion_size += opt.l_hidden_size
 
         # visual model
-        if 'V' in self.modality:
+        if 'V3d' in self.modality:
+            self.front3d = ResNet3D()
+            self.netV = LSTMEncoder(opt.v3d_input_size, opt.v3d_hidden_size, opt.v3d_embd_method)
+            fusion_size += opt.v3d_hidden_size
+        elif 'V' in self.modality:
             self.netV = LSTMEncoder(opt.v_input_size, opt.v_hidden_size, opt.v_embd_method)
             fusion_size += opt.v_hidden_size
         
@@ -55,8 +60,15 @@ class EarlyFusionMultiModel(nn.Module):
             self.acoustic = batch['acoustic'].float().to(self.device)
         if "L" in self.modality:
             self.lexical = batch['lexical'].float().to(self.device)
-        if "V" in self.modality:
+
+        if "V3d" in self.modality:
+            # default (batchsize, timesteps=50, img-size, img-size)
+            # to (batchsize, timesteps=50, Channel=1, img-size, img-size)
+            viusal_input = torch.unsqueeze(batch['visual3d'], 2)
+            self.visual = viusal_input.float().to(self.device)
+        elif "V" in self.modality:
             self.visual = batch['visual'].float().to(self.device)
+
         self.label = batch['label'].to(self.device)
 
     def forward(self):
@@ -70,7 +82,11 @@ class EarlyFusionMultiModel(nn.Module):
             self.feat_L = self.netL(self.lexical)
             final_embd.append(self.feat_L)
         
-        if 'V' in self.modality:
+        if 'V3d' in self.modality:
+            output = self.front3d(self.visual)
+            self.feat_V = self.netV(output)
+            final_embd.append(self.feat_V)
+        elif 'V' in self.modality:
             self.feat_V = self.netV(self.visual)
             final_embd.append(self.feat_V)
         

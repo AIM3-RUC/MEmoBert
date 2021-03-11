@@ -9,10 +9,11 @@ CUDA_VISIBLE_DEVICES=1,2 python run_mlm.py \
     --do_train --do_eval \
     --learning_rate 1e-4 \
     --max_grad_norm 5.0 \
-    --num_train_epochs 10 \
+    --num_train_epochs 20 \
     --evaluation_strategy 'epoch' \
     --save_strategy 'epoch' \
-    --warmup_steps 1000 \
+    --warmup_steps 0 \
     --report_to 'tensorboard' \
-    --lr_scheduler_type 'linear' \
+    --lr_scheduler_type 'constant' \
+    --logging_first_step true \
     --output_dir /data7/emobert/exp/pretrain/only_v1v2v3_txt/bert_base_uncased_1e4_epoch10_100w_bs512

@@ -98,6 +98,7 @@ def main(opt):
     model.to(model.device)
     num_parameters = sum(torch.numel(parameter) for parameter in model.parameters())
     logger.info('[Model] parameters {}'.format(num_parameters))
+    print(model.parameters())
 
 
     # Prepare model

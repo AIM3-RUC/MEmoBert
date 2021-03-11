@@ -1,6 +1,6 @@
 # basic paths
-# dataset_name = 'IEMOCAP'
-dataset_name = 'MSP-IMPROV'
+dataset_name = 'IEMOCAP'
+# dataset_name = 'MSP-IMPROV'
 result_dir = '/data7/MEmoBert/evaluation/{}/results'.format(dataset_name)
 ft_dir = '/data7/MEmoBert/evaluation/{}/feature'.format(dataset_name)
 target_dir = '/data7/MEmoBert/evaluation/{}/target'.format(dataset_name)
@@ -9,7 +9,7 @@ model_cfg = {
     # basic info
     'model_name': 'early_fusion_multi',
     'dataset_mode': 'iemocap_original', # use the original denseface features
-    'pretained_ft_type': 'denseface_seetaface_iemocap_mean_std',
+    'pretained_ft_type': 'denseface_seetaface_iemocap_mean_std_torch',
     # global training info
     'dropout_rate': 0.5,
     'modality':'VL',
@@ -25,18 +25,23 @@ model_cfg = {
     'max_epoch': 40,
     'patience':40,
     'warmup_epoch':0,
-    'warmup_decay':0.1, # warmup_learning_rate = warmup_decay * learning_rate
+    'warmup_decay':0.001, # warmup_learning_rate = warmup_decay * learning_rate
     'optim':'adam',
-    'betas':[0.5, 0.98],
-    'grad_norm': 0.1,
+    'betas':[0.9, 0.98],
+    'grad_norm': 5.0,
     # for different module initializers:  none / orthogonal / xavier / normal / kaiming
     'init_type': 'none',
     # visual encoer info -- lstm
     'max_visual_tokens': 50,
-    'v_ft_name':'denseface_seetaface_iemocap_mean_std',
     'v_input_size':342,
     'v_embd_method':'maxpool', # use last mean att max
     'v_hidden_size':128,  # rnn
+    # visual3d encoder info resnet3d + lstm
+    'v_ft_name':'openface_iemocap_raw_img112',
+    'v3d_img_size': 112, 
+    'v3d_input_size': 512,
+    'v3d_embd_method':'maxpool',
+    'v3d_hidden_size': 128,
     # audio encoer info -- lstm
     'max_acoustic_tokens': 50,
     'a_ft_name': '',

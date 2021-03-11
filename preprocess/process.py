@@ -85,7 +85,6 @@ def read_movie_names():
 
 if __name__ == '__main__':
     # movie_indexs = list(range(1, 100))
-    movie_names = read_movie_names()
     num_worker = 24
     chunk_size = 20
     print()
@@ -137,7 +136,8 @@ if __name__ == '__main__':
         #         continue
         #     assert len(movies) == 1, print(movies)
         #     movie = movies[0]
-    
+        
+        movie_names = read_movie_names()
         for movie_name in movie_names:
             movies = []
             for _format in ['mp4', 'mkv', 'rmvb', 'avi', 'wmv', 'rm', 'ram']:

@@ -8,8 +8,7 @@ from functools import partial
 from tqdm import tqdm
 from toolz.sandbox import unzip
 import torch.nn.functional as F
-from preprocess.tasks.vision import DensefaceExtractor, FaceSelector
-from preprocess.extract_features import extract_denseface_trans_dir
+import cv2
 
 def extract_features_h5(extract_func, get_input_func, utt_ids, save_path):
     if os.path.exists(save_path):
@@ -38,7 +37,7 @@ def extract_features_h5(extract_func, get_input_func, utt_ids, save_path):
             continue
     h5f.close()
 
-def extract_one_video(video_dir, denseface_model):
+def extract_one_video(video_dir):
     using_frame = False
     if detect_type == 'seetaface':
         imgs = glob.glob(video_dir+'/*.jpg')
@@ -58,48 +57,21 @@ def extract_one_video(video_dir, denseface_model):
                 return None
         else:
             return None
-    feat_pred = [denseface_model(x) for x in imgs]
-    feats, pred = map(list, unzip(feat_pred))
-    feats = np.concatenate(feats, axis=0)
-    pred = np.concatenate(pred, axis=0)
-    return {'feat': feats, 'pred': pred}
-
-def extract_one_video_mid_layers(video_dir, denseface_model):
-    using_frame = False
-    if detect_type == 'seetaface':
-        imgs = glob.glob(video_dir+'/*.jpg')
-        imgs = sorted(imgs, key=lambda x:int(x.split('/')[-1][:-4]))
-        frames = glob.glob(video_dir.replace('face', 'frame')+'/*.jpg')
+    feats = []
+    for img_path in imgs:
+        if os.path.exists(img_path):
+            img = cv2.imread(img_path)
+            if not isinstance(img, np.ndarray):
+                raise IOError(f'Warning: Error in {img_path}')
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            img = cv2.resize(img, (Img_dim, Img_dim))
+            feats.append(img)
+    if len(feats) == 0:
+        print('this video have no valid faces! {}'.format(video_dir))
+        feats = np.zeros([1, Img_dim, Img_dim])
     else:
-        imgs = glob.glob(video_dir+'/*.bmp')
-        imgs = sorted(imgs, key=lambda x:int(x.split('/')[-1].split('_')[-1][:-4]))
-        frames = glob.glob('/'.join(video_dir.replace('openface', 'frame').split('/')[:-1])+'/*.jpg')
-    frames = sorted(frames, key=lambda x:int(x.split('/')[-1][:-4]))
-    if len(imgs) == 0:
-        print(video_dir, 'has no imgs, double check it')
-        if using_frame:
-            imgs = frames
-            print(f'Using frames instead. frame len:{len(frames)}')
-            if len(frames) == 0:
-                return None
-        else:
-            return None
-    feats, preds, trans1s, trans2s, raw_imgs = [], [], [], []
-    for img in imgs:
-        feat, pred = denseface_model(img)
-        feats.append(feat)
-        preds.append(pred)
-        trans1, trans2 = denseface_model.get_mid_layer_output()
-        trans1 = F.avg_pool2d(trans1, kernel_size=32, stride=1).view(trans1.size(0), -1).detach().cpu().numpy()
-        trans2 = F.avg_pool2d(trans2, kernel_size=16, stride=1).view(trans2.size(0), -1).detach().cpu().numpy()
-        trans1s.append(trans1)
-        trans2s.append(trans2)
-        raw_imgs.append(img)
-    feats = np.concatenate(feats, axis=0)
-    preds = np.concatenate(preds, axis=0)
-    trans1s = np.concatenate(trans1s, axis=0)
-    trans2s = np.concatenate(trans2s, axis=0)
-    return {'feat': feats, 'pred': preds, 'trans1': trans1s, 'trans2': trans2s}
+        feats = np.array(feats)
+    return {'img': feats}
 
 def get_face_dir_seetaface(utt_id):
     # Ses01F_impro06_F002
@@ -152,7 +124,6 @@ def split_by_utt_id(in_h5f, utt_ids, save_path):
             _group = out_h5f.create_group(utt_id)
             for key in tgt.keys():
                 _group[key] = deepcopy(tgt[key][()])
-    
     out_h5f.close()
 
 def get_all_utt_ids():
@@ -166,31 +137,22 @@ def get_all_utt_ids():
     
 if __name__ == '__main__':
     detect_type = sys.argv[1]
+    Img_dim = 112
     output_dir = '/data7/MEmoBert/evaluation/IEMOCAP/feature'
     if detect_type == 'seetaface':
-        name = "denseface_seetaface_iemocap_mean_std_torch"
+        name = "seetaface_iemocap_raw_img{}".format(Img_dim)
     elif detect_type == 'openface':
-        name = "denseface_openface_iemocap_mean_std_torch"
+        name = "openface_iemocap_raw_img{}".format(Img_dim)
     else:
         raise ValueError('detect type must be openface or seetaface')
-
     if not os.path.exists(output_dir + '/' + name):
         os.mkdir(output_dir + '/' + name)
     utt_ids = get_all_utt_ids()
-    # iemocap
-    images_mean = 131.0754
-    images_std = 47.8581
-    denseface = DensefaceExtractor(mean=images_mean, std=images_std)
-    denseface.register_midlayer_hook([
-        "features.transition1.relu",
-        "features.transition2.relu"
-    ])
-    extract_func = partial(extract_one_video_mid_layers, denseface_model=denseface)
     save_path = os.path.join(output_dir, name, 'all.h5')
     if detect_type == 'seetaface':
-        extract_features_h5(extract_func, get_face_dir_seetaface, utt_ids, save_path)
+        extract_features_h5(extract_one_video, get_face_dir_seetaface, utt_ids, save_path)
     else:
-        extract_features_h5(extract_func, get_face_dir_openface, utt_ids, save_path)
+        extract_features_h5(extract_one_video, get_face_dir_openface, utt_ids, save_path)
     save_path = os.path.join(output_dir, name, 'all.h5')
     split_h5(save_path, save_root=os.path.join(output_dir, name))
-    # PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=7 python extract_denseface.py openface/seetaface
+    # PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=7 python extract_raw_imgs.py openface/seetaface
