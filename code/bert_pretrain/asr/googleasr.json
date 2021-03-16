@@ -1,0 +1,13 @@
+{
+    "type": "service_account",
+    "project_id": "valiant-vault-307509",
+    "private_key_id": "73924b62ad193f98f7ada5a29237a481c2b45e15",
+    "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCmg+IbZ+Ly3ceC\nsGwlcv8R8QAw68qfxVMcmmrziuAhtdAUry4b9rLSRqGqTKDnKrXyGCPIvvrProt0\nl8dWQ6ZqEuZcWXMrq8DEJ+pzdRwqZoj557SLQC7sTev6+3j3UPJydpRW/yUEgkBM\nAXq0q2WWbDSmqBr4yK8MtRhIu43McG9qv5psJZXnUJ0uMQgQ1/H+80kSnEfkSQG+\naEIlLb6lQuQA4yc/fA1TQNdEQmn7BBaDouSG7gCSHriGN7GRd9ERy1NbAc2KOMZ0\nIhV0atsZwhTIMF77g3PhgdA8TAk8ToQn2uwnUB2L819tI4+CkLcEUnMeVJgk6DQS\nkvNypqJXAgMBAAECggEAQFpX2B+eJh5wLKHiKdb3nQd2+3ElLfok1LkY/GZ/mIeb\nk2Lgfw4orft+H0LeLHjlOFr7+WlVpU3ft3+xGjWq6vPC843eZNJL/YMvqM9pwzk9\nVtelfuufNtQmjykA5xPxnysUyUpyE/wCvV0U/x3+dNP8xSvSwLNOc6rJZ9KUSp3I\ntEtHyyG+DVXRTKLd0ZKBUwFa7Zh0miiRMskCQOtEiJa2hM7nMQDPqpl7ejm1lAhL\nId2yOuluvS2ioAbnAMN3VCUETimpeDyP8YjCLBViJrfDR0RlbQQ9ndQP1+hOs0pm\n63OefmG/3PF329uEx5GL6GCvnw6or3o7w8zKjibsgQKBgQDozzFPUp3hkAAyYQ6Z\ngumQHnzwk7t18SlHwsZxLszNv7Nj1vGtXB4fvjnsI2NXlpSX0WomjeRo2r56fsyN\n0BtJZ/pXziL3ebObNkvxdQWlTI5my/iWfGnsu9z4+W3QBVC/gslpftznTWfFVWQz\n9J+yZb2vpM7De6QOV25ruTe4QwKBgQC3GiQVgZSMkVT1h+CBwQfnj+ZGjjUNmOnr\n1tGiSYbjwjE6WMlpEgXI6yFg+8kUhHotP8wwDxMyvL/R3PO4dWjmg9l34SVuD30p\ne1z55uZHd+BLL2evana7XHMOH9rCuEYdXnPlcphswa90cH8mJ/66nSj6diTiGkcb\nPT1KKSpmXQKBgQCa17u/O37g2IsY9u7j8WtxPKXyyP+E2WqQXR7phqwXKKqi/AJw\nQHWUvUv/ICZhyjh4pYNJs1Q43UyVYqKgq8qKT0r1fZhKKzrnP/zQ0vl3UOzhuEZV\nqNg26Vh2jEeadP6Y8d8OeJ9qhFRBrqLf35Mb74lzOlV/NUwPcd1ybpV9ywKBgEoN\nN3S/MF3dVRfr+R9g+xpqtz3nu4shQdHQ0n2o8PXiDtjDGcn1sQM+HQTFL+CtZ2Av\nghwZrLEDZyywCJ2cVm2L+4KhOusVNpB1RPgIqy9SSxL9PBjUnOpPjHS061t+/VRZ\nY9PzEbRCbPxRlwrOeBXvA6iv6WDMMd/RV51Loss9AoGAM+JaX7js0sM/kjLiBVO8\nAjtQyBDQnjJq0+GCMMb7NjKxaUg72jUNC7CxsrPSoCXsl4Jem4Pd135jTIjv+g3+\nDcHBNlH/kc363sI+t5PjXbh7lD/4wi+D6yoVvJMXvtATAu9d7UwvZGSXcWjygcL7\nZU7qiVkQn+Twi/YFtKaSiTc=\n-----END PRIVATE KEY-----\n",
+    "client_email": "starting-account-26kwajsyhayx@valiant-vault-307509.iam.gserviceaccount.com",
+    "client_id": "113502464878493640062",
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token",
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/starting-account-26kwajsyhayx%40valiant-vault-307509.iam.gserviceaccount.com"
+  }
+  

@@ -51,10 +51,10 @@ def convert_hdf5_to_npz(hdf5_dir, output_dir, meta_data_dir, movie_names_path, s
 if __name__ == "__main__":
     start = int(sys.argv[1])  # 0
     end =  int(sys.argv[2]) # 100
-    hdf5_dir = '/data7/emobert/feature_nomask_torch/'
-    meta_data_dir = '/data7/emobert/data_nomask/meta'
-    movie_names_path = '/data7/emobert/data_nomask/movies_v3/movie_names.npy'
-    npzs_dir = '/data8/emobert/ft_npzs_nomask/movies_v3' 
+    hdf5_dir = '/data7/emobert/denseface_feature_nomask_torch/movies_v2'
+    meta_data_dir = '/data7/emobert/data_nomask_new/meta'
+    movie_names_path = '/data7/emobert/data_nomask_new/movies_v2/movie_names.npy'
+    npzs_dir = '/data7/emobert/ft_npzs_nomask/movies_v2/fc' 
 
     if not os.path.exists(npzs_dir):
         os.makedirs(npzs_dir)

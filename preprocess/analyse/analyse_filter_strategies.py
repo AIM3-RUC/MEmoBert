@@ -18,13 +18,14 @@ has_active_spk.txt: 是否包含说话人，说话人的条件比较严格。
 统计平均的句子长度 以及 平均的脸的帧数
 '''
 
-ori_info_dir = '/data7/emobert/data_nomask/transcripts/json'
-meta_data_dir = '/data7/emobert/data_nomask/meta'
-feature_dir = '/data7/emobert/feature_nomask_torch'
-fileter_details_path = '/data7/emobert/data_nomask/analyse/fileter_details_moviesv3.txt'
-filter_movie_names_path = ['/data7/emobert/data_nomask/movies_v1/movie_names.npy', 
-    '/data7/emobert/data_nomask/movies_v2/movie_names.npy']
-movie_names_path = '/data7/emobert/data_nomask/movies_v3/movie_names.npy'
+ori_info_dir = '/data7/emobert/data_nomask_new/transcripts/json'
+meta_data_dir = '/data7/emobert/data_nomask_new/meta'
+# modify the below info
+exists_movie_names_path = ['/data7/emobert/data_nomask_new/movies_v1/movie_names.npy', 
+    '/data7/emobert/data_nomask_new/movies_v3/movie_names.npy']
+feature_dir = '/data7/emobert/denseface_feature_nomask_torch/movies_v2'
+fileter_details_path = '/data7/emobert/data_nomask_new/analyse/fileter_details_movies_v2.txt'
+movie_names_path = '/data7/emobert/data_nomask_new/movies_v2/movie_names.npy'
 
 total_lines = 0 
 final_lines = 0
@@ -50,22 +51,22 @@ def compute_stastic_info(lens):
     m80_len = lens[int(len(lens)*0.8)]
     return avg_len, mid_len, m80_len
 
-if filter_movie_names_path is not None:
-    filter_movie_names = {}
-    for filter_path in filter_movie_names_path:
+if exists_movie_names_path is not None:
+    exists_movie_names = {}
+    for filter_path in exists_movie_names_path:
         names = np.load(filter_path)
         filter_names = {n:1 for n in names}
-        filter_movie_names.update(filter_names)
-    print('There are {} movies have processed'.format(len(filter_movie_names)))
+        exists_movie_names.update(filter_names)
+    print('There are {} movies have processed'.format(len(exists_movie_names)))
 else:
-    filter_movie_names = {}
+    exists_movie_names = {}
 
 movie_list = os.listdir(ori_info_dir)
 print('there are total {} movies'.format(len(movie_list)))
 for filename in movie_list:
     ori_segments2info = read_json(os.path.join(ori_info_dir, filename))
     movie_name = filename[:-5]  # remove '.json'
-    if filter_movie_names.get(movie_name) is not None:
+    if exists_movie_names.get(movie_name) is not None:
         continue
     movie_meta_dir = os.path.join(meta_data_dir, movie_name)
     # base filter 
@@ -76,6 +77,7 @@ for filename in movie_list:
     details_lines.append('Cur {} {}'.format(movie_name, len(ori_segments2info)) + '\n')
     details_lines.append('\t Base {} \t {:.2f}'.format(len(base_lines), len(base_lines)/len(ori_segments2info))+ '\n')
     has_face_filepath = os.path.join(movie_meta_dir, 'has_face.txt')
+    print(has_face_filepath)
     has_face_lines = read_file(has_face_filepath)
     details_lines.append('\t HasFace {} \t {:.2f}'.format(len(has_face_lines), len(has_face_lines)/len(ori_segments2info))+ '\n')
     long_face_filepath = os.path.join(movie_meta_dir, 'longest_spk_0.2.txt')

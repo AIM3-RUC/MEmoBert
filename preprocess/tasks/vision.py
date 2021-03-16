@@ -434,12 +434,19 @@ class ActiveSpeakerSelector(BaseWorker):
         :param, landmarks_path, {'p1': [{'frameId':1, 'score':0.99, 'landmark':[[x1,y1], [x2,y2]]}, {'frameId':2}]}
         '''
         save_path = os.path.join(face_dir, 'has_active_spk.txt')
-        if os.path.exists(save_path):
-            content = open(save_path).read().strip()
-            return None if content == 'None' else int(content)
+        # if os.path.exists(save_path):
+        #     content = open(save_path).read().strip()
+        #     return None if content == 'None' else int(content)
+        
+        if not os.path.exists(audio_path):
+            # print('[Debug] There is no wav info and return None!')
+            f = open(save_path, 'w')
+            f.write("None")
+            return None
         
         landmarks = self.get_clean_landmark(face_dir)
         if landmarks is None:
+            # print('[Debug] There is no landmarks and return None!')
             f = open(save_path, 'w')
             f.write("None")
             return None
@@ -450,11 +457,12 @@ class ActiveSpeakerSelector(BaseWorker):
         for person in landmarks.keys():
             person_frames = landmarks[person]
             count_open, count_valid = self.get_mouth_open_score(person_frames)
-            # self.print('person{} open: {}/{}'.format(person, count_open, count_valid))
+            # self.print('[Debug]open person{} open: {}/{}'.format(person, count_open, count_valid))
             count_change, count_valid, change_frame_pairs = self.get_continue_change_score(person_frames)
-            # self.print('person{} change: {}/{}'.format(person, count_change, count_valid))
+            # self.print('[Debug]continue person{} change: {}/{}'.format(person, count_change, count_valid))
+            # self.print('[Debug]change_frame_pairs {}'.format(change_frame_pairs))
             count_match, total_frame = self.get_vad_face_match_score(audio_path, change_frame_pairs)
-            # self.print('person{} match: {}/{}'.format(person, count_match, total_frame))
+            # self.print('[Debug]vad person{} match: {}/{}'.format(person, count_match, total_frame))
             open_person2scores[person] = count_open
             change_person2scores[person] = count_change
             match_person2scores[person] = count_match
@@ -504,11 +512,11 @@ if __name__ == '__main__':
     # feature = get_denseface(face_path)
     # print(feature.shape)
     # import time
-    # select_activate_spk = ActiveSpeakerSelector()
+    select_activate_spk = ActiveSpeakerSelector()
     # # select_faces = FaceSelector()
     # start = time.time()
-    # active_spkid = select_activate_spk("/data6/zjm/emobert/preprocess/data/faces/No0001.The.Shawshank.Redemption/17", "/data6/zjm/emobert/preprocess/data/audio_clips/No0001.The.Shawshank.Redemption/17.wav")
-    # print(active_spkid)
+    active_spkid = select_activate_spk("/data7/emobert/data_nomask_new/faces/No0030.About.Time.Error/4", "/data7/emobert/data_nomask_new/audio_clips/No0030.About.Time.Error/4.wav")
+    print(active_spkid)
     # # face_lists = select_faces("test/track/output1", active_spkid)
     # end = time.time()
     # print(end-start)
@@ -532,14 +540,14 @@ if __name__ == '__main__':
     # ans = a('/data7/MEmoBert/preprocess/data/faces/No0011.American.Beauty/20', 0)
     # print(ans)
    
-    a = DensefaceExtractor()
-    a.register_midlayer_hook([
-        "features.transition1.relu",
-        "features.transition2.relu"
-    ])
-    img = '/data7/MEmoBert/preprocess/data/faces/No0007.Schindler.List/19/19_aligned/frame_det_01_000009.bmp'
-    ft, pred = a(img)
-    print(ft.shape, pred.shape)
-    trans1, trans2 = a.get_mid_layer_output()
-    print(trans1.shape)
-    print(trans2.shape)
+    # a = DensefaceExtractor()
+    # a.register_midlayer_hook([
+    #     "features.transition1.relu",
+    #     "features.transition2.relu"
+    # ])
+    # img = '/data7/MEmoBert/preprocess/data/faces/No0007.Schindler.List/19/19_aligned/frame_det_01_000009.bmp'
+    # ft, pred = a(img)
+    # print(ft.shape, pred.shape)
+    # trans1, trans2 = a.get_mid_layer_output()
+    # print(trans1.shape)
+    # print(trans2.shape)

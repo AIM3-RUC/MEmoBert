@@ -1,10 +1,10 @@
 #!/usr/bin/bash
 # bash extract_features.sh 12 has_active_spk
-# bash extract_features.sh 12 has_active_spk
-split_num=$1
-file_name=$2
+# 进程数据对应gpus的列表的数目，比如8个进程，gpus=(0 0 1 1 2 2 3 3)，每块卡分两个进程同时跑
+split_num=$1  # 12
+file_name=$2  # has_active_spk
 screen_name=MEmoBert_feature_extra
-gpus=(6)
+gpus=(0 1 2 3 4 5 0 1 2 3 4 5)
 for i in `seq 0 1 $(($split_num))`; 
     do
     {   
@@ -20,4 +20,5 @@ for i in `seq 0 1 $(($split_num))`;
         echo "CUDA_VISIBLE_DEVICES=${gpus[$index]} PYTHONPATH=/data7/MEmoBert/ python extract_features.py $file_name $i $split_num"
     }
 done
+
 # CUDA_VISIBLE_DEVICES=2 PYTHONPATH=/data7/MEmoBert/ python extract_features.py has_active_spk 0 1

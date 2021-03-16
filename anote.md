@@ -4,6 +4,67 @@ export PYTHONPATH=/data7/MEmoBert
 ## 数据预处理
 <!-- run on avec2230 -->
 preprocess/process.py
+ffmpeg -ss 00:50:30:329 -t 0:0:1.30 -i /data7/emobert/resources/raw_movies/No0111.Antwone.Fisher.mp4 -c:v libx264 -c:a aac -strict experimental -b:a 180k output.mp4
+数据检查，检查文本，语音 以及视觉能否对应: ---问题不大。
+----sample1 (mkv)---- ok
+video_clips/No0002.The.Godfather/3.mp4 --4s多
+audio_clips/No0002.The.Godfather/3.wav  --4.80s
+text: I gave her freedom but I taught her never to dishonour her family 
+time: 4.7s
+----sample2 (mkv)---- ok
+video_clips/No0002.The.Godfather/72.mp4 
+audio_clips/No0002.The.Godfather/72.wav  --00:00:01.69
+text: Don Barzini
+time: 1.6s
+----sample3 (mkv)---- 语音跟跟字幕不匹配，实际发音是 this is， 应该是下一句内容.
+video_clips/No0079.The.Kings.Speech/5.mp4 
+audio_clips/No0079.The.Kings.Speech/5.wav  --00:00:01.47
+text: Good afternoon.
+time: 1.5s
+----sample4 (mkv)---- 语音跟跟字幕不匹配，实际发音是"the BBC National Programme and Empire Services." 少了this is.
+video_clips/No0079.The.Kings.Speech/6.mp4 
+audio_clips/No0079.The.Kings.Speech/6.wav  --00:00:03.20
+text: This is the BBC National Programme and Empire Services.
+time: 3.2s
+----sample5 (mkv)----这个是正确的，说明字幕以及时间大体是对的，可能会有点小误差.
+video_clips/No0079.The.Kings.Speech/4.mp4 --
+audio_clips/No0079.The.Kings.Speech/4.wav  --00:00:01.34
+text: Time to go.
+time: 1.3s
+----sample6 (mp4)----ok
+video_clips/No0088.Legally.Blonde.2.mp4/134.mp4 --
+audio_clips/No0088.Legally.Blonde.2.mp4/134.wav --00:00:01.28
+text: right on the entry field.
+time: 1.4s
+----sample7 (mp4)----ok 视频是高清的5.5G，所以切的比较慢
+video_clips/No0266_downton_abbey_s06e01/538.mp4 --ok
+audio_clips/No0266_downton_abbey_s06e01/538.wav 
+text: So this isn't something Lord Merton has persuaded you into?.
+time: 3.2s
+
+[Bug]之前的moives-v1的过滤后的有效片段是 53% 共81000条，现在是40.6只有6000条。
+需要验证修正后的切割方法是否正确。 --- 通过下面的验证，目前修正后的应该是正确的。
+由于之前切割不准确，基本多切了一段，所以时长都增加了，也就增加了 activate-spk 的可能性，这里 vad 跟 face 匹配的时候算的是绝对值，只要有匹配的就矮子里面拔将军。
+No0030.About.Time 共 1972 片段， 但是 ActiveSpk 只有 343 条，0.17 的通过率.
+原来的切割视频的方法是 ActiveSpk 只有 542 条. grep -vwf  has_active_spk.txt has_active_spk.txt.eror 但是有 263条不同的。随机检查几条进行验证。
+Error-video_clips/No0030.About.Time.Error/4.mp4: 647K, 切的不准导致多了前一句; 0，人物没有说话，是镜头外的人在说话。由于多了一句，所以前面有几帧刚好跟vad-match的，所以得分稍微高一点。
+Now-video_clips/No0030.About.Time/4.mp4: 129K; None, 人物没有说话，是镜头外的人在说话。
+text: There was something solid about her.
+Error-video_clips/No0030.About.Time.Error/1960.mp4: 647K; 明显的也是切割错误。
+Now-video_clips/No0030.About.Time/1960.mp4: 84k;
+text: That's fine.
+
+
+## 存储位置的优化
+不要将所有的小文件存储在data7上, 否则data7小文件太多，导致特别卡.
+由于目前frames中间数据太多并且没有用，所以直接删除就可以。
+删除进程
+kill -s 9 pid
+删除文件
+mkdir /data1/blank/
+rsync --delete-before -d /data1/blank/ *
+文件拷贝 -av 支持断点续传
+rsync -av --progress --bwlimit=50000  ./No0001.The.Shawshank.Redemption  /data8/emobert/data_nomask_new/frames/
 
 ## 预训练的模型
 MLM+ITM+MRF+MRC-KL四个预训练任务:
@@ -69,16 +130,28 @@ https://github.com/NVIDIA/apex/issues/318
 
 ## 直接抽取特征
 Step1: 对下游任务数据抽取面 Denseface 部表情特征, 用各自任务的均值和方差。-- lrc
+    bash extract_features.sh 需要配置 split-num 和 给定的gpu信息
 Step2: 将抽取的 Denseface 特征进行 segmentId = movie_name + '_' + segment_index 转化为所有的 npz 文件
     build_lmdb/trans2npz_downsteam.py
 Step3: 基于npz数据，构建视觉的 LMDB 数据库, img_db
     code/uniter/scripts/create_imgdb.sh
 Step4: 基本英文的 bert-base-uncased 模型文本的 LMDB 特征库，txt_db
     build_lmdb/create_txtdb.sh
+--- Analyse: 
+    cd preprocess/analyse/
+    python analyse_filter_strategies.py
+
 Step5: 利用预训练好的模型抽取 Uniter 特征
     code/uniter/extract_fts.sh
 Step6: 然后利用下游任务的代码进行训练测试
     code/downstream/run_pretrained_ft.sh
+
+Step7: 抽取语音的 ComparE 特征, 10ms/frame, 130dim.
+/data7/lrc/movie_dataset/code/get_comparE.py 
+
+
+
+
 
 ## UniterBackbone
 step1: 联合人脸视觉的Encoder联合训练，由于数据要传原始的图像，只需要修改imgdb的信息，把feature的信息替换为图像原始信息. --done

@@ -19,6 +19,9 @@ https://github.com/huggingface/transformers/tree/master/examples/language-modeli
 数据格式要求：
 每行一句话即可
 
+很多需要去 huggingface 官网上找：
+https://huggingface.co/transformers
+
 
 ## Bugs
 1. 关于多卡训练
@@ -29,6 +32,7 @@ python -m torch.distributed.launch \
     --nproc_per_node num-gpus run_mlm.py
 2. 手动安装，否则 mlm 无法运行
 https://github.com/huggingface/transformers/tree/master/examples#important-note
+
 
 ## 实验结果
  --max_seq_length 30 --per_device_train_batch_size 64 \
@@ -104,7 +108,6 @@ On v1v2v3 val1.8w: loss 1.89 perplexity=7.049.
 ## Finetune for downstream tasks.
 MeldFinetune --running unbalance 问题严重.
 
-
 MeldPretrain+MeldFinetune
 A1+MeldFinetune
 A1+MeldPretrain+MeldFinetune
@@ -117,5 +120,6 @@ column1=label cloumn2=sentence1 cloumn3=sentence2
 如果是文本分类任务，那么只有前两列。
 必须要有表头，分别是 label 和 sentence1 并且必须要用 “,” 进行分割。
 
-MELD SOTA的文本的性能是多少？（weighted F1 score）
+MELD SOTA的文本的性能是多少？（weighted F1 score）记得 average='weighted'/'micro'
+macro 是 unweighted f1 score.
 

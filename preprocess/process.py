@@ -80,13 +80,14 @@ def find_exists(movie_name):
     return True if os.path.exists(act_spk_file) else False
 
 def read_movie_names():
-    path = '/data7/MEmoBert/preprocess/data/movies_v1/movie_names.npy'
+    path = '/data7/MEmoBert/preprocess/data/movies_v3/movie_names.npy'
     return np.load(path).tolist()
 
 if __name__ == '__main__':
-    # movie_indexs = list(range(1, 100))
-    num_worker = 24
-    chunk_size = 20
+    movie_indexs = list(range(1, 100))
+    num_worker = 20
+    chunk_size = 10
+    movie_names = read_movie_names()
     print()
     print('----------------Preprocessing Start---------------- ')
     print('process movies:')
@@ -95,7 +96,7 @@ if __name__ == '__main__':
     print('--------------------------------------------------- ')
     print('process {} and chunk size {}'.format(num_worker, chunk_size))
     
-    all_positive_clips = []
+    all_positive_clips = [] 
     with multiprocessing.Manager() as MG:
         raw_movies_dir = path_config.raw_movies_dir
         transcripts_dir =  path_config.transcripts_dir
@@ -126,7 +127,7 @@ if __name__ == '__main__':
         all_count = {
             'No_transcripts': []
         }
-
+        # # 不给定 movie_names 的时候
         # for movie_index in movie_indexs:
         #     movies = []
         #     for _format in ['mkv', 'mp4', 'rmvb', 'avi', 'wmv', 'rm', 'ram']:
@@ -135,9 +136,7 @@ if __name__ == '__main__':
         #         print('[Warning]: No {} movie index'.format(movie_index))
         #         continue
         #     assert len(movies) == 1, print(movies)
-        #     movie = movies[0]
-        
-        movie_names = read_movie_names()
+        # 给定 movie_names 的时候
         for movie_name in movie_names:
             movies = []
             for _format in ['mp4', 'mkv', 'rmvb', 'avi', 'wmv', 'rm', 'ram']:
@@ -147,7 +146,6 @@ if __name__ == '__main__':
                 if len(movies) == 0:
                     print('[Warning]: No {} movie index'.format(movie_name))
                 continue
-            
             assert len(movies) >= 1, print(movies)
             movie = movies[0]
             print('[Main]: Processing', movie)
@@ -261,12 +259,5 @@ if __name__ == '__main__':
             json.dump(dict(count), open(json_path, 'w'), indent=4)
             gc.collect()
             print('-------------------- Done and Next One --------------------------------\n')
-
-    # # dump all negative count
-    # json_path = os.path.join(check_data_dir, "/negative_count.json")
-    # for key, value in all_count.items():
-    #     if isinstance(value, multiprocessing.managers.DictProxy):
-    #         all_count[key] = dict(value)
-    # json.dump(dict(all_count), open(json_path, 'w'), indent=4)
-
-    # PYTHONPATH=/data7/MEmoBert/ python process.py 
+            
+# PYTHONPATH=/data7/MEmoBert/ python process.py 

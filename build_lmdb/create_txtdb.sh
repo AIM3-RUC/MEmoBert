@@ -4,36 +4,36 @@ export PYTHONPATH=/data7/MEmoBert
 ### 根据人脸特征数据来构建文本数据，一个文本对应一段video. for movies data
 # 构建不同的测试集和训练集，先构建测试集合，然后构建训练集，但是影响应该不大, 没有选模型的阶段，但是可以看一下val的结果
 # step1
-# python mk_txtdb_by_faces.py --input /data7/emobert/data_nomask/movies_v3/ref_captions.json \
-#                 --output /data7/emobert/txt_db/movies_v3_th0.1_emowords_all.db \
-#                 --filter_path /data7/emobert/img_db_nomask/movies_v3/nbb_th0.1_max64_min10.json \
-#                 --toker bert-base-uncased  --dataset_name movies_v3 \
-#                 --use_emo
+python mk_txtdb_by_faces.py --input /data7/emobert/data_nomask_new/movies_v2/ref_captions.json \
+                --output /data7/emobert/txt_db/movies_v2_th0.5_emowords_emotype_all.db \
+                --filter_path /data7/emobert/img_db_nomask/movies_v2/fc/nbb_th0.5_max36_min10.json \
+                --toker bert-base-uncased  --dataset_name movies_v2_all \
+                --use_emo --use_emo_type emo4
 
 # step2
-python mk_txtdb_by_faces.py --input /data7/emobert/data_nomask/movies_v2/ref_captions.json \
-                --output /data7/emobert/txt_db/movies_v2_th0.1_emowords_all_4000.db \
-                --filter_path /data7/emobert/img_db_nomask/movies_v2/nbb_th0.1_max64_min10.json \
-                --toker bert-base-uncased  --dataset_name movies_v2_val \
-                --num_samples 4000 --use_emo
+python mk_txtdb_by_faces.py --input /data7/emobert/data_nomask_new/movies_v2/ref_captions.json \
+                --output /data7/emobert/txt_db/movies_v2_th0.5_emowords_emotype_all_val5k.db \
+                --filter_path /data7/emobert/img_db_nomask/movies_v2/fc/nbb_th0.5_max36_min10.json \
+                --toker bert-base-uncased  --dataset_name movies_v2_val5k \
+                --num_samples 5000 --use_emo --use_emo_type emo4
 
 # step3
 ## build the trn set by the all set and the all_2000 set. to build a new filter path
-python mk_txtdb_by_faces.py --input /data7/emobert/data_nomask/movies_v2/ref_captions.json \
-                --output /data7/emobert/txt_db/movies_v2_th0.1_emowords_all_new_trn.db \
-                --filter_path /data7/emobert/img_db_nomask/movies_v2/nbb_th0.1_max64_min10.json \
-                --filter_path_val /data7/emobert/txt_db/movies_v2_th0.1_emowords_all_4000.db/img2txts.json \
-                --toker bert-base-uncased  --dataset_name movies_v2_new_trn \
-                --use_emo
+python mk_txtdb_by_faces.py --input /data7/emobert/data_nomask_new/movies_v2/ref_captions.json \
+                --output /data7/emobert/txt_db/movies_v2_th0.5_emowords_emotype_all_trn.db \
+                --filter_path /data7/emobert/img_db_nomask/movies_v2/fc/nbb_th0.5_max36_min10.json \
+                --filter_path_val /data7/emobert/txt_db/movies_v2_th0.5_emowords_emotype_all_val5k.db/img2txts.json \
+                --toker bert-base-uncased  --dataset_name movies_v2_trn \
+                --use_emo --use_emo_type emo4
 
 # step4
 ## build the trn set by the all set and the all_2000 set. to build a new filter path
-python mk_txtdb_by_faces.py --input /data7/emobert/data_nomask/movies_v2/ref_captions.json \
-                --output /data7/emobert/txt_db/movies_v2_th0.1_emowords_all_new_trn_4000.db \
-                --filter_path /data7/emobert/img_db_nomask/movies_v2/nbb_th0.1_max64_min10.json \
-                --include_path /data7/emobert/txt_db/movies_v2_th0.1_emowords_all_new_trn.db/img2txts.json \
-                --toker bert-base-uncased  --dataset_name movies_v2_all_new_trn_4000 \
-                --num_samples 4000 --use_emo
+python mk_txtdb_by_faces.py --input /data7/emobert/data_nomask_new/movies_v2/ref_captions.json \
+                --output /data7/emobert/txt_db/movies_v2_th0.5_emowords_emotype_all_trn5k.db \
+                --filter_path /data7/emobert/img_db_nomask/movies_v2/fc/nbb_th0.5_max36_min10.json \
+                --include_path /data7/emobert/txt_db/movies_v2_th0.5_emowords_emotype_all_trn.db/img2txts.json \
+                --toker bert-base-uncased  --dataset_name movies_v2_all_trn5k \
+                --num_samples 5000 --use_emo --use_emo_type emo4
 
 # for iemocap
 # for i in `seq 2 10`; do

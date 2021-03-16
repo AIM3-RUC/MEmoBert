@@ -8,7 +8,8 @@ from preprocess.utils import get_basename, mkdir
 from preprocess.tasks.base_worker import BaseWorker
 
 class VideoCutter(BaseWorker):
-    ''' 按句子的timestamp切分视频
+    ''' --discard on 2021/03/01 
+    按句子的timestamp切分视频
         save_root: 切出来的视频放在哪里, 
         padding: 每句话两端的padding时间
         return: sub_video_dir
@@ -74,6 +75,7 @@ class VideoCutterOneClip(BaseWorker):
         basename = get_basename(video_path)
         save_dir = os.path.join(self.save_root, basename)
         mkdir(save_dir)
+        # _cmd = 'ffmpeg -ss {} -i {} -to {} -c copy -copyts {} -y > /dev/null 2>&1'  # error one
         _cmd = 'ffmpeg -ss {} -t {} -i {} -c:v libx264 -c:a aac -strict experimental -b:a 180k {} -y >/dev/null 2>&1 '
         save_path = os.path.join(save_dir, f"{transcript_info['index']}.mp4")
         if not os.path.exists(save_path):

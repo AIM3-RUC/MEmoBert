@@ -38,10 +38,19 @@ def extract_features_h5(extract_func, get_input_func, utt_ids, save_path, multi_
             h5f[utt_id] = feature
     h5f.close()
 
-def get_utt_id_files(meta_dir, file_name):
-    files = glob.glob(os.path.join(meta_dir, f'*/{file_name}.txt'))
-    files = sorted(files)
-    movie_names = list(map(lambda x: x.split('/')[-2], files))
+def get_utt_id_files(meta_dir, file_name, moive_names_path):
+    valid_movies_names = np.load(moive_names_path)
+    files = []
+    movie_names = []
+    for name in valid_movies_names:
+        filepath = os.path.join(meta_dir, name, f'{file_name}.txt')
+        if os.path.exists(filepath):
+            files.append(filepath)
+            movie_names.append(name)
+        else:
+            print(f'[Warning] {name} is not exists')
+    assert len(movie_names) == len(files)
+    print(f'[INFO] {len(valid_movies_names)} {len(movie_names)} movies need to process')
     return files, movie_names
 
 def process_emo_word(transcript_dir, utt_ids, emol, save_path, multiprocessing=False):
@@ -68,7 +77,7 @@ def process_emo_word(transcript_dir, utt_ids, emol, save_path, multiprocessing=F
     json.dump(all_word2affect, open(save_path, 'w'), indent=4)
 
 def extract_denseface_trans_dir(dir_path, denseface_model, face_selector):
-    active_spk = open(os.path.join(dir_path, 'activate_spk.txt')).read().strip()
+    active_spk = open(os.path.join(dir_path, 'has_active_spk.txt')).read().strip()
     assert active_spk != "None", dir_path
     active_spk = int(active_spk)
     infos = face_selector(dir_path, active_spk)
@@ -98,20 +107,19 @@ if __name__ == '__main__':
     import sys
     utt_file_name = sys.argv[1]
     part_no, total = eval(sys.argv[2]), eval(sys.argv[3])
-    device = 0
+
+    extact_face_features = True
+    extact_audio_features = True
+
     transcripts_dir = path_config.transcript_json_dir
     video_clip_dir = path_config.video_clip_dir
     audio_dir = path_config.audio_dir
     frame_dir = path_config.frame_dir
     face_dir = path_config.face_dir
     meta_dir = path_config.meta_root
+    moive_names_path = path_config.moive_names_path
     feature_root = path_config.feature_dir
     tmp_dir = path_config.tmp_dir
-
-    ## 
-    ss = 200
-    tt = 201
-    #
 
     mean = 63.987095
     std = 43.00519
@@ -122,11 +130,8 @@ if __name__ == '__main__':
     ])
     face_selector = FaceSelector()
     extract_denseface = partial(extract_denseface_trans_dir, denseface_model=denseface, face_selector=face_selector)
-   
-    all_utt_files, movie_names = get_utt_id_files(meta_dir, utt_file_name)
+    all_utt_files, movie_names = get_utt_id_files(meta_dir, utt_file_name, moive_names_path)
 
-    all_utt_files, movie_names = all_utt_files[ss:tt], movie_names[ss:tt]
-    ## 
     length = len(all_utt_files)
     start = int(part_no * length / total)
     end = int((part_no + 1) * length / total)
@@ -152,13 +157,17 @@ if __name__ == '__main__':
         utt_ids = list(map(lambda x: x.strip(), utt_ids))
         if len(utt_ids) == 0:
             continue
-        # denseface
-        # save_path = os.path.join(feature_dir, f'{utt_file_name}_denseface.h5')
-        save_path = os.path.join(feature_dir, f'{utt_file_name}_denseface_with_trans.h5')
-        print(save_path)
-        extract_features_h5(extract_denseface, lambda x: os.path.join(face_dir, x), 
-                    utt_ids, save_path)
-        # # emo_word
+        if extact_face_features:
+            print("[INFO] Extracing denseface features!")
+            save_path = os.path.join(feature_dir, f'{utt_file_name}_denseface_with_trans.h5')
+            print(save_path)
+            extract_features_h5(extract_denseface, lambda x: os.path.join(face_dir, x), 
+                        utt_ids, save_path)
+        # # emo_word --discard 
         # save_path = os.path.join(feature_dir, f'{utt_file_name}_emoword.json')
         # process_emo_word(utt_ids, emol, save_path, multiprocessing=False)
         # print(f'[EmoWord]: {movie_name} saved in {save_path}')
+
+        ## for extracting ComparE feature 
+        if extact_audio_features:
+            pass

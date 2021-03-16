@@ -19,7 +19,7 @@
 # bert_vocab_filepath = '/data2/zjm/tools/LMs/bert_base_en/vocab.txt'
 # lexicon_dir = '/data2/zjm/tools/EmoLexicons'
 
-raw_movies_dir = '/data7/emobert/resources/raw_movies_v1'
+raw_movies_dir = '/data7/emobert/resources/raw_movies'
 transcripts_dir='/data7/emobert/data_nomask_new/transcripts/raw'
 transcript_json_dir='/data7/emobert/data_nomask_new/transcripts/json'
 video_clip_dir = '/data7/emobert/data_nomask_new/video_clips'
@@ -29,9 +29,10 @@ face_dir = '/data7/emobert/data_nomask_new/faces'
 meta_root = '/data7/emobert/data_nomask_new/meta'
 check_data_dir = '/data7/emobert/data_nomask_new/check_data'
 tmp_dir = '/data7/emobert/data_nomask_new/tmp'
+
 #
-# feature_dir = '/data7/emobert/feature_no_mask'
-feature_dir = '/data7/MEmoBert/emobert/feature_nomask_torch_new'
+moive_names_path = '/data7/emobert/data_nomask_new/movies_v3/movie_names.npy'
+feature_dir = '/data7/emobert/denseface_feature_nomask_torch/movies_v3'
 
 # tools path, all in avec2230 docker
 openface_dir='/root/tools/openface_tool/OpenFace/build/bin'
