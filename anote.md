@@ -54,6 +54,20 @@ Error-video_clips/No0030.About.Time.Error/1960.mp4: 647K; 明显的也是切割�
 Now-video_clips/No0030.About.Time/1960.mp4: 84k;
 text: That's fine.
 
+## 下游任务的数据预处理以及特征抽取流程
+MELD 特征数据: 
+/data7/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/img_db/
+
+MELD 原始图片特征数据，112*112: 
+--pending
+
+MELD 的文本数据:
+/data7/emobert/exp/evaluation/MELD/txt_db/train_emowords_emotype.db
+/data7/emobert/exp/evaluation/MELD/txt_db/val_emowords_emotype.db
+/data7/emobert/exp/evaluation/MELD/txt_db/test_emowords_emotype.db
+
+MELD 原始语音特征数据: 
+--pending
 
 ## 存储位置的优化
 不要将所有的小文件存储在data7上, 否则data7小文件太多，导致特别卡.
@@ -66,9 +80,10 @@ rsync --delete-before -d /data1/blank/ *
 文件拷贝 -av 支持断点续传
 rsync -av --progress --bwlimit=50000  ./No0001.The.Shawshank.Redemption  /data8/emobert/data_nomask_new/frames/
 
-## 预训练的模型
-MLM+ITM+MRF+MRC-KL四个预训练任务:
-    /data7/emobert/exp/pretrain/nomask_movies_v1_uniter_4tasks/ckpt/model_step_100000.pt
+## 初始化预训练的模型
+1. pt format, bert-base-uncased, /data7/MEmoBert/emobert/resources/pretrained
+2. bin format, pretrained_on_opensub1000w, /data7/emobert/exp/mlm_pretrain/results/opensub/bert_base_uncased_1000w_linear_lr1e4_warm4k_bs256_acc2_4gpu/checkpoint-93980  eval-loss=1.7316
+3. bin format, pretrained_on_movies_v1v2v3,  /data7/emobert/exp/mlm_pretrain/results/moviesv1v2v3/bert_base_uncased_2e5/checkpoint-34409 eval-loss=1.8564
 
 ## 构建对于 LMDB 特征数据库
 Step1 将抽取的 Denseface 特征进行 segmentId = movie_name + '_' + segment_index 转化为所有的 npz 文件
@@ -79,19 +94,9 @@ Step3 基本英文的 bert-base-uncased 模型构建 txt_db
     build_lmdb/generate_captions.py
     build_lmdb/mk_txtdb_by_faces.py
 ---Manual Check OK
-
 /data7/emobert/img_db_nomask
-movies_v1 torch-version
-movies_v1_trans1 torch-version
-movies_v1_trans2 torch-version
-movies_v2 torch-version
-movies_v2_trans torch-version
-movies_v2_trans torch-version
 
-txt_db 数据集说明：
-all_trn** 对应的是 all_2000
-all_new_trn** 对应的是 all_4000/6000/8000
-## 模型转换，采用 bert-base-uncased
+## tf模型转换torch，采用 bert-base-uncased
 code/uniter/scripts/convert_ckpt.py
 
 ## Bugs

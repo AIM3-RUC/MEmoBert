@@ -11,8 +11,13 @@ from toolz.sandbox import unzip
 import torch.nn.functional as F
 from preprocess.tasks.vision import DensefaceExtractor, FaceSelector
 from preprocess.extract_features import extract_denseface_trans_dir
-
 import cv2
+
+'''
+处理的meld数据，如果一段视频里面有active-spk，那么保存当前spk的 frame indexs，
+这时保存的正常的index，并不是2002这种格式。 如果一段视频里面没有 active-spk，
+那么保存所有人的人脸信息，但是呢，如果spk=0，那么这时候也不是 0001 这种形式(int(0001)=1)，所以同时存在 1 2 3 1001 1002 2001 两种形式
+'''
 
 def extract_features_h5(extract_func, get_input_func, utt_ids, save_path):
     if os.path.exists(save_path):
@@ -87,6 +92,10 @@ def get_confidence(imgs, conf_df):
     return ret
 
 def extract_one_video_mid_layers(video_dir, denseface_model, face_selector):
+    '''
+    存储的时候frame-idx, 如果有 active_spk_id 那么存储形式是该 spk 的frames, 比如 1 2 3 等
+    如果没有 active_spk_id 那么存储形式是该 所有spk的frames, 比如 1001 2001 3001 等
+    '''
     using_frame = False
     if detect_type == 'seetaface':
         raise NotImplementedError()
@@ -105,7 +114,6 @@ def extract_one_video_mid_layers(video_dir, denseface_model, face_selector):
             frames_idx = [get_sort_index(x) for x in imgs]
             data_frame = pd.read_csv(os.path.join(video_dir, os.path.basename(video_dir).rstrip('/')+'.csv'))
             confidence = get_confidence(imgs, data_frame)
-            # return None
         else:
             active_spk_flag = True
             active_spk_id = int(active_spk_id)
@@ -149,42 +157,24 @@ def extract_one_video_mid_layers(video_dir, denseface_model, face_selector):
     # input()
     return {'feat': feats, 'pred': preds, 'trans1': trans1s, 'trans2': trans2s, 'confidence': confidence, 'frames_idx': frames_idx, 'has_active_spk': active_spk_flag, 'img_data':img_datas}
 
-# def get_face_dir_seetaface(utt_id):
-#     # Ses01F_impro06_F002
-#     session_id = utt_id[4]
-#     return '/data7/MEmoBert/evaluation/IEMOCAP/Session{}/face/{}'.format(session_id, utt_id)
-
 def get_face_dir_openface(utt_id):
     # Ses01F_impro06_F002
     root = '/data7/MEmoBert/evaluation/MELD/faces'
     return os.path.join(root, utt_id)
 
-def get_trn_val_tst(cv, target_root='target'):
-    target_dir = os.path.join(target_root, str(cv))
-    trn_int2name = np.load(os.path.join(target_dir, 'trn_int2name.npy'))
-    val_int2name = np.load(os.path.join(target_dir, 'val_int2name.npy'))
-    tst_int2name = np.load(os.path.join(target_dir, 'tst_int2name.npy'))
-    trn_label = np.load(os.path.join(target_dir, 'trn_label.npy'))
-    val_label = np.load(os.path.join(target_dir, 'val_label.npy'))
-    tst_label = np.load(os.path.join(target_dir, 'tst_label.npy'))
-    assert len(trn_int2name) == len(trn_label)
-    assert len(val_int2name) == len(val_label)
-    assert len(tst_int2name) == len(tst_label)
-    return trn_int2name, val_int2name, tst_int2name, trn_label, val_label, tst_label
-
-def split_h5(all_h5, save_root='feature/denseface'):
-    h5f = h5py.File(all_h5, 'r')
-    target_root = '/data7/MEmoBert/evaluation/MELD/target'
+def split_h5(all_h5_path, save_root='feature/denseface'):
+    target_root = '/data7/emobert/exp/evaluation/MELD/target'
     trn_int2name = np.load(os.path.join(target_root, 'train', f'int2name.npy'))
     trn_int2name = [transform_utt_id(utt_id, 'train') for utt_id in trn_int2name[:, 0].tolist()]
     val_int2name = np.load(os.path.join(target_root, 'val', f'int2name.npy'))
-    val_int2name = [transform_utt_id(utt_id, 'train') for utt_id in val_int2name[:, 0].tolist()]
+    val_int2name = [transform_utt_id(utt_id, 'val') for utt_id in val_int2name[:, 0].tolist()]
     tst_int2name = np.load(os.path.join(target_root, 'test', f'int2name.npy'))
-    tst_int2name = [transform_utt_id(utt_id, 'train') for utt_id in tst_int2name[:, 0].tolist()]
-
-    split_by_utt_id(h5f, trn_int2name, os.path.join(save_root, 'trn.h5'))
+    tst_int2name = [transform_utt_id(utt_id, 'test') for utt_id in tst_int2name[:, 0].tolist()]
+    print('trn {} val {} and test {}'.format(len(trn_int2name), len(val_int2name), len(tst_int2name)))
+    h5f = h5py.File(all_h5_path, 'r')
     split_by_utt_id(h5f, val_int2name, os.path.join(save_root, 'val.h5'))
-    split_by_utt_id(h5f, tst_int2name, os.path.join(save_root, 'tst.h5'))
+    split_by_utt_id(h5f, tst_int2name, os.path.join(save_root, 'test.h5'))
+    split_by_utt_id(h5f, trn_int2name, os.path.join(save_root, 'train.h5'))
     
     h5f.close()
 
@@ -193,15 +183,17 @@ def split_by_utt_id(in_h5f, utt_ids, save_path):
     for utt_id in tqdm(utt_ids):
         if utt_id not in in_h5f.keys():
             out_h5f[utt_id] = np.zeros(0)
+            print('[Warning] utt {} is empty'.format(utt_id))
             continue
         tgt = in_h5f[utt_id]
+        # print('{} In all: {}'.format(utt_id, tgt['frames_idx'][0]))
         if isinstance(tgt, h5py._hl.dataset.Dataset):
             out_h5f[utt_id] = deepcopy(tgt[()])
         elif isinstance(tgt, h5py._hl.group.Group):
             _group = out_h5f.create_group(utt_id)
             for key in tgt.keys():
                 _group[key] = deepcopy(tgt[key][()])
-    
+        # print('{} In set: {}'.format(utt_id, out_h5f[utt_id]))
     out_h5f.close()
 
 def transform_utt_id(utt_id, set_name):
@@ -216,7 +208,6 @@ def get_all_utt_ids():
         utt_ids = [transform_utt_id(utt_id, set_name) for utt_id in utt_ids[:, 0].tolist()]
         ans += utt_ids
     return ans
-    
 
 if __name__ == '__main__':
     detect_type = sys.argv[1]
@@ -238,21 +229,22 @@ if __name__ == '__main__':
     # msp
     images_mean = 67.61417
     images_std = 37.89171
+    save_path = os.path.join(output_dir, name, 'all.h5')
 
-    denseface = DensefaceExtractor(mean=images_mean, std=images_std)
-    denseface.register_midlayer_hook([
-        "features.transition1.relu",
-        "features.transition2.relu"
-    ])
-    face_selector = FaceSelector()
-    extract_func = partial(extract_one_video_mid_layers, denseface_model=denseface, face_selector=face_selector)
-    save_path = os.path.join(output_dir, name, 'all.h5')
-    if detect_type == 'seetaface':
-        raise NotImplemented()
-        extract_features_h5(extract_func, get_face_dir_seetaface, utt_ids, save_path)
-    else:
-        extract_features_h5(extract_func, get_face_dir_openface, utt_ids, save_path)
-    save_path = os.path.join(output_dir, name, 'all.h5')
+    # denseface = DensefaceExtractor(mean=images_mean, std=images_std)
+    # denseface.register_midlayer_hook([
+    #     "features.transition1.relu",
+    #     "features.transition2.relu"
+    # ])
+    # face_selector = FaceSelector()
+    # extract_func = partial(extract_one_video_mid_layers, denseface_model=denseface, face_selector=face_selector)
+    # if detect_type == 'seetaface':
+    #     raise NotImplemented()
+    #     extract_features_h5(extract_func, get_face_dir_seetaface, utt_ids, save_path)
+    # else:
+    #     extract_features_h5(extract_func, get_face_dir_openface, utt_ids, save_path)
+
     split_h5(save_path, save_root=os.path.join(output_dir, name))
-    # PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=0 python extract_denseface.py openface
-    # PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=0 python extract_denseface.py seetaface
+
+# PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=0 python extract_denseface.py openface
+# PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=0 python extract_denseface.py seetaface

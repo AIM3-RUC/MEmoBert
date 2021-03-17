@@ -8,11 +8,11 @@ gpuid=$1
 pretrain_model_dir=/data7/MEmoBert/emobert/exp/mlm_pretrain/results
 output_dir=/data7/emobert/exp/finetune/onlytext
 
-for cvNo in `seq 1 10`;
+for cvNo in `seq 1 12`;
 do
-bert_data_dir=/data7/emobert/exp/evaluation/IEMOCAP/bert_data/${cvNo}
+bert_data_dir=/data7/emobert/exp/evaluation/MSP/bert_data/${cvNo}
 CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
-    --model_name_or_path  ${pretrain_model_dir}/opensub/bert_base_uncased_500w_linear_lr1e4_warm4k_bs256_acc2_4gpu/checkpoint-48820 \
+    --model_name_or_path bert-base-uncased \
     --train_file ${bert_data_dir}/trn.csv \
     --validation_file ${bert_data_dir}/val.csv \
     --test_file ${bert_data_dir}/tst.csv \
@@ -23,7 +23,7 @@ CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
     --patience 2 \
     --learning_rate 2e-5 \
     --lr_scheduler_type 'linear' \
-    --output_dir ${output_dir}/iemocap_baseon_opensub500w_pretrained_lr2e5_warm50_bs64/cv${cvNo}
+    --output_dir ${output_dir}/msp_lr2e5_warm50_bs64/cv${cvNo}
 done
 
 ## meld1. meld_lr2e5_warm50_bs64 'acc': 0.64789, 'wuar': 0.64789, 'wf1': 0.62388,

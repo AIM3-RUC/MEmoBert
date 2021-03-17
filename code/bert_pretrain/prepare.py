@@ -197,7 +197,7 @@ def prepare2msp():
             text_path = '/data7/emobert/exp/evaluation/MSP-IMPROV/refs/{}/{}_ref.json'.format(cvNo, setname)
             save_dir = '/data7/emobert/exp/evaluation/MSP-IMPROV/bert_data/{}'.format(cvNo)
             if not exists(save_dir):
-                os.mkdir(save_dir)
+                os.makedirs(save_dir)
             save_path = join(save_dir, '{}.csv'.format(setname))
             text_save_path = join(save_dir, '{}.txt'.format(setname))
             all_sents = []
@@ -210,8 +210,8 @@ def prepare2msp():
             # "Ses01F_impro06_M000": { "txt": ["I'm sorry, Joy."] "label": 3},            
             text_dict = read_json(text_path)
             for i in range(len(int2name)):
-                label = np.argmax(target[i])
-                key_id = int2name[i][0].decode('utf8')
+                label = target[i]
+                key_id = int2name[i]
                 text = text_dict[key_id]['txt'][0]
                 label2 = text_dict[key_id]['label']
                 assert label == int(label2)
@@ -243,4 +243,5 @@ if __name__ == '__main__':
     # prepare2afew_format()
     # prepare2afew_asr()
     # prepare2meld4mlm()
-    prepare2iemocap()
+    # prepare2iemocap()
+    prepare2msp()

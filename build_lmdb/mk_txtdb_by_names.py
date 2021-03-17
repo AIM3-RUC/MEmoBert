@@ -71,6 +71,8 @@ def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_sampl
     count_emo_words = 0
     _id = 0
     for segmentId, value in tqdm(contents.items(), desc='building txtdb', total=len(contents.keys())):
+        if 'meld' in dataset_name:
+            segmentId = segmentId.replace('/', '-')
         img_fname = segmentId + '.npz'
         if filter_dict is not None and filter_dict.get(img_fname) is None:
             print('some thing wrong~~~ {}'.format(img_fname))

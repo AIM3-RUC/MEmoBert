@@ -4,14 +4,14 @@ export PYTHONPATH=/data7/MEmoBert
 
 result_dir=/data7/MEmoBert/emobert/exp/mlm_pretrain/results
 
-for cvNo in `seq 2 10`;
+for cvNo in `seq 1 12`;
 do
 bert_data_dir=/data7/emobert/exp/evaluation/IEMOCAP/bert_data/${cvNo}
 CUDA_VISIBLE_DEVICES=6,7 python run_mlm.py \
     --model_name_or_path bert-base-uncased \
     --do_train --do_eval \
-    --train_file /data7/MEmoBert/emobert/exp/evaluation/IEMOCAP/bert_data/${cvNo}/trn.txt \
-    --validation_file /data7/MEmoBert/emobert/exp/evaluation/IEMOCAP/bert_data/${cvNo}/val.txt \
+    --train_file /data7/MEmoBert/emobert/exp/evaluation/MSP-IMPROV/bert_data/${cvNo}/trn.txt \
+    --validation_file /data7/MEmoBert/emobert/exp/evaluation/MSP-IMPROV/bert_data/${cvNo}/val.txt \
     --line_by_line \
     --max_seq_length 50 --per_device_train_batch_size 64 \
     --per_device_eval_batch_size 64 \
@@ -23,7 +23,7 @@ CUDA_VISIBLE_DEVICES=6,7 python run_mlm.py \
     --load_best_model_at_end true \
     --lr_scheduler_type 'linear' \
     --report_to 'tensorboard' \
-    --output_dir ${result_dir}/iemocap/${cvNo}/bert_base_uncased_2e5_epoch10_bs64
+    --output_dir ${result_dir}/msp/${cvNo}/bert_base_uncased_2e5_epoch10_bs64
 done
 
 ##for opensubtile 1000w

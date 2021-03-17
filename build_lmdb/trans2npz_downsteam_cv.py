@@ -9,29 +9,24 @@ import json
 然后可以共同维护一个 img_db, 通过不同的 txt_db 进行索引.
 '''
 
-root_dir = '/data7/emobert/exp/evaluation/MSP-IMPROV/'
+corpus_name = 'IEMOCAP'
+root_dir = f'/data7/emobert/exp/evaluation/{corpus_name}/'
 feature_dir = root_dir + 'feature/denseface_openface_msp_mean_std_torch/'
 IMD_DIM=342
 npyz_dir = feature_dir + '/ft_npzs/fc'
-img_db_dir = feature_dir + '/img_db/fc'
 if not os.path.exists(npyz_dir):
     os.makedirs(npyz_dir)
-if not os.path.exists(img_db_dir):
-    os.makedirs(img_db_dir)
 
-h5_fts_path = feature_dir + '/1/{}.h5'
-target_path = '/data7/emobert/exp/evaluation/MSP-IMPROV/refs/1/{}_ref.json'
+h5_fts_path = feature_dir + '{}.h5'
+target_path = f'/data7/emobert/exp/evaluation/{corpus_name}/refs/1/{}_ref.json'
 empty_video = 0
 total_video = 0
 
 '''
-ref fromat:
-{
-    'segmentId': {'label': 1}
-}
+ref fromat:{'segmentId': {'label': 1}}
 '''
 
-for setname in ['trn', 'val', 'tst']:
+for setname in ['train', 'val', 'tst']:
     target = json.load(open(target_path.format(setname)))
     data = h5py.File(h5_fts_path.format(setname))
     segment_ids = list(data.keys())
