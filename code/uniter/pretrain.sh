@@ -1,25 +1,35 @@
-export PYTHONPATH=/data7/MEmoBert
+export PYTHONPATH=/data4/MEmoBert
 
-# CUDA_VISIBLE_DEVICES=0,1,2,3 horovodrun -np 4 python pretrain.py \
-#         --config config/pretrain-movies-v1v2v3-base-2gpu_3tasks.json \
-#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter_3tasks_faceth0.1_new_5e5_wd.01 \
-#         --learning_rate 5e-05 --weight_decay 0.01 
+# CUDA_VISIBLE_DEVICES=0 horovodrun -np 1 python pretrain.py \
+#         --config config/pretrain-movies-v1v2-base-2gpu_4tasks.json \
+#         --output_dir /data4/emobert/exp/pretrain/nomask_movies_v1v2_uniter_4tasks_lr5e5_bs1024_faceth0.5 \
+#         --learning_rate 5e-05 --gradient_accumulation_steps 2 \
+#         --train_batch_size 512 
 
-# CUDA_VISIBLE_DEVICES=0,1 horovodrun -np 2 python pretrain.py \
-#         --config config/pretrain-movies-v1v2v3-base-2gpu_3tasks.json \
-#         --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter_3tasks_faceth0.1_new_5e5_wd.01/ckpt/model_step_4000.pt \
-#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter_3tasks_faceth0.1_new_5e5_wd.01_continue_4k_fix5e5 \
-#         --checkpoint_step 4000 --lr_sched_type fixed \
-#         --learning_rate 5e-05 --weight_decay 0.01
+# CUDA_VISIBLE_DEVICES=4 horovodrun -np 1 python pretrain.py \
+#         --config config/pretrain-movies-v1v2-base-2gpu_4tasks_melm.json \
+#         --melm_prob 0.5 --model_config config/uniter-base-emoword_multitask.json \
+#         --output_dir /data4/emobert/exp/pretrain/nomask_movies_v1v2_uniter_4tasks_lr5e5_bs1024_faceth0.5_mlt-melm5 \
+#         --learning_rate 5e-05 --gradient_accumulation_steps 2 \
+#         --train_batch_size 512 
 
-CUDA_VISIBLE_DEVICES=2,3 horovodrun -np 2 python pretrain.py \
-        --config config/pretrain-movies-v1v2v3-base-2gpu_3tasks.json \
-        --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter_3tasks_faceth0.1_new_5e5_wd.01/ckpt/model_step_16000.pt \
-        --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter_3tasks_faceth0.1_new_5e5_wd.01_continue_16k_fix1e5 \
-        --checkpoint_step 16000 --lr_sched_type fixed \
-        --learning_rate 1e-05 --weight_decay 0.01
+# CUDA_VISIBLE_DEVICES=1 horovodrun -np 1 python pretrain.py \
+#         --config config/pretrain-movies-v1v2-base-2gpu_3tasks.json \
+#         --checkpoint /data4/emobert/resources/pretrained/uniter-base-uncased-init.pt \
+#         --output_dir /data4/emobert/exp/pretrain/nomask_movies_v1v2_uniter_3tasks_lr5e5_bs1024_faceth0.5 \
+#         --learning_rate 5e-05 --gradient_accumulation_steps 2 \
+#         --train_batch_size 512 
 
-# CUDA_VISIBLE_DEVICES=4,5,6,7 horovodrun -np 4 python pretrain.py \
-#         --config config/pretrain-movies-v1v2v3-base-2gpu_3tasks.json \
-#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter_3tasks_faceth0.1_new_1e4_wd.001 \
-#         --learning_rate 1e-04 --weight_decay 0.001
+CUDA_VISIBLE_DEVICES=5 horovodrun -np 1 python pretrain.py \
+        --config config/pretrain-movies-v1v2-base-2gpu_3tasks_melm.json \
+        --melm_prob 0.5 --model_config config/uniter-base-emoword_multitask.json \
+        --output_dir /data4/emobert/exp/pretrain/nomask_movies_v1v2_uniter_3tasks_lr5e5_bs1024_faceth0.5_mlt-melm5 \
+        --learning_rate 5e-05 --gradient_accumulation_steps 2 \
+        --train_batch_size 512 
+
+# CUDA_VISIBLE_DEVICES=2 horovodrun -np 1 python pretrain.py \
+#         --config config/pretrain-movies-v1v2-base-2gpu_2tasks.json \
+#         --checkpoint /data4/emobert/resources/pretrained/uniter-base-uncased-init.pt \
+#         --output_dir /data4/emobert/exp/pretrain/nomask_movies_v1v2_uniter_2tasks_lr5e5_bs1024_faceth0.5 \
+#         --learning_rate 5e-05 --gradient_accumulation_steps 2 \
+#         --train_batch_size 512 
