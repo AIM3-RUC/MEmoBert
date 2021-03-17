@@ -9,8 +9,10 @@
   "num_attention_heads": 12,
   "num_hidden_layers": 12,
   "type_vocab_size": 2,
+  "use_emo_type_emb": false,
   "melm_type_emo_size": 4,
   "melm_multitask": true,
   "melm_multitask_rate": 1.0,
+  "melm_emo_category_size": 4,
   "vocab_size": 30522
 }

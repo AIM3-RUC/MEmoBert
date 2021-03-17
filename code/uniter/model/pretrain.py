@@ -77,7 +77,7 @@ class UniterForPretraining(UniterPreTrainedModel):
         if config.melm_multitask is True:
             print("Use the melm multitask")
             self.emomelm_classifier = EmoMelmClassification(
-                config.hidden_size, config.melm_type_emo_size
+                config.hidden_size, config.melm_emo_category_size
             )
         self.itm_output = nn.Linear(config.hidden_size, 2)
         self.apply(self.init_weights)

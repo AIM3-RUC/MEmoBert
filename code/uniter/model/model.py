@@ -215,6 +215,9 @@ class UniterPreTrainedModel(nn.Module):
 class UniterTextEmbeddings(nn.Module):
     def __init__(self, config):
         super().__init__()
+
+        self.config = config
+
         self.word_embeddings = nn.Embedding(config.vocab_size,
                                             config.hidden_size, padding_idx=0)
         # build position vocab embeddings = 512
@@ -223,13 +226,11 @@ class UniterTextEmbeddings(nn.Module):
         self.token_type_embeddings = nn.Embedding(config.type_vocab_size,
                                                   config.hidden_size)
         ## add by jinming: add another emotion word type embedding
-        try:
-            if config.melm_type_emo_size:
-                print("initialize the emo type embeddings!!!")
-                self.emo_type_embeddings = nn.Embedding(config.melm_type_emo_size,
-                                                        config.hidden_size)
-        except:
-            print("[Warning] Donot use emo type embeddings")
+        if self.config.use_emo_type_emb:
+            print("initialize the emo type embeddings!!!")
+            self.emo_type_embeddings = nn.Embedding(config.melm_type_emo_size,
+                                                    config.hidden_size)
+        print("[Warning] Donot use emo type embeddings add to input")
         # self.LayerNorm is not snake-cased to stick with TensorFlow model
         # variable name and be able to load any TensorFlow checkpoint file
         self.LayerNorm = FusedLayerNorm(config.hidden_size, eps=1e-12)
@@ -251,8 +252,8 @@ class UniterTextEmbeddings(nn.Module):
                       + token_type_embeddings)
 
         ## Jinming: add another emotion word type embedding
-        if emo_type_ids is not None:
-            # print('[Debug] verify the emo type embeddig is work or not')
+        if self.config.use_emo_type_emb and emo_type_ids is not None:
+            # print('[Debug] add the emo type embeddings!!!')
             emo_type_embeddings = self.emo_type_embeddings(emo_type_ids)
             embeddings = embeddings + emo_type_embeddings
     
