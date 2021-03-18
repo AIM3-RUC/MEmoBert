@@ -5,7 +5,7 @@ dropout=0.1
 
 corpus_name='iemocap'
 corpus_name_big='IEMOCAP'
-for cvNo in `seq 1 5`;
+for cvNo in `seq 1 10`;
 do
 CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
         --cvNo ${cvNo} --model_config config/uniter-base-emoword_multitask.json \
