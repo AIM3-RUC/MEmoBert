@@ -122,6 +122,13 @@ https://github.com/NVIDIA/apex/issues/318
 [1,0]<stdout>:torch.Size([120, 2642]) # 突然蹦出个这么大的数据来。
 验证的时候没有去掉长度大于max-len的句子。
 
+6. 当将face的threshold=0.5之后，会有空的数据，就会报错 :RuntimeError: invalid device pointer: %p0
+判断是文本和图像都没有导致的错误还是只是单纯的图像没有导致的错误。然后添加相应的处理机制～
+[1,0]<stdout>:[Debug empty] txt 9 img 0 的时候会报错，添加异常处理机制～
+/data4/MEmoBert/code/uniter/data/emocls.py
+
+
+
 ## 修改记录
 1. 由于Faces之间也是有顺序的，所以需要进行 name2nbb 简单的取多少个，而是应该根据阈值过滤相应位置的数据, 重写数据获取的代码,
 不用，因为构建img-db的时候已经过滤了，所有 img2nbb的个数跟保存的特征是一致的.

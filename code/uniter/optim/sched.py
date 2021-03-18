@@ -38,7 +38,7 @@ def vqa_schedule(step, warmup_interval, decay_interval,
 
 def get_lr_sched(global_step, sched_type, opts):
     # learning rate scheduling
-    if sched_type == 'linear_decay':
+    if sched_type == 'linear':
         lr_this_step = get_lr_sched_linear_decay(global_step, opts.learning_rate, 
                         opts.warmup_steps, opts.num_train_steps)
     elif sched_type == 'fixed':
@@ -49,7 +49,7 @@ def get_lr_sched(global_step, sched_type, opts):
     return lr_this_step
 
 def get_backbone_lr_sched(global_step, sched_type, opts):
-    if sched_type == 'linear_decay':
+    if sched_type == 'linear':
         lr_this_step = get_lr_sched_linear_decay(global_step, opts.backbone_learning_rate, 
                         opts.backbone_warmup_steps, opts.num_train_steps)
     elif sched_type == 'fixed':

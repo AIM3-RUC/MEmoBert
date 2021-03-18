@@ -213,10 +213,15 @@ class DetectFeatTxtTokDataset(Dataset):
         example = self.txt_db[id_]
         return example
 
-    def _get_img_feat(self, fname):
+    def _get_img_feat(self, fname, img_shape):
         # Jinimng: remove the norm-bbx features 
         img_feat = self.img_db[fname]
         num_bb = img_feat.size(0)
+        if num_bb == 0:
+            # print('[Warn] current {} is empty img info!!!\n'.format(fname))
+            img_feat = torch.zeros(img_shape).unsqueeze(0)
+            num_bb = 1
+        # print('[Info] img_feat shape {}'.format(img_feat.shape))
         return img_feat, num_bb
 
 
