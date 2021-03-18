@@ -592,7 +592,7 @@ if __name__ == "__main__":
     parser.add_argument("--is_reinit_lr", action='store_true',
                         help="Note: use with warmup_steps=0, when continue train and lr is reinit or not!")
     parser.add_argument("--lr_sched_type", default='linear_decay',
-                        help="[fixed, linear_decay]")
+                        help="[fixed, linear]")
     parser.add_argument(
         "--output_dir", default=None, type=str,
         help="The output directory where the model checkpoints will be "

@@ -22,7 +22,7 @@ from tqdm import tqdm
 from  code.uniter.data import (PrefetchLoader, TxtTokLmdb, ImageLmdbGroup, EmoCLsDataset,
                                 emocls_collate)
 from code.uniter.model.emocls import UniterForEmoRecognition, evaluation
-from code.uniter.optim import get_lr_sched_fix
+from code.uniter.optim import get_lr_sched
 from code.uniter.optim.misc import build_optimizer
 from code.uniter.utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
 from code.uniter.utils.distributed import (all_reduce_and_rescale_tensors, broadcast_tensors)
@@ -132,7 +132,7 @@ def main(opts):
 
     global_step = 0
     n_examples = 0
-    best_eval_UA = 0
+    best_eval_WA = 0
     best_eval_step = 0
     steps2test_results = {}
     steps2val_results = {}
@@ -166,7 +166,7 @@ def main(opts):
             if (step + 1) % opts.gradient_accumulation_steps == 0:
                 global_step += 1
                 # learning rate scheduling
-                lr_this_step = get_lr_sched_fix(global_step, opts)
+                lr_this_step = get_lr_sched(global_step, opts.lr_sched_type, opts)
                 for param_group in optimizer.param_groups:
                     param_group['lr'] = lr_this_step
                 TB_LOGGER.add_scalar('lr', lr_this_step, global_step)
@@ -196,19 +196,21 @@ def main(opts):
                         {f"valid/{k}": v for k, v in val_log.items()})
                     LOGGER.info(f"[Validation] Loss: {val_log['loss']:.2f},"
                                 f"\t WA: {val_log['WA']*100:.2f},"
+                                f"\t WF1: {val_log['WF1']*100:.2f},"
                                 f"\t UA: {val_log['UA']*100:.2f},\n")
                     test_log = evaluation(model, test_dataloader)
                     TB_LOGGER.log_scaler_dict(
                         {f"test/{k}": v for k, v in test_log.items()})
                     LOGGER.info(f"[Testing] Loss: {test_log['loss']:.2f},"
                                 f"\t WA: {test_log['WA']*100:.2f},"
+                                f"\t WF1: {val_log['WF1']*100:.2f},"
                                 f"\t UA: {test_log['UA']*100:.2f},\n")
                     steps2val_results[global_step] = val_log
                     steps2test_results[global_step] = test_log
                     # update the current best model based on validation results
-                    if val_log['UA'] > best_eval_UA:
+                    if val_log['WA'] > best_eval_WA:
                         best_eval_step = global_step
-                        best_eval_UA = val_log['UA']
+                        best_eval_WA = val_log['WA']
                         patience = opts.patience
                         LOGGER.info('Save model at {} global step'.format(global_step))
                         model_saver.save(model, global_step)
@@ -224,7 +226,8 @@ def main(opts):
     pbar.close()
     LOGGER.info(f"finished {opts.num_train_steps} steps in {time()- start} seconds!")
     ### final use the best model tested on validation set.
-    LOGGER.info('Val: Best eval steps {} found with UA {}'.format(best_eval_step,  best_eval_UA))
+    LOGGER.info('Val: Best eval steps {} found with WA {}'.format(best_eval_step,  best_eval_WA))
+    LOGGER.info('Val: {}'.format(steps2val_results[best_eval_step]))
     LOGGER.info('Test: {}'.format(steps2test_results[best_eval_step]))
     steps2val_results['beststep'] = best_eval_step
     json.dump(steps2test_results, open(join(opts.output_dir, 'log', 'step2test_reuslts.json'),'w',encoding='utf-8'))
@@ -249,7 +252,7 @@ def write_result_to_tsv(file_path, tst_log, cvNo):
     content = f_in.readlines()
     if len(content) != 12:
         content += ['\n'] * (12-len(content))
-    content[cvNo-1] = 'CV{}\t{:.4f}\t{:.4f}\t{:.4f}\n'.format(cvNo, tst_log['WA'], tst_log['UA'], tst_log['F1'])
+    content[cvNo-1] = 'CV{}\t{:.4f}\t{:.4f}\t{:.4f}\t{:.4f}\n'.format(cvNo, tst_log['WA'], tst_log['WF1'], tst_log['UA'], tst_log['F1'])
     f_out = open(file_path, 'w')
     f_out.writelines(content)
     f_out.close()
@@ -261,6 +264,8 @@ if __name__ == "__main__":
     # Required parameters
     parser.add_argument('--compressed_db', action='store_true',
                         help='use compressed LMDB')
+    parser.add_argument("--model_config", type=str,
+                        help="path to model structure config json")
     parser.add_argument("--checkpoint",
                         default=None, type=str,
                         help="pretrained MLM")
@@ -323,7 +328,8 @@ if __name__ == "__main__":
                              "learning rate warmup for.")
     parser.add_argument("--patience", default=5, type=int,
                         help="Early stop patience")
-
+    parser.add_argument("--lr_sched_type", default='linear_decay',
+                        help="[fixed, linear]")
     # device parameters
     parser.add_argument('--seed', type=int, default=42,
                         help="random seed for initialization")
