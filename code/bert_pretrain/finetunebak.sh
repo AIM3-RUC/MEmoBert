@@ -16,7 +16,7 @@ CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
     --train_file ${bert_data_dir}/trn.csv \
     --validation_file ${bert_data_dir}/val.csv \
     --test_file ${bert_data_dir}/tst.csv \
-    --max_length 68 \
+    --max_length 50 \
     --per_device_train_batch_size 32 \
     --per_device_eval_batch_size 32 \
     --num_train_epochs 6 \

@@ -17,6 +17,7 @@ class EmoCLsDataset(DetectFeatTxtTokDataset):
         assert isinstance(txt_db, TxtTokLmdb)
         assert isinstance(img_db, DetectFeatLmdb)
         super().__init__(txt_db, img_db)
+        self.img_shape = None
 
     def __getitem__(self, i):
         """
@@ -44,9 +45,11 @@ class EmoCLsDataset(DetectFeatTxtTokDataset):
             emo_type_ids = None
 
         # img input Jinming remove the norm-bbx fts
-        img_feat, num_bb = self._get_img_feat(example['img_fname'])
+        img_feat, num_bb = self._get_img_feat(example['img_fname'], self.img_shape)
+        self.img_shape = img_feat.shape[1:]  
         attn_masks = torch.ones(len(input_ids) + num_bb, dtype=torch.long)
 
+        # print("[Debug empty] txt {} img {}".format(len(input_ids), num_bb))
         return input_ids, img_feat, attn_masks, target, emo_type_ids
 
 def emocls_collate(inputs):
