@@ -3,6 +3,7 @@ Copyright (c) Microsoft Corporation.
 Licensed under the MIT license.
 
 sampler for length bucketing (batch by tokens)
+Jinming Update: the batch-size is the real batch-szie, not the max-token
 """
 import random
 

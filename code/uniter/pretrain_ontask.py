@@ -388,30 +388,14 @@ def validate_mlm(model, val_loader):
     n_correct = 0
     n_word = 0
     st = time()
-    # for manually verification 
-    # total_labels_words = []
-    # total_predict_words = []
-    # real_mask_words = 0
     for i, batch in enumerate(val_loader):
         scores = model(batch, task='mlm', compute_loss=False)
         labels = batch['txt_labels']
         labels = labels[labels != -1]
         loss = F.cross_entropy(scores, labels, reduction='sum')
         val_loss += loss.item()
-        # scores.max(dim=-1) return (max-values, max-value-indexs)
         n_correct += (scores.max(dim=-1)[1] == labels).sum().item()
         n_word += labels.numel()
-        ### Jinming add for manaual evaluation
-        # print("[Debug] batch {} Manaual Evaualtion".format(i))
-        # print("\tinput ids {}".format(batch['input_ids'][:5]))
-        # real_mask_words += len(batch['input_ids'][batch['input_ids']==103])
-        # total_labels_words.append(labels)
-        # total_predict_words.append(scores.max(dim=-1)[1])
-    # total_labels_words = torch.cat(total_labels_words).detach().cpu().numpy()
-    # total_predict_words = torch.cat(total_predict_words).detach().cpu().numpy()
-    # print(total_labels_words.shape, total_predict_words.shape, real_mask_words)
-    # np.save('val2000_lable_words.npy', total_labels_words)
-    # np.save('val2000_predict_words.npy', total_predict_words)
     val_loss = sum(all_gather_list(val_loss))
     n_correct = sum(all_gather_list(n_correct))
     n_word = sum(all_gather_list(n_word))

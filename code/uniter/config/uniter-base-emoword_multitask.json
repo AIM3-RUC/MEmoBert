@@ -11,7 +11,7 @@
   "type_vocab_size": 2,
   "melm_type_emo_size": 4,
   "use_emo_type_emb": false,
-  "melm_multitask": false,
+  "melm_multitask": true,
   "melm_multitask_rate": 1.0,
   "melm_emo_category_size": 4,
   "vocab_size": 30522
