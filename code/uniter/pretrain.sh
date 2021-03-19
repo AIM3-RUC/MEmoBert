@@ -39,5 +39,5 @@ CUDA_VISIBLE_DEVICES=6 horovodrun -np 1 python pretrain.py \
         --checkpoint /data4/emobert/resources/pretrained/uniter-base-uncased-init.pt \
         --melm_prob 0.5 --model_config config/uniter-base-emoword_multitask.json \
         --output_dir /data4/emobert/exp/pretrain/nomask_movies_v1v2_uniter_2tasks_lr5e5_bs1024_faceth0.5_mlt-melm5 \
-        --learning_rate 5e-05 --gradient_accumulation_steps 2 \
+        --learning_rate 2e-5 --lr_sched_type 'linear' --conf_th 0.0 --max_bb 36 \
         --train_batch_size 512 

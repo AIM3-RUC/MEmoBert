@@ -6,18 +6,18 @@
     "itm_neg_prob": 0.5,
     "itm_ot_lambda": 0.1,
     "max_txt_len": 30,
-    "conf_th": 0.1,
+    "conf_th": 0.0,
     "max_bb": 64,
     "min_bb": 10,
     "num_bb": 36,
-    "IMG_DIM":342,
-    "train_batch_size": 9000,
-    "val_batch_size": 9000,
-    "gradient_accumulation_steps": 1,
+    "IMG_DIM": 342,
+    "train_batch_size": 64,
+    "val_batch_size": 64,
+    "gradient_accumulation_steps": 2,
     "learning_rate": 5e-05,
-    "valid_steps": 100,
-    "warmup_steps": 50,
-    "num_train_steps": 1000,
+    "valid_steps": 50,
+    "warmup_steps": 0,
+    "num_train_steps": 500,
     "optim": "adamw",
     "betas": [
         0.9,
@@ -34,19 +34,21 @@
         {
             "name": "iemocap_trn",
             "db": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/trn.db"
+                "/data4/emobert/exp/evaluation/IEMOCAP/txt_db/{}/trn_emowords_emotype.db"
             ],
             "img": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc"
+                "/data4/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/"
             ],
             "tasks": [
+                "mrckl",
                 "itm",
                 "mlm",
                 "mrfr"
             ],
             "mix_ratio": [
-                2,
-                2,
+                1,
+                1,
+                1,
                 1
             ]
         }
@@ -55,12 +57,13 @@
         {
             "name": "iemocap_val",
             "db": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val.db"            
+                "/data4/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val_emowords_emotype.db"
             ],
             "img": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc"
+                "/data4/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/"
             ],
             "tasks": [
+                "mrckl",
                 "itm",
                 "mlm",
                 "mrfr"           
@@ -69,15 +72,16 @@
         {
             "name": "iemocap_tst",
             "db": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst.db"            
+                "/data4/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst_emowords_emotype.db"
             ],
             "img": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc"
+                "/data4/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/"
             ],
             "tasks": [
+                "mrckl",
                 "itm",
                 "mlm",
-                "mrfr"            
+                "mrfr"           
             ]
         }
     ]
