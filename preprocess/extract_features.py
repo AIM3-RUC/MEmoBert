@@ -109,7 +109,7 @@ if __name__ == '__main__':
     part_no, total = eval(sys.argv[2]), eval(sys.argv[3])
 
     extact_face_features = True
-    extact_audio_features = True
+    extact_audio_features = False
 
     transcripts_dir = path_config.transcript_json_dir
     video_clip_dir = path_config.video_clip_dir
@@ -157,6 +157,7 @@ if __name__ == '__main__':
         utt_ids = list(map(lambda x: x.strip(), utt_ids))
         if len(utt_ids) == 0:
             continue
+        
         if extact_face_features:
             print("[INFO] Extracing denseface features!")
             save_path = os.path.join(feature_dir, f'{utt_file_name}_denseface_with_trans.h5')
@@ -170,4 +171,5 @@ if __name__ == '__main__':
 
         ## for extracting ComparE feature 
         if extact_audio_features:
+            print("[INFO] Extracing ComparE Audio features!")
             pass

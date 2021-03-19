@@ -36,11 +36,11 @@ export PYTHONPATH=/data7/MEmoBert
 #                 --num_samples 5000 --use_emo --use_emo_type emo4
 
 # for iemocap
-# for i in `seq 2 10`; do
+# for i in `seq 1 10`; do
 #   for setname in val tst trn; do
 #     python mk_txtdb_by_names.py --input /data7/emobert/exp/evaluation/IEMOCAP/refs/${i}/${setname}_ref.json \
-#                     --output /data7/emobert/exp/evaluation/IEMOCAP/txt_db/${i}/${setname}_emo4.db \
-#                     --toker bert-base-uncased  --dataset_name ${setname} \
+#                     --output /data7/emobert/exp/evaluation/IEMOCAP/txt_db/${i}/${setname}_emowords_emotype.db \
+#                     --toker bert-base-uncased  --dataset_name iemocap_${setname} \
 #                     --use_emo --use_emo_type 'emo4'
 #   done
 # done
@@ -49,8 +49,8 @@ export PYTHONPATH=/data7/MEmoBert
 # for i in `seq 1 12`; do
 #   for setname in val tst trn; do
 #     python mk_txtdb_by_names.py --input /data7/emobert/exp/evaluation/MSP/refs/${i}/${setname}_ref.json \
-#                     --output /data7/emobert/exp/evaluation/MSP/txt_db/${i}/${setname}_emo4.db \
-#                     --toker bert-base-uncased  --dataset_name ${setname} \
+#                     --output /data7/emobert/exp/evaluation/MSP/txt_db/${i}/${setname}_emowords_emotype.db \
+#                     --toker bert-base-uncased  --dataset_name msp_${setname} \
 #                      --use_emo --use_emo_type 'emo4'
 #   done
 # done

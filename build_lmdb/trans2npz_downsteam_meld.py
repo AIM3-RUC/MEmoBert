@@ -18,7 +18,7 @@ a['val']['dia0_utt0']['img_data'][1] = (112, 112, 3)
 '''
 
 corpus_name = 'MELD'
-num_cls = 7
+num_cls = 8 # 用于 MRC-KL 任务，所以跟denseface训练的保持一致，是8类
 root_dir = f'/data7/emobert/exp/evaluation/{corpus_name}/'
 feature_dir = root_dir + 'feature/denseface_openface_meld_mean_std_torch/'
 IMD_DIM=342

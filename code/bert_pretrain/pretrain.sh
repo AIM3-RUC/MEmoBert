@@ -61,3 +61,8 @@ done
     # cv8 model = ${result_dir}/iemocap/8/bert_base_uncased_2e5_epoch10_bs64/checkpoint-180 eval-loss 1.548
     # cv9 model = ${result_dir}/iemocap/9/bert_base_uncased_2e5_epoch10_bs64/checkpoint-153 eval-loss 1.59
     # cv10 model = ${result_dir}/iemocap/10/bert_base_uncased_2e5_epoch10_bs64/checkpoint-153 eval-loss 1.56
+
+##for msp pretrain
+#  1-4 7-8:${result_dir}/msp/${cvNo}/bert_base_uncased_2e5_epoch10_bs64/checkpoint-130
+#  5-6 9-10:${result_dir}/msp/${cvNo}/bert_base_uncased_2e5_epoch10_bs64/checkpoint-120
+#  11 12:${result_dir}/msp/${cvNo}/bert_base_uncased_2e5_epoch10_bs64/checkpoint-110

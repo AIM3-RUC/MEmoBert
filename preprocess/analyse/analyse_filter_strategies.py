@@ -22,10 +22,10 @@ ori_info_dir = '/data7/emobert/data_nomask_new/transcripts/json'
 meta_data_dir = '/data7/emobert/data_nomask_new/meta'
 # modify the below info
 exists_movie_names_path = ['/data7/emobert/data_nomask_new/movies_v1/movie_names.npy', 
-    '/data7/emobert/data_nomask_new/movies_v3/movie_names.npy']
-feature_dir = '/data7/emobert/denseface_feature_nomask_torch/movies_v2'
-fileter_details_path = '/data7/emobert/data_nomask_new/analyse/fileter_details_movies_v2.txt'
-movie_names_path = '/data7/emobert/data_nomask_new/movies_v2/movie_names.npy'
+    '/data7/emobert/data_nomask_new/movies_v2/movie_names.npy']
+feature_dir = '/data7/emobert/denseface_feature_nomask_torch/movies_v3'
+fileter_details_path = '/data7/emobert/data_nomask_new/analyse/fileter_details_movies_v3.txt'
+movie_names_path = '/data7/emobert/data_nomask_new/movies_v3/movie_names.npy'
 
 total_lines = 0 
 final_lines = 0

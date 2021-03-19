@@ -159,7 +159,7 @@ def extract_one_video_mid_layers(video_dir, denseface_model, face_selector):
 
 def get_face_dir_openface(utt_id):
     # Ses01F_impro06_F002
-    root = '/data7/MEmoBert/evaluation/MELD/faces'
+    root = '/data7/emobert/exp/evaluation/MELD/faces/'
     return os.path.join(root, utt_id)
 
 def split_h5(all_h5_path, save_root='feature/denseface'):
@@ -201,7 +201,7 @@ def transform_utt_id(utt_id, set_name):
     return f'{set_name}/dia{dia_num}_utt{utt_num}'
 
 def get_all_utt_ids():
-    target_root = '/data7/MEmoBert/evaluation/MELD/target'
+    target_root = '/data7/emobert/exp/evaluation/MELD/target'
     ans = []
     for set_name in ['train', 'val', 'test']:
         utt_ids = np.load(os.path.join(target_root, set_name, f'int2name.npy'))
@@ -211,7 +211,7 @@ def get_all_utt_ids():
 
 if __name__ == '__main__':
     detect_type = sys.argv[1]
-    output_dir = '/data7/MEmoBert/evaluation/MELD/feature'
+    output_dir = '/data7/emobert/exp/evaluation/MELD/feature'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     
