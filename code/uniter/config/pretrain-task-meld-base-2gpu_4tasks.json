@@ -34,10 +34,10 @@
         {
             "name": "meld_trn",
             "db": [
-                "/data4/emobert/exp/evaluation/MELD/txt_db/{}/train_emowords_emotype.db"
+                "/data7/emobert/exp/evaluation/MELD/txt_db/{}/train_emowords_emotype.db"
             ],
             "img": [
-                "/data4/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/img_db/fc/"
+                "/data7/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/img_db/fc/"
             ],
             "tasks": [
                 "mrckl",
@@ -57,10 +57,10 @@
         {
             "name": "meld_val",
             "db": [
-                "/data4/emobert/exp/evaluation/MELD/txt_db/{}/val_emowords_emotype.db"
+                "/data7/emobert/exp/evaluation/MELD/txt_db/{}/val_emowords_emotype.db"
             ],
             "img": [
-                "/data4/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/img_db/fc/"
+                "/data7/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/img_db/fc/"
             ],
             "tasks": [
                 "mrckl",
@@ -72,10 +72,10 @@
         {
             "name": "meld_tst",
             "db": [
-                "/data4/emobert/exp/evaluation/MELD/txt_db/{}/test_emowords_emotype.db"
+                "/data7/emobert/exp/evaluation/MELD/txt_db/{}/test_emowords_emotype.db"
             ],
             "img": [
-                "/data4/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/img_db/fc/"
+                "/data7/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/img_db/fc/"
             ],
             "tasks": [
                 "mrckl",

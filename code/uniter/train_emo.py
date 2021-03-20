@@ -281,6 +281,8 @@ if __name__ == "__main__":
                         help="tune dropout regularization of final classification layer")
     parser.add_argument("--cls_type", default='vqa',
                         help="for the type of the classfier layer")
+    parser.add_argument("--cls_num", default=4, type=int,
+                        help="number classes of the downstream tasks")
     parser.add_argument('--postfix', required=True, default='None',
                         help='postfix for the output dir')
     # Prepro parameters

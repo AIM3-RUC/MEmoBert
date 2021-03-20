@@ -54,6 +54,7 @@ class MlmDataset(DetectFeatTxtTokDataset):
     def __init__(self, txt_db, img_db):
         assert isinstance(txt_db, TxtTokLmdb)
         super().__init__(txt_db, img_db)
+        self.img_shape = None
 
     def __getitem__(self, i):
         """
@@ -70,7 +71,9 @@ class MlmDataset(DetectFeatTxtTokDataset):
         input_ids, txt_labels = self.create_mlm_io(example['input_ids'])
 
         # img input Jinming remove the norm-bbx fts
-        img_feat, num_bb = self._get_img_feat(example['img_fname'])
+        img_feat, num_bb = self._get_img_feat(example['img_fname'], self.img_shape)
+        self.img_shape = img_feat.shape[1:]
+
         attn_masks = torch.ones(len(input_ids) + num_bb, dtype=torch.long)
 
         return input_ids, img_feat, attn_masks, txt_labels

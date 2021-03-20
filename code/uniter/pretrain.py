@@ -268,9 +268,9 @@ def main(opts):
     optimizer.zero_grad()
     optimizer.step()
     for step, (name, batch) in enumerate(meta_loader):
-        if global_step == 0:
-            LOGGER.info(f'Fisrt Step for init validation')
-            validate(model, val_dataloaders)
+        # if global_step == 0:
+        #     LOGGER.info(f'Fisrt Step for init validation')
+        #     validate(model, val_dataloaders)
         # forward pass
         n_examples[name] += batch['input_ids'].size(0)
         n_in_units[name] += (batch['attn_masks'] == 1).sum().item()
@@ -598,6 +598,9 @@ if __name__ == "__main__":
         help="The output directory where the model checkpoints will be "
              "written.")
 
+    parser.add_argument('--cvNo', type=int, required=True, default=0,
+                        help='which cross-valiation folder, \
+                        if cvNo=0, then donot use th cross-validation')
     parser.add_argument('--melm_prob', default=0.5, type=float,
                         help='probability to mask in MELM training')
     # traditional task
@@ -669,6 +672,13 @@ if __name__ == "__main__":
     parser.add_argument('--config', required=True, help='JSON config files')
 
     args = parse_with_config(parser)
+
+    if args.cvNo > 0:
+        print('[Info] For Cross-Validation and redefine the train_datasets and val_datasets')
+        for i in range(len(args.train_datasets)):
+            args.train_datasets[i]['db'][0] = args.train_datasets[i]['db'][0].format(args.cvNo)
+        for i in range(len(args.val_datasets)):
+            args.val_datasets[i]['db'][0] = args.val_datasets[i]['db'][0].format(args.cvNo)
 
     IMG_DIM = args.IMG_DIM
     # options safe guard

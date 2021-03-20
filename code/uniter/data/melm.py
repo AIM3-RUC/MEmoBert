@@ -61,6 +61,7 @@ class MelmDataset(DetectFeatTxtTokDataset):
         assert isinstance(txt_db, TxtTokLmdb)
         super().__init__(txt_db, img_db)
         self.melm_prob = mask_prob
+        self.img_shape = None
 
     def __getitem__(self, i):
         """
@@ -91,7 +92,8 @@ class MelmDataset(DetectFeatTxtTokDataset):
             txt_emo_labels = None
 
         # img input Jinming remove the norm-bbx fts
-        img_feat, num_bb = self._get_img_feat(example['img_fname'])
+        img_feat, num_bb = self._get_img_feat(example['img_fname'], self.img_shape)
+        self.img_shape = img_feat.shape[1:]
 
         attn_masks = torch.ones(len(input_ids) + num_bb, dtype=torch.long)
 

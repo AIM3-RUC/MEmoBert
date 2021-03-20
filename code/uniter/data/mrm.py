@@ -45,6 +45,8 @@ class MrfrDataset(DetectFeatTxtTokDataset):
     def __init__(self, mask_prob, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.mask_prob = mask_prob
+        self.img_shape = None
+
 
     def __getitem__(self, i):
         """
@@ -61,8 +63,10 @@ class MrfrDataset(DetectFeatTxtTokDataset):
         input_ids = self.txt_db.combine_inputs(input_ids)
 
         # image input features Jinming remove the norm-bbx fts
-        img_feat, num_bb = self._get_img_feat(
-            example['img_fname'])
+        img_feat, num_bb = self._get_img_feat(example['img_fname'], self.img_shape)
+        self.img_shape = img_feat.shape[1:]
+        # print('[Debug] img shape {} numbb {}'.format(self.img_shape, num_bb))
+
         img_mask = _get_img_mask(self.mask_prob, num_bb)
         img_mask_tgt = _get_img_tgt_mask(img_mask, len(input_ids))
 

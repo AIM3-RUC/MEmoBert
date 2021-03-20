@@ -1,9 +1,8 @@
 {
     "compressed_db": false,
-    "checkpoint": "/data7/emobert/exp/pretrain/nomask_movies_v1_uniter_4tasks/ckpt/model_step_100000.pt",
-    "model_config": "config/uniter-base.json",
-    "output_dir": "/data7/emobert/exp/finetune/msp_baseon_nomask_movies_v1_uniter_4tasks/",
-    "melm_type_multask": false,
+    "checkpoint": "/data7/emobert/exp/pretrain/nomask_movies_v1v2_uniter_4tasks_lr5e5_bs1024_faceth0.5/ckpt/model_step_5000.pt",
+    "model_config": "config/uniter-base-emoword_nomultitask.json",
+    "output_dir": "/data7/MEmoBert/emobert/exp/evaluation/MELD/finetune/xxx",
     "max_txt_len": 30,
     "conf_th": 0.0,
     "max_bb": 36,
@@ -12,9 +11,9 @@
     "IMG_DIM": 342,
     "train_batch_size": 64,
     "inf_batch_size": 64,
-    "cls_num": 4,
-    "cls_dropout": 0.3,
-    "frozen_en_layers": 11,
+    "cls_num": 7,
+    "cls_dropout": 0.1,
+    "frozen_en_layers": 0,
     "patience": 2,
     "gradient_accumulation_steps": 1,
     "learning_rate": 2e-05,
@@ -35,13 +34,13 @@
     "n_workers": 2,
     "pin_mem": true,
     "train_txt_dbs": [
-        "/data4/emobert/exp/evaluation/MELD/txt_db/{}/train_emowords_emotype.db"
+        "/data7/emobert/exp/evaluation/MELD/txt_db/{}/train_emowords_emotype.db"
     ],
     "train_img_dbs": [
-        "/data4/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/img_db/fc/"
+        "/data7/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/img_db/fc/"
     ],
-    "val_txt_db": "/data4/emobert/exp/evaluation/MELD/txt_db/{}/val_emowords_emotype.db",
-    "val_img_db": "/data4/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/img_db/fc/",
-    "test_txt_db": "/data4/emobert/exp/evaluation/MELD/txt_db/{}/test_emowords_emotype.db",
-    "test_img_db": "/data4/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/img_db/fc/"
+    "val_txt_db": "/data7/emobert/exp/evaluation/MELD/txt_db/{}/val_emowords_emotype.db",
+    "val_img_db": "/data7/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/img_db/fc/",
+    "test_txt_db": "/data7/emobert/exp/evaluation/MELD/txt_db/{}/test_emowords_emotype.db",
+    "test_img_db": "/data7/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/img_db/fc/"
 }

@@ -142,6 +142,38 @@
                 "mrfr",            
                 "mrckl"            
             ]
+        },
+         {
+            "name": "movies_v2_val5k",
+            "db": [
+                "/data4/emobert/txt_db/movies_v2_th0.5_emowords_emotype_all_val5k.db/"            
+            ],
+            "img": [
+                "/data4/emobert/img_db_nomask/movies_v2/fc"
+            ],
+            "tasks": [
+                "itm",
+                "melm",
+                "mlm",
+                "mrfr",            
+                "mrckl"            
+            ]
+        },
+        {
+            "name": "movies_v2_trn5k",
+            "db": [
+                "/data4/emobert/txt_db/movies_v2_th0.5_emowords_emotype_all_trn5k.db/"            
+            ],
+            "img": [
+                "/data4/emobert/img_db_nomask/movies_v2/fc"
+            ],
+            "tasks": [
+                "itm",
+                "melm",
+                "mlm",
+                "mrfr",            
+                "mrckl"            
+            ]
         }
     
     ]
