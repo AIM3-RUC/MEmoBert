@@ -120,10 +120,6 @@ class UniterForPretraining(UniterPreTrainedModel):
             mrc_label_target = batch['label_targets']
             return self.forward_mrc(batch, img_masks, img_mask_tgt,
                                     mrc_label_target, task, compute_loss)
-        elif task.startswith('caption'):
-            # caption task
-            txt_labels = batch['txt_labels']
-            return self.forward_caption(batch, txt_labels, compute_loss)
         else:
             raise ValueError('invalid task')
 

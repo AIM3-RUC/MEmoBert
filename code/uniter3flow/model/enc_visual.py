@@ -2,19 +2,17 @@
 Author: Smeet Shah
 Copyright (c) 2020 Smeet Shah
 File part of 'deep_avsr' GitHub repository available at -
-from:  https://github.com/lordmartian/deep_avsr
-
-Conv3D + Resnet + Transformers(Add by Jinming)
+Conv3D + Resnet  from:  https://github.com/lordmartian/deep_avsr
+Transformers from: Add by Jinming
+visual branch is Conv3D + Resnet + Transformers
 """
-
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from code.
+from code.uniter3flow.model.model import BertConfig, BertPreTrainedModel, BertEncoder
 
 class ResNetLayer(nn.Module):
-
     """
     A ResNet layer used to build the ResNet network.
     Architecture:
@@ -59,7 +57,6 @@ class ResNet(nn.Module):
     """
     An 18-layer ResNet architecture.
     """
-
     def __init__(self):
         super(ResNet, self).__init__()
         self.layer1 = ResNetLayer(64, 64, stride=1)
@@ -93,7 +90,7 @@ class ResNet3D(nn.Module):
                             nn.MaxPool3d(kernel_size=(1,3,3), stride=(1,2,2), padding=(0,1,1))
                         )
         self.resnet = ResNet()
-        return
+        self.viseme_dim = 512
 
     def forward(self, inputBatch):
         # inputBatch shape: (batchsize, timesteps, channle, H, W)
@@ -114,78 +111,60 @@ class ResNet3D(nn.Module):
         # print('[Debug] Output feature {}'.format(outputBatch.shape))
         return outputBatch
 
+class VisualEncoderBertModel(BertPreTrainedModel):
+    """ Modification for Joint Vision-Language Encoding
+    BertLayer format:
+        hidden_states = self.dense(hidden_states)
+        hidden_states = self.dropout(hidden_states)
+        hidden_states = self.LayerNorm(hidden_states + input_tensor)
+    So the final output is layernorm.
+    """
+    def __init__(self, config):
+        super().__init__(config)
+        self.visualfront = ResNet3D()
+        self.encoder = BertEncoder(config) # transformer based encoder
+        # build audio position embeddings = 128
+        self.position_embeddings = nn.Embedding(config.max_position_embeddings,
+                                                config.hidden_size)
+        # due to the viseme is 512 and trans to hidden_size
+        self.affine_layer = nn.Linear(self.visualfront.viseme_dim, 
+                                    config.hidden_size, bias=True)
+        self.apply(self.init_weights)
 
-class VisualEncoder(nn.Module):
-    @staticmethod
-    def modify_commandline_options(parser):
-        parser.add_argument('--v_num_hidden_layers', type=int, default=130)
-        parser.add_argument('--v_num_attention_heads', type=int, default=128)
-        parser.add_argument('--v_max_position_embeddings', type=int, default=4)
-        parser.add_argument('--v_cls_num', type=int, default=4, help=' \
-                            this for individual branch traning')
-        return parser
+    def forward(self, inputbatch, attention_mask, output_all_encoded_layers=False):
+        # print(f'[Debug] inputbatch {inputbatch.shape}')
+        v_visemes = self.visualfront(inputbatch) # torch.Size([1, 4, 512])
+        self.v_visemes = self.affine_layer(v_visemes)
+        # print(f'[Debug] affined v_visemes {self.v_visemes.shape}') # [Debug] v_visimes torch.Size([1, 4, 768])
+        # compute self-attention mask
+        extended_attention_mask = attention_mask.unsqueeze(1).unsqueeze(2)
+        extended_attention_mask = extended_attention_mask.to(
+            dtype=next(self.parameters()).dtype)  # fp16 compatibility
+        extended_attention_mask = (1.0 - extended_attention_mask) * -10000.0
+        # print(f'[Debug] extended_attention_mask {extended_attention_mask}') # [Debug] [1, 1, 1, 4]
 
-    def __init__(self, opt):
-        """
-        Parameters:
-            opt (Option class)-- stores all the experiment flags; needs to be a subclass of BaseOptions
-        """
-        super().__init__(opt)
-        # our expriment is on 10 fold setting, teacher is on 5 fold setting, the train set should match
-        self.visualfront = ResNet3D(opt.input_dim, opt.enc_channel)
-        self.visual_transformer = TransformerEncoder(opt.enc_channel*2, opt.num_layers, opt.nhead, opt.dim_feedforward)
-        cls_layers = [int(x) for x in opt.cls_layers.split(',')] + [opt.output_dim]
-        self.netC = FcEncoder(opt.enc_channel*2, cls_layers, dropout=0.3)
-            
-        if self.isTrain:
-            self.criterion_ce = torch.nn.CrossEntropyLoss()
-            # initialize optimizers; schedulers will be automatically created by function <BaseModel.setup>.
-            paremeters = [{'params': getattr(self, 'net'+net).parameters()} for net in self.model_names]
-            self.optimizer = torch.optim.Adam(paremeters, lr=opt.lr, betas=(opt.beta1, 0.998)) # 0.999
-            self.optimizers.append(self.optimizer)
-            self.output_dim = opt.output_dim
-
-        # modify save_dir
-        self.save_dir = os.path.join(self.save_dir, str(opt.cvNo))
-        if not os.path.exists(self.save_dir):
-            os.mkdir(self.save_dir)
-    
-    def set_input(self, input):
-        """
-        Unpack input data from the dataloader and perform necessary pre-processing steps.
-        Parameters:
-            input (dict): include the data itself and its metadata information.
-        """
-        self.signal = input['A_feat'].to(self.device)
-        self.label = input['label'].to(self.device)
-        self.input = input
-
-    def forward(self):
-        """Run forward pass; called by both functions <optimize_parameters> and <test>."""
-        self.segments = self.netenc(self.signal)
-        self.feat, _ = self.netrnn(self.segments)
-        self.logits = self.netC(self.feat)
-        self.pred = F.softmax(self.logits, dim=-1)
-        
-    def backward(self):
-        """Calculate the loss for back propagation"""
-        self.loss_CE = self.criterion_ce(self.logits, self.label)
-        loss = self.loss_CE
-        loss.backward()
-        for model in self.model_names:
-            torch.nn.utils.clip_grad_norm_(getattr(self, 'net'+model).parameters(), 5.0) # 0.1
-
-    def optimize_parameters(self, epoch):
-        """Calculate losses, gradients, and update network weights; called in every training iteration"""
-        self.forward()   
-        self.optimizer.zero_grad()  
-        self.backward()            
-        self.optimizer.step() 
+        # compute embedding 
+        position_ids = torch.arange(0, inputbatch.size(1), dtype=torch.long).unsqueeze(0)
+        # print("[Debug] position_ids {}".format(position_ids))
+        position_embeddings = self.position_embeddings(position_ids)
+        # print('position_embeddings {}'.format(position_embeddings.shape)) # torch.Size([1, 4, 768])
+        embedding_output = self.v_visemes + position_embeddings
+        # print('[Debug] embedding_output {}'.format(embedding_output.shape))  ## torch.Size([1, 4, 768])
+        encoded_layers = self.encoder(
+            embedding_output, extended_attention_mask,
+            output_all_encoded_layers=output_all_encoded_layers)
+        if not output_all_encoded_layers:
+            encoded_layers = encoded_layers[-1]
+        return encoded_layers
 
 if __name__ == '__main__':
-    model = ResNet3D()
-    input = torch.Tensor(32, 10, 1, 112, 112)
-    model.forward(input)
-
-
-
+    # model = ResNet3D()
+    # input = torch.Tensor(32, 10, 1, 112, 112)
+    # model.forward(input)
+    config_path = '/data7/MEmoBert/code/uniter3flow/config/uniter-visual_enc.json'
+    config = BertConfig(config_path)
+    model = VisualEncoderBertModel(config)
+    input = torch.Tensor(1, 4, 1, 112, 112) # (batchsize, seq_len, channel, img-dim, imd-dim)
+    attention_mask = torch.tensor([1,1,0,0]).unsqueeze(0)
+    encoded_layers = model.forward(input, attention_mask)
+    print('encoded_layers {}'.format(encoded_layers.shape))
