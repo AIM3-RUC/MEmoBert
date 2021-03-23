@@ -53,6 +53,7 @@ def read_file(filepath):
 可视化的是什么？ 可视化最后一层 CLS+文本+SEP+视觉 的权重分布。
 1. 分析视觉信息对于最终的判决的作用。
 2. 分析文本和视觉的对应关系。
+分别对于预训练阶段、MELDFinetune模型、MSP Finetune 模型进行分析。
 '''
 
 IMG_DIM = 342
