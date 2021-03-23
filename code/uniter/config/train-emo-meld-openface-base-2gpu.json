@@ -14,7 +14,7 @@
     "cls_num": 7,
     "cls_dropout": 0.1,
     "frozen_en_layers": 0,
-    "patience": 2,
+    "patience": 5,
     "gradient_accumulation_steps": 1,
     "learning_rate": 2e-05,
     "valid_steps": 100,

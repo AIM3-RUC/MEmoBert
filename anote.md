@@ -55,19 +55,18 @@ Now-video_clips/No0030.About.Time/1960.mp4: 84k;
 text: That's fine.
 
 ## 下游任务的数据预处理以及特征抽取流程
-MELD 特征数据: 
-/data7/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/img_db/
+MELD EmoList = {0: 'neutral', 1:'surprise', 2: 'fear', 3: 'sadness', 4: 'joy', 5: 'disgust', 6: 'anger'}
+    MELD 特征数据: /data7/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/img_db/
+    MELD 原始图片特征数据，112*112: --pending
+    MELD 的文本数据:
+    /data7/emobert/exp/evaluation/MELD/txt_db/train_emowords_emotype.db
+    /data7/emobert/exp/evaluation/MELD/txt_db/val_emowords_emotype.db
+    /data7/emobert/exp/evaluation/MELD/txt_db/test_emowords_emotype.db
+    MELD 语音特征数据: --pending
 
-MELD 原始图片特征数据，112*112: 
---pending
+IEMOCAP EmoList = []: 
 
-MELD 的文本数据:
-/data7/emobert/exp/evaluation/MELD/txt_db/train_emowords_emotype.db
-/data7/emobert/exp/evaluation/MELD/txt_db/val_emowords_emotype.db
-/data7/emobert/exp/evaluation/MELD/txt_db/test_emowords_emotype.db
-
-MELD 原始语音特征数据: 
---pending
+MSP EmoList = []: 
 
 ## 存储位置的优化
 不要将所有的小文件存储在data7上, 否则data7小文件太多，导致特别卡.
@@ -128,7 +127,6 @@ https://github.com/NVIDIA/apex/issues/318
 /data4/MEmoBert/code/uniter/data/emocls.py
 
 
-
 ## 修改记录
 1. 由于Faces之间也是有顺序的，所以需要进行 name2nbb 简单的取多少个，而是应该根据阈值过滤相应位置的数据, 重写数据获取的代码,
 不用，因为构建img-db的时候已经过滤了，所有 img2nbb的个数跟保存的特征是一致的.
@@ -159,11 +157,7 @@ Step6: 然后利用下游任务的代码进行训练测试
     code/downstream/run_pretrained_ft.sh
 
 Step7: 抽取语音的 ComparE 特征, 10ms/frame, 130dim.
-/data7/lrc/movie_dataset/code/get_comparE.py 
-
-
-
-
+preprocess/extract_features.py
 
 ## UniterBackbone
 step1: 联合人脸视觉的Encoder联合训练，由于数据要传原始的图像，只需要修改imgdb的信息，把feature的信息替换为图像原始信息. --done
@@ -198,9 +192,9 @@ Transformer: AdamW + 5e−5 + weight decay 0.01
 学习视觉任务有三种方式，分别是 MRCKL，MRFR，NCE-Loss. 
 由于联合训练之后 MRCKL，MRFR，NCE-LOSS 就都无法使用。
 目前考虑的是去掉 ITM 任务，那么就只剩 MLM 和 MELM 任务了。
----咋办？？？
+Frame Order method.
+
 
 ## 训练策略
 1. 目前的txt=30, img=64, max-token=10240, 得到的batch-size大约100～120左右。
-共有20w训练数据，200,000/100 = 2000 iters. 2000 * 20 = 4w steps.
-手动调一下过拟合的问题.
+共有20w训练数据，200,000/100 = 2000 iters. 2000 * 20 = 4w steps..

@@ -8,22 +8,23 @@ gpuid=$1
 pretrain_model_dir=/data7/MEmoBert/emobert/exp/mlm_pretrain/results
 output_dir=/data7/emobert/exp/finetune/onlytext
 
+
 for cvNo in `seq 1 1`;
 do
 bert_data_dir=/data7/emobert/exp/evaluation/MELD/bert_data
 CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
-    --model_name_or_path ${pretrain_model_dir}/opensub/bert_base_uncased_1000w_linear_lr1e4_warm4k_bs256_acc2_4gpu/checkpoint-93980 \
+    --model_name_or_path ${pretrain_model_dir}/meld/bert_taskpretain_on_opensub1000w_base_uncased_2e5_epoch10_bs64/checkpoint-390 \
     --train_file ${bert_data_dir}/train.csv \
     --validation_file ${bert_data_dir}/val.csv \
     --test_file ${bert_data_dir}/test.csv \
     --max_length 50 \
-    --per_device_train_batch_size 64 \
-    --per_device_eval_batch_size 64 \
+    --per_device_train_batch_size 32 \
+    --per_device_eval_batch_size 32 \
     --num_train_epochs 6 \
     --patience 2 \
-    --learning_rate 2e-5 \
+    --learning_rate 1e-5 \
     --lr_scheduler_type 'linear' \
-    --output_dir ${output_dir}/meld_baseon_opensub1000w_pretrained_lr2e5_warm50_bs64
+    --output_dir ${output_dir}/meld_baseon_opensub1000w_pretrained_and_taskpretrain_lr1e5_bs32
 done
 
 ## meld1. meld_lr2e5_warm50_bs64 'acc': 0.64789, 'wuar': 0.64789, 'wf1': 0.62388,

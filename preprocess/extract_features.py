@@ -8,13 +8,13 @@ from tqdm import tqdm
 from functools import partial
 from toolz.sandbox import unzip
 from preprocess.utils import get_basename, mkdir
-from preprocess.tasks.audio import *
+from preprocess.tasks.audio import ComParEExtractor
 from preprocess.tasks.vision import DensefaceExtractor, FaceSelector
 from preprocess.tasks.text import *
 from preprocess.tools.get_emo_words import EmoLexicon
 import preprocess.process_config as path_config
 
-def extract_features_h5(extract_func, get_input_func, utt_ids, save_path, multi_processing=False):
+def extract_features_h5(extract_func, get_input_func, utt_ids, save_path):
     if os.path.exists(save_path):
         try:
             _h5f = h5py.File(save_path, 'r')
@@ -28,6 +28,7 @@ def extract_features_h5(extract_func, get_input_func, utt_ids, save_path, multi_
     h5f = h5py.File(save_path, 'w')
 
     for utt_id in tqdm(utt_ids):
+        # utt_id = ''
         input_param = get_input_func(utt_id)
         feature = extract_func(input_param)
         if isinstance(feature, dict):
@@ -39,6 +40,10 @@ def extract_features_h5(extract_func, get_input_func, utt_ids, save_path, multi_
     h5f.close()
 
 def get_utt_id_files(meta_dir, file_name, moive_names_path):
+    '''
+    return: files with ['/data7/emobert/data_nomask_new/meta/No0079.The.Kings.Speech/has_active_spk.txt', 
+        ...,]
+    '''
     valid_movies_names = np.load(moive_names_path)
     files = []
     movie_names = []
@@ -77,6 +82,7 @@ def process_emo_word(transcript_dir, utt_ids, emol, save_path, multiprocessing=F
     json.dump(all_word2affect, open(save_path, 'w'), indent=4)
 
 def extract_denseface_trans_dir(dir_path, denseface_model, face_selector):
+    # for one video clip
     active_spk = open(os.path.join(dir_path, 'has_active_spk.txt')).read().strip()
     assert active_spk != "None", dir_path
     active_spk = int(active_spk)
@@ -103,24 +109,34 @@ def extract_denseface_trans_dir(dir_path, denseface_model, face_selector):
     confidence = np.array(confidence)
     return {'feat': feats, 'pred': preds, 'trans1': trans1s, 'trans2': trans2s, 'frame_idx': frame_nums, 'confidence': confidence}
 
+def extract_comparE_file(audio_path, extractor_model):
+    # for one audio clip, audio_path = audio_dir + "No0079.The.Kings.Speech/2" 
+    audio_path = audio_path + '.wav'
+    print(audio_path)
+    feat = extractor_model(audio_path)
+    frame_nums = np.array(len(feat))
+    return {'feat': feat, 'frame_idx': frame_nums}
+
 if __name__ == '__main__':
     import sys
     utt_file_name = sys.argv[1]
     part_no, total = eval(sys.argv[2]), eval(sys.argv[3])
 
-    extact_face_features = True
-    extact_audio_features = False
+    extact_face_features = False
+    extact_audio_features = True
 
     transcripts_dir = path_config.transcript_json_dir
     video_clip_dir = path_config.video_clip_dir
-    audio_dir = path_config.audio_dir
     frame_dir = path_config.frame_dir
     face_dir = path_config.face_dir
+    audio_dir = path_config.audio_dir
     meta_dir = path_config.meta_root
     moive_names_path = path_config.moive_names_path
-    feature_root = path_config.feature_dir
+    feature_face_root = path_config.feature_face_dir
+    feature_audio_root = path_config.feature_audio_dir
     tmp_dir = path_config.tmp_dir
 
+    ## for extracting face features
     mean = 63.987095
     std = 43.00519
     denseface = DensefaceExtractor()
@@ -131,6 +147,12 @@ if __name__ == '__main__':
     face_selector = FaceSelector()
     extract_denseface = partial(extract_denseface_trans_dir, denseface_model=denseface, face_selector=face_selector)
     all_utt_files, movie_names = get_utt_id_files(meta_dir, utt_file_name, moive_names_path)
+
+    ## for extracting audio features
+    comparE_model = ComParEExtractor()
+    # 偏函数: 主要目的是冻结固定参数？将所作用的函数作为 partial() 函数的第一个参数，原函数的各个参数依次作为 partial（）函数的后续参数，
+    # 原函数有关键字参数的一定要带上关键字，没有的话，按原有参数顺序进行补充.
+    extract_comparE = partial(extract_comparE_file, extractor_model=comparE_model)
 
     length = len(all_utt_files)
     start = int(part_no * length / total)
@@ -150,26 +172,28 @@ if __name__ == '__main__':
     print('-------------------------------------------------')
     
     for utt_file, movie_name in zip(all_utt_files, movie_names):
+        # utt_file: one movie file: xxx/movie_name/has_active_spk.txt
         print(f'[Main]: Process {movie_name}:')
-        feature_dir = os.path.join(feature_root, movie_name)
-        mkdir(feature_dir)
         utt_ids = open(utt_file).readlines()
+        # one utt_id = "No0079.The.Kings.Speech/2"
         utt_ids = list(map(lambda x: x.strip(), utt_ids))
         if len(utt_ids) == 0:
             continue
         
         if extact_face_features:
             print("[INFO] Extracing denseface features!")
+            feature_dir = os.path.join(feature_face_root, movie_name)
+            mkdir(feature_dir)
             save_path = os.path.join(feature_dir, f'{utt_file_name}_denseface_with_trans.h5')
             print(save_path)
             extract_features_h5(extract_denseface, lambda x: os.path.join(face_dir, x), 
                         utt_ids, save_path)
-        # # emo_word --discard 
-        # save_path = os.path.join(feature_dir, f'{utt_file_name}_emoword.json')
-        # process_emo_word(utt_ids, emol, save_path, multiprocessing=False)
-        # print(f'[EmoWord]: {movie_name} saved in {save_path}')
 
         ## for extracting ComparE feature 
         if extact_audio_features:
             print("[INFO] Extracing ComparE Audio features!")
-            pass
+            audio_feature_dir = os.path.join(feature_audio_root, movie_name)
+            mkdir(audio_feature_dir)
+            save_path = os.path.join(audio_feature_dir, f'{utt_file_name}_comparE.h5')
+            print(save_path)
+            extract_features_h5(extract_comparE, lambda x: os.path.join(audio_dir, x),  utt_ids, save_path)

@@ -105,6 +105,7 @@ def main(opts):
 
     # Prepare model
     if opts.checkpoint:
+        LOGGER.info('[Info] Loading from pretrained model {}'.format(opts.checkpoint))
         checkpoint = torch.load(opts.checkpoint)
     else:
         checkpoint = {}
@@ -349,10 +350,6 @@ if __name__ == "__main__":
     args = parse_with_config(parser)
     IMG_DIM = args.IMG_DIM
     
-    if args.frozen_en_layers == 0:
-        args.train_batch_size = int(args.train_batch_size / 2)
-        print('Frozen 0 Layers and batch size is {}'.format(args.train_batch_size))
-
     # for cross-validation
     args.output_dir = args.output_dir + '/drop{}_frozen{}_{}_{}'.format(args.cls_dropout, args.frozen_en_layers, \
                 args.cls_type, args.postfix) 

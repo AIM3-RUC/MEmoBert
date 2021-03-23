@@ -3,6 +3,7 @@ import torch
 import pandas as pd
 import soundfile as sf
 import numpy as np
+import subprocess
 from preprocess.utils import get_basename, mkdir
 import scipy.signal as spsig
 # from fairseq.models.wav2vec import Wav2VecModel
@@ -41,44 +42,50 @@ class AudioSplitorTool(BaseWorker):
             _cmd = "ffmpeg -i {} -vn -f wav -acodec pcm_s16le -ac 1 -ar 16000 {} -y > /dev/null 2>&1".format(video_path, save_path)
             os.system(_cmd)
         return save_path
-        
+    
 class ComParEExtractor(BaseWorker):
     ''' 抽取comparE特征, 输入音频路径, 输出npy数组, 每帧130d
     '''
-    def __init__(self, opensmile_tool_dir, downsample=10, tmp_dir='.tmp', no_tmp=False):
+    def __init__(self, opensmile_tool_dir=None, downsample=-1, tmp_dir='/data7/emobert/comparE_feature/raw_fts', no_tmp=False):
         ''' Extract ComparE feature
             tmp_dir: where to save opensmile csv file
             no_tmp: if true, delete tmp file
+            downsample. if =-1, then use the raw comparE fts, else use the resampeld fts.
         '''
-        super().__init__()
-        mkdir(tmp_dir)
+        if not os.path.exists(tmp_dir):
+            os.makedirs(tmp_dir)
+        if opensmile_tool_dir is None:
+            opensmile_tool_dir = '/data2/zjm/tools/opensmile-3.0-linux-x64'
         self.opensmile_tool_dir = opensmile_tool_dir
         self.tmp_dir = tmp_dir
         self.downsample = downsample
         self.no_tmp = no_tmp
     
-    def __call__(self, wav):
-        utt_id = wav.split('/')[-2]
-        save_path = os.path.join(self.tmp_dir, utt_id+'_'+get_basename(wav)+".csv")
-        cmd = 'SMILExtract -C {}/config/ComParE_2016.conf \
+    def __call__(self, full_wav_path):
+        # such as: /data7/emobert/data_nomask_new/audio_clips/No0079.The.Kings.Speech/188.wav
+        movie_name = full_wav_path.split('/')[-2]
+        basename = movie_name + '_' + os.path.basename(full_wav_path).split('.')[0]
+        save_path = os.path.join(self.tmp_dir, basename+".csv")
+        cmd = 'SMILExtract -C {}/config/compare16/ComParE_2016.conf \
             -appendcsvlld 0 -timestampcsvlld 1 -headercsvlld 1 \
             -I {} -lldcsvoutput {} -instname xx -O ? -noconsoleoutput 1'
-        os.system(cmd.format(self.opensmile_tool_dir, wav, save_path))
+        # os.system(cmd.format(self.opensmile_tool_dir, wav, save_path))
+        p = subprocess.Popen([cmd.format(self.opensmile_tool_dir, full_wav_path, save_path)], stderr=subprocess.PIPE, shell=True)
+        err = p.stderr.read()
+        if err:
+            raise RuntimeError(err)
         
         df = pd.read_csv(save_path, delimiter=';')
-        # timestamp = np.array(df['frameTime'])
-        wav_data = df.iloc[:, 2:]
-        if len(wav_data) > self.downsample:
-            wav_data = spsig.resample_poly(wav_data, up=1, down=self.downsample, axis=0)
-            # self.print(f'Extract comparE from {wav}: {wav_data.shape}')
-            if self.no_tmp:
-                os.remove(save_path) 
-        else:
-            wav_data = None
-            self.print(f'Error in {wav}, no feature extracted')
-        return wav_data
-
-
+        wav_ft_data = np.array(df.iloc[:, 2:])
+        if self.downsample > 0:
+            if len(wav_ft_data) > self.downsample:
+                wav_ft_data = spsig.resample_poly(wav_ft_data, up=1, down=self.downsample, axis=0)
+                if self.no_tmp:
+                    os.remove(save_path) 
+            else:
+                raise ValueError('Error in {wav}, signal length must be longer than downsample parameter')
+        return wav_ft_data
+        
 class VggishExtractor(BaseWorker):
     ''' 抽取vggish特征, 输入音频路径, 输出npy数组, 每帧128d
     '''

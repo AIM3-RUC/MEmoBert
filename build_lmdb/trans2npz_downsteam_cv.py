@@ -7,18 +7,24 @@ import json
 '''
 将视觉信息处理成npz的格式, 
 然后可以共同维护一个 img_db, 通过不同的 txt_db 进行索引.
+这里的soft-label都是采用denseface的结构，FER+ 结构，所以是 8 类别
 '''
 
-corpus_name = 'IEMOCAP'
+# corpus_name = 'IEMOCAP'
+corpus_name = 'MSP'
 root_dir = f'/data7/emobert/exp/evaluation/{corpus_name}/'
-feature_dir = root_dir + 'feature/denseface_openface_msp_mean_std_torch/'
+# feature_dir = root_dir + 'feature/denseface_openface_iemocap_mean_std_torch'
+feature_dir = root_dir + 'feature/denseface_openface_msp_mean_std_torch'
 IMD_DIM=342
+cls_num = 8
+
 npyz_dir = feature_dir + '/ft_npzs/fc'
 if not os.path.exists(npyz_dir):
     os.makedirs(npyz_dir)
 
-h5_fts_path = feature_dir + '{}.h5'
-target_path = f'/data7/emobert/exp/evaluation/{corpus_name}/refs/1/{}_ref.json'
+h5_fts_path = feature_dir + '/1/{}.h5'
+target_dir = f'/data7/emobert/exp/evaluation/{corpus_name}/refs/1'
+target_path = os.path.join(target_dir, '{}_ref.json')
 empty_video = 0
 total_video = 0
 
@@ -26,7 +32,7 @@ total_video = 0
 ref fromat:{'segmentId': {'label': 1}}
 '''
 
-for setname in ['train', 'val', 'tst']:
+for setname in ['trn', 'val', 'tst']:
     target = json.load(open(target_path.format(setname)))
     data = h5py.File(h5_fts_path.format(setname))
     segment_ids = list(data.keys())
@@ -43,7 +49,7 @@ for setname in ['train', 'val', 'tst']:
             label = target[segment_id]['label']
             if isinstance(label, str):
                 label = int(label)
-            soft_labels = np.zeros((1, 4), dtype=np.float)
+            soft_labels = np.zeros((1, cls_num), dtype=np.float)
             soft_labels[0][label] = 1.0
             feat = np.zeros((1, IMD_DIM), dtype=np.float32)
         else:

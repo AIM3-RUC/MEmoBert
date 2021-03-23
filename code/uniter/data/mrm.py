@@ -63,6 +63,7 @@ class MrfrDataset(DetectFeatTxtTokDataset):
         input_ids = self.txt_db.combine_inputs(input_ids)
 
         # image input features Jinming remove the norm-bbx fts
+        # if the first sample is None 
         img_feat, num_bb = self._get_img_feat(example['img_fname'], self.img_shape)
         self.img_shape = img_feat.shape[1:]
         # print('[Debug] img shape {} numbb {}'.format(self.img_shape, num_bb))
@@ -138,18 +139,23 @@ class MrcDataset(DetectFeatTxtTokDataset):
     def __init__(self, mask_prob, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.mask_prob = mask_prob
+        self.img_shape = None
 
-    def _get_img_feat(self, fname):
+    def _get_img_feat(self, fname, img_shape):
         img_dump = self.img_db.get_dump(fname)
         num_bb = self.img_db.name2nbb[fname]
         img_feat = torch.tensor(img_dump['features'])
         img_soft_label = torch.tensor(img_dump['soft_labels'])
+        if num_bb == 0:
+            img_feat = torch.zeros(img_shape).unsqueeze(0)
+            img_soft_label = torch.zeros(8).unsqueeze(0)
+            num_bb = 1
         return img_feat, img_soft_label, num_bb
 
     def __getitem__(self, i):
         example = super().__getitem__(i)
-        img_feat, img_soft_labels, num_bb = self._get_img_feat(
-            example['img_fname'])
+        img_feat, img_soft_labels, num_bb = self._get_img_feat(example['img_fname'], self.img_shape)
+        self.img_shape = img_feat.shape[1:]
 
         # image input features
         img_mask = _get_img_mask(self.mask_prob, num_bb)

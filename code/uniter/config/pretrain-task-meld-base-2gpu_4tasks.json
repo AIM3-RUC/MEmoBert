@@ -1,7 +1,7 @@
 {
     "output_dir": "/data7/emobert/exp/pretrain/tasks/meld_basedon-nomask_movies_v1_uniter_4tasks_faceth0.1-4tasks",
     "model_config": "config/uniter-base.json",
-    "checkpoint": "/data7/emobert/exp/pretrain/nomask_movies_v1_uniter_4tasks_faceth0.1/model_step_10000.pt",
+    "checkpoint": "/data7/emobert/exp/task_pretrain/nomask_movies_v1_uniter_4tasks_faceth0.1/model_step_10000.pt",
     "mrm_prob": 0.15,
     "itm_neg_prob": 0.5,
     "itm_ot_lambda": 0.1,

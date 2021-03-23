@@ -4,26 +4,53 @@ export PYTHONPATH=/data7/MEmoBert
 
 result_dir=/data7/MEmoBert/emobert/exp/mlm_pretrain/results
 
-for cvNo in `seq 1 12`;
+### for meld, 9000 / 64 * 10 = 1400
+# corpus_name='meld'
+# corpus_name_L='MELD'
+# bert_data_dir=/data7/emobert/exp/evaluation/${corpus_name_L}/bert_data/
+# CUDA_VISIBLE_DEVICES=0,1 python run_mlm.py \
+#     --model_name_or_path  ${result_dir}/moviesv1v2v3/bert_base_uncased_2e5/checkpoint-34409 \
+#     --do_train --do_eval \
+#     --train_file /data7/MEmoBert/emobert/exp/evaluation/${corpus_name_L}/bert_data/train.txt \
+#     --validation_file /data7/MEmoBert/emobert/exp/evaluation/${corpus_name_L}/bert_data/val.txt \
+#     --line_by_line \
+#     --max_seq_length 50 \
+#     --per_device_train_batch_size 64 \
+#     --per_device_eval_batch_size 64 \
+#     --gradient_accumulation_steps 2 \
+#     --learning_rate 2e-5 \
+#     --max_grad_norm 5.0 \
+#     --num_train_epochs 10 \
+#     --evaluation_strategy 'epoch' \
+#     --lr_scheduler_type 'linear' \
+#     --load_best_model_at_end true \
+#     --overwrite_output_dir true \
+#     --output_dir ${result_dir}/${corpus_name}/bert_taskpretain_on_moviesv1v2v3_base_uncased_2e5_epoch10_bs64
+
+### for msp 
+corpus_name='iemocap'
+corpus_name_L='IEMOCAP'
+for cvNo in `seq 6 10`;
 do
-bert_data_dir=/data7/emobert/exp/evaluation/IEMOCAP/bert_data/${cvNo}
-CUDA_VISIBLE_DEVICES=6,7 python run_mlm.py \
-    --model_name_or_path bert-base-uncased \
+bert_data_dir=/data7/emobert/exp/evaluation/${corpus_name_L}/bert_data/${cvNo}
+CUDA_VISIBLE_DEVICES=3,4 python run_mlm.py \
+    --model_name_or_path ${result_dir}/opensub/bert_base_uncased_1000w_linear_lr1e4_warm4k_bs256_acc2_4gpu/checkpoint-93980 \
     --do_train --do_eval \
-    --train_file /data7/MEmoBert/emobert/exp/evaluation/MSP-IMPROV/bert_data/${cvNo}/trn.txt \
-    --validation_file /data7/MEmoBert/emobert/exp/evaluation/MSP-IMPROV/bert_data/${cvNo}/val.txt \
+    --train_file /data7/emobert/exp/evaluation/${corpus_name_L}/bert_data/${cvNo}/trn.txt \
+    --validation_file /data7/emobert/exp/evaluation/${corpus_name_L}/bert_data/${cvNo}/val.txt \
     --line_by_line \
-    --max_seq_length 50 --per_device_train_batch_size 64 \
+    --max_seq_length 50 \
+    --per_device_train_batch_size 64 \
     --per_device_eval_batch_size 64 \
     --gradient_accumulation_steps 2 \
     --learning_rate 2e-5 \
     --max_grad_norm 5.0 \
     --num_train_epochs 10 \
     --evaluation_strategy 'epoch' \
-    --load_best_model_at_end true \
     --lr_scheduler_type 'linear' \
-    --report_to 'tensorboard' \
-    --output_dir ${result_dir}/msp/${cvNo}/bert_base_uncased_2e5_epoch10_bs64
+    --load_best_model_at_end true \
+    --overwrite_output_dir true \
+    --output_dir ${result_dir}/${corpus_name}/${cvNo}/bert_taskpretain_on_opensub100w_base_uncased_2e5_epoch10_bs64
 done
 
 ##for opensubtile 1000w
@@ -47,6 +74,16 @@ done
     # train_file=/data7/MEmoBert/emobert/exp/evaluation/MELD/bert_data/train.txt
     # validation_file=/data7/MEmoBert/emobert/exp/evaluation/MELD/bert_data/val.txt
     # model = ${result_dir}/meld/bert_base_uncased_2e5_epoch10_bs64/checkpoint-390  eval-loss=1.7342
+
+##for opensub100w pretrain + meld 1w pretrain
+    # train_file=/data7/MEmoBert/emobert/exp/evaluation/MELD/bert_data/train.txt
+    # validation_file=/data7/MEmoBert/emobert/exp/evaluation/MELD/bert_data/val.txt
+    # model = ${result_dir}/meld/bert_taskpretain_on_opensub1000w_base_uncased_2e5_epoch10_bs64/checkpoint-390  eval-loss=1.528
+
+##for moviesv1v2v3 pretrain + meld 1w pretrain
+    # train_file=/data7/MEmoBert/emobert/exp/evaluation/MELD/bert_data/train.txt
+    # validation_file=/data7/MEmoBert/emobert/exp/evaluation/MELD/bert_data/val.txt
+    # model = ${result_dir}/meld/bert_taskpretain_on_moviesv1v2v3_base_uncased_2e5_epoch10_bs64/checkpoint-390  eval-loss=1.693
 
 ##for iemocap 4k pretrain
     # train_file=/data7/MEmoBert/emobert/exp/evaluation/IEMOCAP/bert_data/1/trn.txt

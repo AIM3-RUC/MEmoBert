@@ -219,6 +219,10 @@ class DetectFeatTxtTokDataset(Dataset):
         num_bb = img_feat.size(0)
         if num_bb == 0:
             # print('[Warn] current {} is empty img info!!!\n'.format(fname))
+            if img_shape == None:
+                # Jinming: add for the first sample is none
+                print("[Warning] Set the img_shape to 342!!!")
+                img_shape = 342
             img_feat = torch.zeros(img_shape).unsqueeze(0)
             num_bb = 1
         # print('[Info] img_feat shape {}'.format(img_feat.shape))

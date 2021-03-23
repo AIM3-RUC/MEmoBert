@@ -15,7 +15,7 @@
     "cls_num": 7,
     "cls_dropout": 0.3,
     "frozen_en_layers": 11,
-    "patience": 2,
+    "patience": 5,
     "gradient_accumulation_steps": 1,
     "learning_rate": 2e-05,
     "valid_steps": 100,
@@ -35,13 +35,13 @@
     "n_workers": 2,
     "pin_mem": true,
     "train_txt_dbs": [
-        "/data4/emobert/exp/evaluation/IEMOCAP/txt_db/{}/trn_emowords_emotype.db"
+        "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/trn_emowords_emotype.db"
     ],
     "train_img_dbs": [
-        "/data4/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/"
+        "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/"
     ],
-    "val_txt_db": "/data4/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val_emowords_emotype.db",
-    "val_img_db": "/data4/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/",
-    "test_txt_db": "/data4/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst_emowords_emotype.db",
-    "test_img_db": "/data4/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/"
+    "val_txt_db": "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val_emowords_emotype.db",
+    "val_img_db": "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/",
+    "test_txt_db": "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst_emowords_emotype.db",
+    "test_img_db": "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/"
 }

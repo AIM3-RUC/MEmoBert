@@ -8,7 +8,8 @@ import argparse
 from collections import defaultdict
 from io import BufferedIOBase
 import json
-from os.path import join
+import os
+from os.path import exists, join
 from time import time
 import numpy as np
 
@@ -225,6 +226,7 @@ def main(opts):
 
     # Prepare model
     if opts.checkpoint:
+        LOGGER.info('[Info] Loading from pretrained model {}'.format(opts.checkpoint))
         checkpoint = torch.load(opts.checkpoint)
     else:
         checkpoint = {}
@@ -679,6 +681,10 @@ if __name__ == "__main__":
             args.train_datasets[i]['db'][0] = args.train_datasets[i]['db'][0].format(args.cvNo)
         for i in range(len(args.val_datasets)):
             args.val_datasets[i]['db'][0] = args.val_datasets[i]['db'][0].format(args.cvNo)
+
+    if not exists(args.output_dir):
+        print('[Info] the output dir {}'.format(args.output_dir))
+        os.makedirs(args.output_dir)
 
     IMG_DIM = args.IMG_DIM
     # options safe guard

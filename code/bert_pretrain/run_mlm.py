@@ -157,7 +157,6 @@ class DataTrainingArguments:
             "value if set."
         },
     )
-
     def __post_init__(self):
         if self.dataset_name is None and self.train_file is None and self.validation_file is None:
             raise ValueError("Need either a dataset name or a training/validation file.")
@@ -184,6 +183,7 @@ def main():
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
     # Detecting last checkpoint.
+    use_last_checkpoint_step = False
     last_checkpoint = None
     if os.path.isdir(training_args.output_dir) and training_args.do_train and not training_args.overwrite_output_dir:
         last_checkpoint = get_last_checkpoint(training_args.output_dir)
@@ -427,13 +427,17 @@ def main():
 
     # Training
     if training_args.do_train:
-        if last_checkpoint is not None:
-            checkpoint = last_checkpoint
-        elif model_args.model_name_or_path is not None and os.path.isdir(model_args.model_name_or_path):
-            checkpoint = model_args.model_name_or_path
+        if use_last_checkpoint_step:
+            logger.info("[INFO] Global Step from the last checkpoint")
+            checkpoint4step = model_args.model_name_or_path
         else:
-            checkpoint = None
-        train_result = trainer.train(resume_from_checkpoint=checkpoint)
+            logger.info("[INFO] Global Step from the Step 0")
+            checkpoint4step = None
+        '''
+        resume_from_checkpoint: just for the step
+        /root/anaconda2/envs/transformers/lib/python3.6/site-packages/transformers/trainer.py
+        '''
+        train_result = trainer.train(resume_from_checkpoint=checkpoint4step)
         trainer.save_model()  # Saves the tokenizer too for easy upload
         metrics = train_result.metrics
 
