@@ -116,5 +116,5 @@ preprocess/tools/wav2vec
 
 # result
 code/downstream/results
-code/bert_pretrain/runs/events.out*
+code/bert_pretrain/runs/*
 emobert
