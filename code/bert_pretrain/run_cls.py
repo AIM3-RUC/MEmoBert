@@ -6,6 +6,7 @@
 
 import argparse
 import math
+import fcntl
 import os
 from os.path import join, exists
 import random
@@ -36,6 +37,7 @@ from transformers import (
 def parse_args():
     parser = argparse.ArgumentParser(description="Finetune a transformers model on a text classification task")
     parser.add_argument("--gpuid", type=int, default=0)
+    parser.add_argument("--cvNo", type=int, default=1)
     parser.add_argument(
         "--train_file", type=str, default=None, help="A csv or a json file containing the training data."
     )
@@ -253,6 +255,8 @@ def main():
     best_eval_epoch = -1
 
     for epoch in range(args.num_train_epochs):
+        lr = optimizer.state_dict()['param_groups'][0]['lr']
+        logger.info(f'\t[LR] current {epoch} learning rate {lr}')
         model.train()
         for step, batch in enumerate(train_dataloader):
             outputs = model(**batch)
@@ -304,6 +308,23 @@ def main():
     test_reuslts = evaluation(accelerator, model, test_dataloader)
     logger.info('Epoch {}: {}'.format(best_eval_epoch, test_reuslts))
     clean_chekpoints(join(args.output_dir, 'ckpt'), best_eval_epoch)
+    output_tsv = join(os.path.split(args.output_dir)[0], 'result.csv')
+    if not os.path.exists(output_tsv):
+        open(output_tsv, 'w').close()  # touch output_csv
+    write_result_to_tsv(output_tsv, test_reuslts, args.cvNo)
+
+def write_result_to_tsv(file_path, tst_log, cvNo):
+    # 使用fcntl对文件加锁,避免多个不同进程同时操作同一个文件
+    f_in = open(file_path)
+    fcntl.flock(f_in.fileno(), fcntl.LOCK_EX) # 加锁
+    content = f_in.readlines()
+    if len(content) != 12:
+        content += ['\n'] * (12-len(content))
+    content[cvNo-1] = 'CV{}\t{:.4f}\t{:.4f}\t{:.4f}\n'.format(cvNo, tst_log['acc'], tst_log['wf1'], tst_log['uwf1'])
+    f_out = open(file_path, 'w')
+    f_out.writelines(content)
+    f_out.close()
+    f_in.close()  
 
 def evaluation(accelerator, model, set_dataloader):
     total_preds = []

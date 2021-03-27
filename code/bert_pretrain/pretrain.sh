@@ -1,5 +1,5 @@
 # source activate transformers
-
+source activate transformers
 export PYTHONPATH=/data7/MEmoBert
 
 result_dir=/data7/MEmoBert/emobert/exp/mlm_pretrain/results
@@ -28,13 +28,13 @@ result_dir=/data7/MEmoBert/emobert/exp/mlm_pretrain/results
 #     --output_dir ${result_dir}/${corpus_name}/bert_taskpretain_on_moviesv1v2v3_base_uncased_2e5_epoch10_bs64
 
 ### for msp 
-corpus_name='iemocap'
-corpus_name_L='IEMOCAP'
-for cvNo in `seq 6 10`;
+corpus_name='msp'
+corpus_name_L='MSP'
+for cvNo in `seq 1 12`;
 do
 bert_data_dir=/data7/emobert/exp/evaluation/${corpus_name_L}/bert_data/${cvNo}
-CUDA_VISIBLE_DEVICES=3,4 python run_mlm.py \
-    --model_name_or_path ${result_dir}/opensub/bert_base_uncased_1000w_linear_lr1e4_warm4k_bs256_acc2_4gpu/checkpoint-93980 \
+CUDA_VISIBLE_DEVICES=5,6 python run_mlm.py \
+    --model_name_or_path ${result_dir}/moviesv1v2v3/bert_base_uncased_2e5/checkpoint-34409/ \
     --do_train --do_eval \
     --train_file /data7/emobert/exp/evaluation/${corpus_name_L}/bert_data/${cvNo}/trn.txt \
     --validation_file /data7/emobert/exp/evaluation/${corpus_name_L}/bert_data/${cvNo}/val.txt \
@@ -50,7 +50,7 @@ CUDA_VISIBLE_DEVICES=3,4 python run_mlm.py \
     --lr_scheduler_type 'linear' \
     --load_best_model_at_end true \
     --overwrite_output_dir true \
-    --output_dir ${result_dir}/${corpus_name}/${cvNo}/bert_taskpretain_on_opensub100w_base_uncased_2e5_epoch10_bs64
+    --output_dir ${result_dir}/${corpus_name}/${cvNo}/bert_taskpretain_on_moviesv1v2v3_base_uncased_2e5_epoch10_bs64
 done
 
 ##for opensubtile 1000w

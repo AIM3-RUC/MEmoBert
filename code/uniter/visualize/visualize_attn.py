@@ -23,7 +23,6 @@ from code.uniter.utils.misc import set_random_seed
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-emo_list = {0: 'neutral', 1:'surprise', 2: 'fear', 3: 'sadness', 4: 'joy', 5: 'disgust', 6: 'anger'}
 
 def build_dataloader(dataset, collate_fn, is_train=False):
     batch_size = 1
@@ -50,6 +49,7 @@ def read_file(filepath):
         return lines
 
 '''
+CUDA_VISIBLE_DEVICES=5 python visualize_attn.py 
 可视化的是什么？ 可视化最后一层 CLS+文本+SEP+视觉 的权重分布。
 1. 分析视觉信息对于最终的判决的作用。
 2. 分析文本和视觉的对应关系。
@@ -58,10 +58,21 @@ def read_file(filepath):
 
 IMG_DIM = 342
 layer_index = 11
+setname = 'trn'
+corpus_name = 'MSP'
 model_config = "config/uniter-base-emoword_nomultitask.json"
-checkpoint_dir = '/data7/emobert/exp/evaluation/MELD/finetune/baseon-movies_v1v2_uniter_4tasks-lr2e5_bs32_th0.5_train3000/drop0.1_frozen0_emocls_none'
+## for meld 
+# checkpoint_dir = f'/data7/emobert/exp/evaluation/{corpus_name}/finetune/baseon-movies_v1v2_uniter_4tasks-lr2e5_bs32_th0.5_train3000/drop0.1_frozen0_emocls_none'
+## for msp
+checkpoint_dir = f'/data7/emobert/exp/evaluation/{corpus_name}/finetune/baseon-movies_v1v2_uniter_4tasks-lr2e5_bs32_max36_train1200/drop0.1_frozen0_emocls_none'
 checkpoint = checkpoint_dir + "/1/ckpt/model_step_600.pt"
+
 vocab_path = '/data2/zjm/tools/LMs/bert_base_en/vocab.txt'
+
+# for meld
+# emo_list = {0: 'neutral', 1:'surprise', 2: 'fear', 3: 'sadness', 4: 'joy', 5: 'disgust', 6: 'anger'}
+# for msp
+emo_list = {0: 'angry', 1:'happy', 2: 'neutual', 3:'sad'}
 
 hvd.init()
 n_gpu = hvd.size()
@@ -71,6 +82,7 @@ rank = hvd.rank()
 #### loading model
 set_random_seed(42)
 checkpoint = torch.load(checkpoint)
+
 model = UniterForEmoRecognition.from_pretrained(model_config, state_dict=checkpoint, \
                         img_dim=IMG_DIM, cls_num=7, frozen_en_layers=0, \
                         cls_dropout=0.1, cls_type='emocls')
@@ -79,13 +91,20 @@ hook = MultiLayerFeatureExtractor(model, [f'uniter.encoder.layer.{layer_index}.a
                                             f'uniter.encoder.layer.{layer_index}.attention.self.key',
                                             f'uniter.encoder.layer.{layer_index}.attention.self.value'])
 
-all_img_dbs = ImageLmdbGroup(conf_th=0.1, max_bb=36, min_bb=10, num_bb=36, compress=False)
-val_txt_db_path = '/data7/emobert/exp/evaluation/MELD/txt_db/1/val_emowords_emotype.db'
-val_img_db_path = '/data7/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/img_db/fc/'
+all_img_dbs = ImageLmdbGroup(conf_th=0.0, max_bb=36, min_bb=10, num_bb=36, compress=False)
+val_img_db_path = f'/data7/emobert/exp/evaluation/{corpus_name}/feature/denseface_openface_msp_mean_std_torch/img_db/fc/'
 val_img_db = all_img_dbs[val_img_db_path]
-val_txt_db = TxtTokLmdb(val_txt_db_path, -1)
-val_dataset = EmoCLsDataset(val_txt_db, val_img_db)
-val_dataloader = build_dataloader(val_dataset, emocls_collate, False)
+
+if setname == 'val':
+    val_txt_db_path = f'/data7/emobert/exp/evaluation/{corpus_name}/txt_db/1/val_emowords_emotype.db'
+    val_txt_db = TxtTokLmdb(val_txt_db_path, -1)
+    val_dataset = EmoCLsDataset(val_txt_db, val_img_db)
+    val_dataloader = build_dataloader(val_dataset, emocls_collate, False)
+elif setname == 'trn':
+    val_txt_db_path = f'/data7/emobert/exp/evaluation/{corpus_name}/txt_db/1/trn_emowords_emotype.db'
+    val_txt_db = TxtTokLmdb(val_txt_db_path, -1)
+    val_dataset = EmoCLsDataset(val_txt_db, val_img_db)
+    val_dataloader = build_dataloader(val_dataset, emocls_collate, False)
 
 @torch.no_grad()
 def evaluation(model, loader, visualization_info_path):
@@ -134,6 +153,8 @@ def evaluation(model, loader, visualization_info_path):
         }
         total_pred.append(preds)
         total_target.append(targets)
+        if i == 500:
+            break
     total_pred = np.concatenate(total_pred)
     total_label = np.concatenate(total_target)
     acc = accuracy_score(total_label, total_pred)
@@ -153,7 +174,7 @@ def visual_one_case(visualization_info_path, vocab_id2word,
     image_names = list(visualization_info.keys())
     if image_name is None:
         image_name = image_names[image_ind]
-        print('image_name is None and index {} is {}'.format(image_ind, image_name))
+        print('image_name is {} and index {} '.format(image_name, image_ind))
     
     save_path = join(save_dir, f'layer{layer_index}-' + image_name + '.png')
     data = visualization_info[image_name]
@@ -180,19 +201,19 @@ def visual_one_case(visualization_info_path, vocab_id2word,
     plt.savefig(save_path)
 
 
-visualization_info_path = checkpoint_dir + f'/visualize_attmap_layer{layer_index}.pkl'
+visualization_info_path = checkpoint_dir + f'/{corpus_name}_visualize_attmap_layer{layer_index}.pkl'
 
-if False:
+if True:
     evaluation(model, val_dataloader, visualization_info_path)
 
-save_dir = checkpoint_dir + '/vis_pics'
+save_dir = checkpoint_dir + f'/vis_pics/{corpus_name}'
 if not exists(save_dir):
-    os.mkdir(save_dir)
+    os.makedirs(save_dir)
 
 lines = read_file(vocab_path)
 vocab_id2word = {i:line.strip() for i, line in enumerate(lines)}
 print('vocab size {}'.format(len(vocab_id2word)))
-for image_ind in range(100):
+for image_ind in range(30):
     visual_one_case(visualization_info_path, vocab_id2word, save_dir, image_name=None, image_ind=image_ind)
 
 # 热度图可视化: https://blog.csdn.net/weixin_39541558/article/details/79813936

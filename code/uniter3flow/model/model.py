@@ -210,7 +210,7 @@ class BertPreTrainedModel(nn.Module):
                                    "\n\t".join(error_msgs)))
         return model
 
-    def forward(self, input_ids, position_ids, token_type_ids=None, emo_type_ids=None):
+    def forward(self, input_ids, position_ids, token_type_ids=None):
         '''
         emo_type_ids: the emotion types of the input ids
         batch-data
@@ -224,12 +224,6 @@ class BertPreTrainedModel(nn.Module):
         embeddings = (words_embeddings
                       + position_embeddings
                       + token_type_embeddings)
-
-        ## Jinming: add another emotion word type embedding
-        if emo_type_ids is not None:
-            # print('[Debug] verify the emo type embeddig is work or not')
-            emo_type_embeddings = self.emo_type_embeddings(emo_type_ids)
-            embeddings = embeddings + emo_type_embeddings
     
         embeddings = self.LayerNorm(embeddings)
         embeddings = self.dropout(embeddings)

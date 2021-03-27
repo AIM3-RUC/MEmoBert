@@ -9,11 +9,5 @@
   "num_attention_heads": 12,
   "num_hidden_layers": 12,
   "type_vocab_size": 2,
-  "melm_multitask": false,
-  "vocab_size": 30522,
-  "joint_face_backbone": true,
-  "backbone_type": "vggnet",
-  "face_checkpoint": "/data7/emobert/exp/face_model/vggnet_adam0.0001_0.25/ckpts/model_step_68.pt",
-  "face_from_scratch": false,
-  "face_data_augmentation": true
+  "vocab_size": 30522
 }
