@@ -242,7 +242,7 @@ def main(opts):
         checkpoint = {}
     model = UniterForPretraining.from_pretrained(
         opts.model_config, checkpoint,
-        img_dim=IMG_DIM, img_label_dim=IMG_LABEL_DIM)
+        img_dim=IMG_embedding, img_label_dim=IMG_LABEL_DIM)
     # print("****************"*5)
     # print(model.state_dict().keys())
     model.to(device)
@@ -556,7 +556,7 @@ def validate_mrfr(model, val_loader):
     st = time()
     for i, batch in enumerate(val_loader):
         loss = model(batch, task='mrfr', compute_loss=True)
-        val_loss += loss.sum().item() / IMG_DIM
+        val_loss += loss.sum().item() / IMG_embedding
         n_feat += batch['img_mask_tgt'].sum().item()
     val_loss = sum(all_gather_list(val_loss))
     n_feat = sum(all_gather_list(n_feat))
@@ -686,8 +686,10 @@ if __name__ == "__main__":
                         help='min number of bounding boxes')
     parser.add_argument('--num_bb', type=int, default=36,
                         help='static number of bounding boxes')
-    parser.add_argument('--IMG_DIM', type=int, default=342,
+    parser.add_argument('--IMG_DIM', type=int, default=112,
                         help='visual features as transformer input')
+    parser.add_argument('--IMG_embedding', type=int, default=512,
+                        help='visual feature embedding from visual encoder')
     parser.add_argument("--image_data_augmentation", default=True, type=bool)
 
     # backbone parameters
@@ -739,6 +741,7 @@ if __name__ == "__main__":
     args = parse_with_config(parser)
 
     IMG_DIM = args.IMG_DIM
+    IMG_embedding = args.IMG_embedding
     # options safe guard
     if args.conf_th == -1:
         assert args.max_bb + args.max_txt_len + 2 <= 512

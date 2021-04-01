@@ -9,7 +9,7 @@ export PYTHONPATH=/data7/MEmoBert
 CUDA_VISIBLE_DEVICES=0 horovodrun -np 1 python pretrain.py \
         --config config/pretrain-movies-v1v2v3-base-2gpu_rawimg_2optim_mlmitm.json \
         --model_config config/uniter-base-backbone_3dresnet_pretrained.json \
-        --train_batch_size 40 --val_batch_size 40 --gradient_accumulation_steps 2 \
+        --train_batch_size 30 --val_batch_size 30 --gradient_accumulation_steps 2 \
         --learning_rate 5e-5 --lr_sched_type 'linear' \
         --max_txt_len 30 --IMG_DIM 112 \
         --conf_th 0.5 --max_bb 36 \

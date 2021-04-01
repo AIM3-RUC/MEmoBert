@@ -303,9 +303,14 @@ class UniterImageEmbeddings(nn.Module):
             new_img_feat = []
             # print('[Debug] Raw images {}'.format(img_feat.shape))
             for raw_img_4video in img_feat:
-                raw_img_ft = self.face_encoder.forward(raw_img_4video)
-                # print('[Debug]raw_img_ft {}'.format(raw_img_ft.shape))
-                new_img_feat.append(raw_img_ft)
+                # print(f'[Debug]img shape {raw_img_4video.shape}')
+                raw_img_4video = raw_img_4video.unsqueeze(1).unsqueeze(0)
+                # print(f'[Debug]face encoder input shape {raw_img_4video.shape}')
+                outputBatch = self.face_encoder.forward(raw_img_4video)
+                # print('[Debug]outputBatch {}'.format(outputBatch.shape))
+                outputBatch = outputBatch.reshape(-1, 512) # temp batch=1
+                # print('[Debug]final outputBatch {}'.format(outputBatch.shape))
+                new_img_feat.append(outputBatch)
             img_feat = torch.stack(new_img_feat)
             # print("[Debug] densenet output {}".format(img_feat.shape))
 
