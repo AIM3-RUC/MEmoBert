@@ -79,14 +79,14 @@ def augment_image_compose(img, image_size, pad):
     aug_img = compose_aug(Image.fromarray(img))
     return np.array(aug_img)
 
-def augment_batch_images(initial_images, pad=8):
+def augment_batch_images(initial_images, pad=8, image_size=112):
     # for uniter
     # input shape = [batch, img-size, img-size]
     # return = [batch, img-size, img-size]
     new_images = np.zeros(initial_images.shape)
     for i in range(initial_images.shape[0]):
         # default is float 16, not work. float32 is ok
-        new_images[i] = augment_image_compose(initial_images[i].astype('float32'), image_size=64, pad=pad)
+        new_images[i] = augment_image_compose(initial_images[i].astype('float32'), pad=pad, image_size=image_size)
     return new_images
 
 class FERPlusDataSet(ImagesDataSet):

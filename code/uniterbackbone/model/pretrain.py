@@ -175,7 +175,7 @@ class UniterForPretraining(UniterPreTrainedModel):
                                                     txt_emo_labels[txt_emo_labels != -1],
                                                     reduction='none')
                 # print('[Debug] in MELM emoloss {}'.format(masked_emo_loss))
-                # print('[Debug] in MELM lmloss {}'.format(masked_lm_loss))
+                # print('[Debug] in MELM lmloss {}'.format(masked_melm_loss))
                 # 两个loss处于相同的量级，所以设置 melm_multitask_rate=1.0
                 masked_lm_loss += self.config.melm_multitask_rate * masked_emo_loss
             return masked_lm_loss

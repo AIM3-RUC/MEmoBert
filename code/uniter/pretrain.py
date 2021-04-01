@@ -585,6 +585,7 @@ if __name__ == "__main__":
     # NOTE: train tasks and val tasks cannot take command line arguments
     parser.add_argument('--compressed_db', action='store_true',
                         help='use compressed LMDB')
+    parser.add_argument('--config', required=True, help='JSON config files')
     parser.add_argument("--model_config", type=str,
                         help="path to model structure config json")
     parser.add_argument("--checkpoint", default=None, type=str,
@@ -669,9 +670,6 @@ if __name__ == "__main__":
     parser.add_argument('--n_workers', type=int, default=4,
                         help="number of data workers")
     parser.add_argument('--pin_mem', action='store_true', help="pin memory")
-
-    # can use config files
-    parser.add_argument('--config', required=True, help='JSON config files')
 
     args = parse_with_config(parser)
 

@@ -12,8 +12,8 @@
   "melm_multitask": false,
   "vocab_size": 30522,
   "joint_face_backbone": true,
-  "backbone_type": "vggnet",
-  "face_checkpoint": "/data7/emobert/exp/face_model/vggnet_adam0.0001_0.25/ckpts/model_step_68.pt",
+  "backbone_type": "resnet3d",
+  "face_checkpoint": "/data7/MEmoBert/emobert/resources/pretrained/conv3dresnet18_visual_frontend.pt",
   "face_from_scratch": false,
   "face_data_augmentation": true
 }

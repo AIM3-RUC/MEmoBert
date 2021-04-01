@@ -39,8 +39,7 @@ def _check_distributed():
 
 class DetectFeatLmdb(object):
     def __init__(self, img_dir, conf_th=0.2, max_bb=100, min_bb=10, num_bb=36,
-                 compress=True, data_augmentation=False):
-
+                 compress=True, data_augmentation=True):
         # Jinming add: data_augmentation for raw image.
         self.data_augmentation = data_augmentation
         

@@ -647,8 +647,8 @@ if __name__ == "__main__":
     # NOTE: train tasks and val tasks cannot take command line arguments
     parser.add_argument('--compressed_db', action='store_true',
                         help='use compressed LMDB')
-
-    parser.add_argument("--model_config", type=str,
+    parser.add_argument('--config', required=True, type=str, help='JSON config files')
+    parser.add_argument("--model_config", required=True, type=str,
                         help="path to model structure config json")
     parser.add_argument("--checkpoint", default=None, type=str,
                         help="path to model checkpoint (*.pt)")
@@ -690,6 +690,11 @@ if __name__ == "__main__":
                         help='visual features as transformer input')
     parser.add_argument("--image_data_augmentation", default=True, type=bool)
 
+    # backbone parameters
+    parser.add_argument("--use_backbone_optim", default=True, type=bool)
+    parser.add_argument("--backbone_learning_rate", default=1e-3, type=float,
+                        help="The initial learning rate of face or audio backbone for Adam.")
+
     # training parameters
     parser.add_argument("--train_batch_size", default=4096, type=int,
                         help="Total batch size for training. "
@@ -702,8 +707,6 @@ if __name__ == "__main__":
                              "performing a backward/update pass.")
     parser.add_argument("--learning_rate", default=3e-5, type=float,
                         help="The initial learning rate for Adam.")
-    parser.add_argument("--backbone_learning_rate", default=1e-3, type=float,
-                        help="The initial learning rate of face or audio backbone for Adam.")
     parser.add_argument("--valid_steps", default=1000, type=int,
                         help="Run validation every X steps")
     parser.add_argument("--num_train_steps", default=100000, type=int,
@@ -732,9 +735,6 @@ if __name__ == "__main__":
     parser.add_argument('--n_workers', type=int, default=4,
                         help="number of data workers")
     parser.add_argument('--pin_mem', action='store_true', help="pin memory")
-
-    # can use config files
-    parser.add_argument('--config', required=True, help='JSON config files')
 
     args = parse_with_config(parser)
 

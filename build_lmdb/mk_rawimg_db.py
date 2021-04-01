@@ -30,6 +30,7 @@ msgpack_numpy.patch()
 Step1: 将所有图片经过预处理保存为: (64/112,64/112) .npz
 Step2: 构建rawimg_db库文件
 '''
+img_size = 112
 
 def prepocess_img(img_path):
     # movies_v1's mean and std
@@ -68,7 +69,7 @@ def trans_img_npzs(face_dir, rawimg_npzs_dir, meta_data_dir, movie_names_path, s
             outputfile = join(rawimg_npzs_dir, outputfilename)
             if os.path.exists(outputfile):
                 continue
-            active_spk = open(join(face_dir, movie_name, segment_ind, 'activate_spk.txt')).read().strip()
+            active_spk = open(join(face_dir, movie_name, segment_ind, 'has_active_spk.txt')).read().strip()
             assert active_spk != "None"
             active_spk = int(active_spk)
             face_dir_path = join(face_dir, movie_name, segment_ind)
@@ -105,11 +106,10 @@ def trans_img_npzs(face_dir, rawimg_npzs_dir, meta_data_dir, movie_names_path, s
 if __name__ == '__main__':
     start = int(sys.argv[1])  # 0
     end =  int(sys.argv[2])  # 1
-    img_size = 112
-    raw_npzs_dir = '/data8/emobert/rawimg_npzs_nomask{}/movies_v1'.format(img_size)
-    face_dir = '/data7/MEmoBert/emobert/data_nomask/faces/'
-    meta_data_dir = '/data7/emobert/data_nomask/meta'
-    movie_names_path = '/data7/emobert/data_nomask/movies_v1/movie_names.npy'
+    raw_npzs_dir = '/data7/emobert/rawimg_npzs_nomask/movies_v3'
+    face_dir = '/data7/MEmoBert/emobert/data_nomask_new/faces/'
+    meta_data_dir = '/data7/emobert/data_nomask_new/meta'
+    movie_names_path = '/data7/emobert/data_nomask_new/movies_v3/movie_names.npy'
     if not os.path.exists(raw_npzs_dir):
         os.makedirs(raw_npzs_dir)
     trans_img_npzs(face_dir, raw_npzs_dir, meta_data_dir, movie_names_path, start=start, end=end)

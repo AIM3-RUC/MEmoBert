@@ -1,1 +1,0 @@
-/data10/lrc/movie_dataset/code/get_comparE.py

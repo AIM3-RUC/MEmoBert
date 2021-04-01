@@ -165,6 +165,7 @@ def main():
     # In distributed training, the .from_pretrained methods guarantee that only one local process can concurrently
     # download model & vocab.
     config = AutoConfig.from_pretrained(args.model_name_or_path, num_labels=num_labels)
+    #print('config', config)
     tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
     model = AutoModelForSequenceClassification.from_pretrained(
         args.model_name_or_path,
@@ -288,7 +289,7 @@ def main():
             # save the model
             model_saver.save(model, epoch)
         # for early stop
-        if patience <= 0:            
+        if patience <= 0:
             break
         else:
             patience -= 1
@@ -324,7 +325,7 @@ def write_result_to_tsv(file_path, tst_log, cvNo):
     f_out = open(file_path, 'w')
     f_out.writelines(content)
     f_out.close()
-    f_in.close()  
+    f_in.close()
 
 def evaluation(accelerator, model, set_dataloader):
     total_preds = []
@@ -332,7 +333,7 @@ def evaluation(accelerator, model, set_dataloader):
     for step, batch in enumerate(set_dataloader):
         outputs = model(**batch)
         predictions = outputs.logits.argmax(dim=-1)
-        temp_preds = accelerator.gather(predictions).detach().cpu().numpy() 
+        temp_preds = accelerator.gather(predictions).detach().cpu().numpy()
         temp_labels = accelerator.gather(batch["labels"]).detach().cpu().numpy()
         total_preds.append(temp_preds)
         total_labels.append(temp_labels)

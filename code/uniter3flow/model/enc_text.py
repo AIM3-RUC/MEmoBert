@@ -17,7 +17,6 @@ https://huggingface.co/transformers/_modules/transformers/models/bert/modeling_b
 
 logger = logging.getLogger(__name__)
 
-
 class BertTextEmbeddings(nn.Module):
     def __init__(self, config):
         super().__init__()

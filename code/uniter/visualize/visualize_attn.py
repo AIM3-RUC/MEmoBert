@@ -60,7 +60,7 @@ IMG_DIM = 342
 layer_index = 11
 setname = 'trn'
 corpus_name = 'MSP'
-model_config = "config/uniter-base-emoword_nomultitask.json"
+model_config = "../config/uniter-base-emoword_nomultitask.json"
 ## for meld 
 # checkpoint_dir = f'/data7/emobert/exp/evaluation/{corpus_name}/finetune/baseon-movies_v1v2_uniter_4tasks-lr2e5_bs32_th0.5_train3000/drop0.1_frozen0_emocls_none'
 ## for msp
@@ -126,12 +126,13 @@ def evaluation(model, loader, visualization_info_path):
         targets = batch['targets'].detach().cpu().numpy()
         # for attention score
         query, key, value = hook.extract()
-        # print(query.shape, key.shape, value.shape)
+        print('query key value {} {} {}'.format(query.shape, key.shape, value.shape))
         attention_scores = torch.matmul(query, key.transpose(-1,-2))
+        print('attention_scores {}'.format(attention_scores.shape))
         # attention_scores = np.matmul(query, np.transpose(key, (0, 2, 1)))
         attention_scores = attention_scores / math.sqrt(12)
         attention_scores = attention_scores.detach().cpu().numpy()
-        # print('attention_scores {}'.format(attention_scores.shape))
+        print('attention_scores {}'.format(attention_scores.shape))
         # for attention mask
         attention_mask = batch['attn_masks']
         extended_attention_mask = attention_mask.unsqueeze(1).unsqueeze(2).detach().cpu().numpy()

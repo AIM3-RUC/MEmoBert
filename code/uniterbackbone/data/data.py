@@ -16,7 +16,7 @@ from torch.utils.data import Dataset, ConcatDataset
 import horovod.torch as hvd
 import lmdb
 from lz4.frame import compress, decompress
-from code.denseface.data.fer import augment_image, augment_batch_images
+from code.denseface.data.fer import augment_batch_images
 
 import msgpack
 import msgpack_numpy
@@ -91,7 +91,7 @@ class DetectFeatLmdb(object):
                 img_dump = {'features': img_dump['features']}
         else:
             img_dump = msgpack.loads(dump, raw=False)
-        # Jinming: now the input is rawimg, and the input is (64, 64)
+        # Jinming: now the input is rawimg, and the input is (112, 112)
         if len(img_dump['features'].shape) == 3:
             img_feat = img_dump['features'][:nbb, :, :]
             #Jinming: for data-augmentation
@@ -240,7 +240,7 @@ class DetectFeatTxtTokDataset(Dataset):
 
 def pad_tensors(tensors, lens=None, pad=0):
     """B x [T, ...], for 2d (batchsize, T, dim)
-    Jinming add for 3d. (batchsize, T, 64, 64)
+    Jinming add for 3d. (batchsize, T, img-dim, img-dim)
     """
     if lens is None:
         lens = [t.size(0) for t in tensors]
@@ -270,7 +270,6 @@ def get_gather_index(txt_lens, num_bbs, batch_size, max_len, out_size):
         gather_index.data[i, tl:tl+nbb] = torch.arange(max_len, max_len+nbb,
                                                        dtype=torch.long).data
     return gather_index
-
 
 class ConcatDatasetWithLens(ConcatDataset):
     """ A thin wrapper on pytorch concat dataset for lens batching """

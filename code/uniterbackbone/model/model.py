@@ -17,10 +17,7 @@ from torch import nn
 from apex.normalization.fused_layer_norm import FusedLayerNorm
 
 from code.uniterbackbone.model.layer import BertLayer, BertPooler
-from torch import tensor
-from code.denseface.model.dense_net import DenseNetEncoder
-from code.denseface.model.vggnet import VggNetEncoder
-from code.denseface.model.resnet import ResNetEncoder
+from code.uniter3flow.model.enc_visual import ResNet3D
 
 logger = logging.getLogger(__name__)
 
@@ -277,29 +274,18 @@ class UniterImageEmbeddings(nn.Module):
 
         # Jinming add for joint training denseface backbone
         if self.config.joint_face_backbone is True:
-            if self.config.backbone_type == 'resnet':
-                from code.denseface.config.res_fer import model_cfg as backbone_config
-                self.face_encoder = ResNetEncoder(**backbone_config)
-            elif self.config.backbone_type == 'densenet':
-                from code.denseface.config.dense_fer import model_cfg as backbone_config
-                self.face_encoder = DenseNetEncoder(**backbone_config)
-            elif self.config.backbone_type == 'vggnet':
-                from code.denseface.config.vgg_fer import model_cfg as backbone_config
-                self.face_encoder = VggNetEncoder(**backbone_config)
+            if self.config.backbone_type == 'resnet3d':
+                self.face_encoder = ResNet3D()
             else:
                 print('[Error] backbone type {}'.format(self.config.backbone_type))
             if not self.config.face_from_scratch:
                 print('[Debug] Train the face backbone from {}!!!!'.format(self.config.face_checkpoint))
                 state_dict = torch.load(self.config.face_checkpoint)
-                for key in list(state_dict.keys()):
-                    if 'classifier' in key or 'features' not in key:
-                        del state_dict[key]
-                # print('[Debug]****** densenet original layer weights')
-                # print(state_dict['features.denseblock2.denselayer10.conv1.weight'])
-                # print(state_dict['features.denseblock3.denselayer10.conv1.weight'])
+                print('[Debug]****** facebackbone original layer weights')
                 # print(list(state_dict.keys())[:20])
                 # print(list(self.face_encoder.state_dict().keys())[:20])
                 self.face_encoder.load_state_dict(state_dict)
+                print('[Debug] loading backbone OK!')
             else:
                 print('[Debug] Train the face backbone from scratch!!!!')
 
@@ -424,7 +410,6 @@ class UniterModel(UniterPreTrainedModel):
                 frozen_en_layers=0,
                 output_all_encoded_layers=True,
                 txt_type_ids=None, img_type_ids=None):
-        
         input_ids = batch['input_ids']
         position_ids = batch['position_ids']
         # Jinming add note: if img_feat are raw images, 
