@@ -46,7 +46,7 @@ class EmoCLsDataset(DetectFeatTxtTokDataset):
         # img input Jinming remove the norm-bbx fts
         img_feat, num_bb = self._get_img_feat(example['img_fname'])
         attn_masks = torch.ones(len(input_ids) + num_bb, dtype=torch.long)
-
+        
         return input_ids, img_feat, attn_masks, target, emo_type_ids
 
 def emocls_collate(inputs):

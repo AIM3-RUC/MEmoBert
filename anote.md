@@ -54,6 +54,7 @@ Error-video_clips/No0030.About.Time.Error/1960.mp4: 647K; 明显的也是切割�
 Now-video_clips/No0030.About.Time/1960.mp4: 84k;
 text: That's fine.
 
+
 ## 下游任务的数据预处理以及特征抽取流程
 MELD EmoList = {0: 'neutral', 1:'surprise', 2: 'fear', 3: 'sadness', 4: 'joy', 5: 'disgust', 6: 'anger'}
     MELD 特征数据: /data7/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/img_db/
@@ -67,6 +68,16 @@ MELD EmoList = {0: 'neutral', 1:'surprise', 2: 'fear', 3: 'sadness', 4: 'joy', 5
 IEMOCAP EmoList = []: 
 
 MSP EmoList = []: 
+
+## 下游任务的原始图片数据的预处理
+if dataset_name == 'iemocap':
+        mean, std = 131.0754, 47.858177
+elif dataset_name == 'msp':
+    mean, std = 96.3801, 53.615868
+elif dataset_name == 'meld':
+    mean, std = 67.61417, 37.89171
+else:
+    print('the dataset name is error {}'.format(dataset_name))
 
 ## 存储位置的优化
 不要将所有的小文件存储在data7上, 否则data7小文件太多，导致特别卡.

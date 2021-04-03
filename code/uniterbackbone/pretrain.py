@@ -690,12 +690,12 @@ if __name__ == "__main__":
                         help='visual features as transformer input')
     parser.add_argument('--IMG_embedding', type=int, default=512,
                         help='visual feature embedding from visual encoder')
-    parser.add_argument("--image_data_augmentation", default=True, type=bool)
 
     # backbone parameters
     parser.add_argument("--use_backbone_optim", default=True, type=bool)
     parser.add_argument("--backbone_learning_rate", default=1e-3, type=float,
                         help="The initial learning rate of face or audio backbone for Adam.")
+    parser.add_argument("--image_data_augmentation", default=True, type=bool)
 
     # training parameters
     parser.add_argument("--train_batch_size", default=4096, type=int,

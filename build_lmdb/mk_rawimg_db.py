@@ -32,10 +32,9 @@ Step2: 构建rawimg_db库文件
 '''
 img_size = 112
 
-def prepocess_img(img_path):
-    # movies_v1's mean and std
-    mean = 63.987095
-    std = 43.00519
+def prepocess_img(img_path, mean, std, img_size=64):
+    # movies_v1's mean and std is  63.98709 and 43.00519
+    # img_size: for denseface is 64 and for raw-img is 112 
     if os.path.exists(img_path):
         img = cv2.imread(img_path)
         if not isinstance(img, np.ndarray):
@@ -48,6 +47,17 @@ def prepocess_img(img_path):
     else:
         return None
 
+def prepocess_img_data(img, mean, std, img_size=112):
+    if not isinstance(img, np.ndarray):
+        return None
+    if np.sum(img) == 0:
+        # only return the first channel
+        return img[:,:,0]
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    img = cv2.resize(img, (img_size, img_size))
+    img = (img - mean) / std
+    return img
+    
 def trans_img_npzs(face_dir, rawimg_npzs_dir, meta_data_dir, movie_names_path, start=0, end=0):
     '''
     fileter_dict: 未来加很多数据的时候可能
