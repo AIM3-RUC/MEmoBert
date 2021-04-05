@@ -95,4 +95,4 @@ def evaluation(model, loader):
     except:
         acc, uar, wf1, f1, cm =0, 0, 0, 0,0
     model.train()
-    return {'loss': avg_loss, 'WA': acc, 'WF1': wf1, 'UA': uar,  'F1': wf1}
+    return {'loss': avg_loss, 'WA': acc, 'WF1': wf1, 'UA': uar,  'F1': f1}

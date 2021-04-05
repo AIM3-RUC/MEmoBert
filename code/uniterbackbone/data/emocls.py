@@ -17,6 +17,7 @@ class EmoCLsDataset(DetectFeatTxtTokDataset):
         assert isinstance(txt_db, TxtTokLmdb)
         assert isinstance(img_db, DetectFeatLmdb)
         super().__init__(txt_db, img_db)
+        self.img_shape = None
 
     def __getitem__(self, i):
         """
@@ -44,10 +45,15 @@ class EmoCLsDataset(DetectFeatTxtTokDataset):
             emo_type_ids = None
 
         # img input Jinming remove the norm-bbx fts
-        img_feat, num_bb = self._get_img_feat(example['img_fname'])
+        img_feat, num_bb = self._get_img_feat(example['img_fname'], self.img_shape)
+        self.img_shape = img_feat.shape[1:]  
         attn_masks = torch.ones(len(input_ids) + num_bb, dtype=torch.long)
-        
-        return input_ids, img_feat, attn_masks, target, emo_type_ids
+
+        # for visualization
+        img_frame_name = example['img_fname']
+
+        # print("[Debug empty] txt {} img {}".format(len(input_ids), num_bb))
+        return input_ids, img_feat, attn_masks, target, emo_type_ids, img_frame_name
 
 def emocls_collate(inputs):
     """
@@ -60,7 +66,7 @@ def emocls_collate(inputs):
     :num_bbs      list of [num_bb], real num_bbs
     :attn_masks   (n, max_{L + num_bb}) padded with 0
     """
-    (input_ids, img_feats, attn_masks, targets, batch_emo_type_ids) = map(list, unzip(inputs))
+    (input_ids, img_feats, attn_masks, targets, batch_emo_type_ids, batch_img_frame_names) = map(list, unzip(inputs))
 
     # text batches
     txt_lens = [i.size(0) for i in input_ids]
@@ -97,6 +103,7 @@ def emocls_collate(inputs):
              'attn_masks': attn_masks,
              'gather_index': gather_index,
              'targets': targets,
-             'emo_type_ids': batch_emo_type_ids
+             'emo_type_ids': batch_emo_type_ids,
+             'img_frame_names': batch_img_frame_names
              }
     return batch

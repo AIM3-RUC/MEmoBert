@@ -89,9 +89,10 @@ def evaluation(model, loader):
     try:
         acc = accuracy_score(total_label, total_pred)
         uar = recall_score(total_label, total_pred, average='macro')
+        wf1 = f1_score(total_label, total_pred, average='weighted')
         f1 = f1_score(total_label, total_pred, average='macro')
         cm = confusion_matrix(total_label, total_pred)
     except:
-        acc, uar, f1, cm =0, 0, 0, 0
+        acc, uar, wf1, f1, cm =0, 0, 0, 0,0
     model.train()
-    return {'loss': avg_loss,  'WA': acc,  'UA': uar, 'F1': f1}
+    return {'loss': avg_loss, 'WA': acc, 'WF1': wf1, 'UA': uar,  'F1': f1}

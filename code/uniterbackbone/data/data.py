@@ -117,6 +117,7 @@ def open_lmdb(db_dir, readonly=False):
 
 class TxtLmdb(object):
     def __init__(self, db_dir, readonly=True):
+        print('[Debug] In TxtLmdb {}'.format(db_dir))
         self.readonly = readonly
         if readonly:
             # training
@@ -124,6 +125,7 @@ class TxtLmdb(object):
                                  readonly=True, create=False,
                                  readahead=not _check_distributed())
             self.txn = self.env.begin(buffers=True)
+            # print('[Debug] In TxtLmdb {}'.format(type(self.txn)))
             self.write_cnt = None
         else:
             # prepro
@@ -231,10 +233,16 @@ class DetectFeatTxtTokDataset(Dataset):
         example = self.txt_db[id_]
         return example
 
-    def _get_img_feat(self, fname):
+    def _get_img_feat(self, fname, img_shape):
         # Jinimng: remove the norm-bbx features 
         img_feat = self.img_db[fname]
         num_bb = img_feat.size(0)
+        if num_bb == 0:
+            # print('[Warn] current {} is empty img info!!!\n'.format(fname))
+            if img_shape == None:
+                img_shape = (112, 112)
+            img_feat = torch.zeros(img_shape).unsqueeze(0)
+            num_bb = 1
         return img_feat, num_bb
 
 

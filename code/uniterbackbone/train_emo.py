@@ -3,7 +3,6 @@ Copyright (c) Microsoft Corporation.
 Licensed under the MIT license.
 
 UNITER finetuning for Image-Text Retrieval
-"checkpoint": "/data7/emobert/exp/pretrain/nomask_movies_v1_uniter_4tasks/ckpt/model_step_100000.pt",
 """
 import argparse
 import os
@@ -19,17 +18,14 @@ from apex import amp
 from horovod import torch as hvd
 from tqdm import tqdm
 
-from code.uniterbackbone.data import (PrefetchLoader, TxtTokLmdb, ImageLmdbGroup, EmoCLsDataset,
-                                emocls_collate)
+from code.uniterbackbone.data import (PrefetchLoader, TxtTokLmdb, ImageLmdbGroup, EmoCLsDataset, emocls_collate)
 from code.uniterbackbone.model.emocls import UniterForEmoRecognition, evaluation
 from code.uniterbackbone.optim import get_lr_sched
 from code.uniterbackbone.optim.misc import build_optimizer
 from code.uniterbackbone.utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
-from code.uniterbackbone.utils.distributed import (all_reduce_and_rescale_tensors, all_gather_list,
-                               broadcast_tensors)
+from code.uniterbackbone.utils.distributed import (all_reduce_and_rescale_tensors, broadcast_tensors)
 from code.uniterbackbone.utils.save import ModelSaver, save_training_meta
 from code.uniterbackbone.utils.misc import NoOp, parse_with_config, set_random_seed
-from code.uniterbackbone.utils.const import IMG_DIM
 
 
 def build_dataloader(dataset, collate_fn, is_train, opts):
@@ -78,41 +74,46 @@ def main(opts):
         pbar = NoOp()
         model_saver = NoOp()
 
-    all_img_dbs = ImageLmdbGroup(opts.conf_th, opts.max_bb, opts.min_bb, opts.num_bb, opts.compressed_db)
-
     LOGGER.info("Loading Train Dataset {} {}".format(opts.train_txt_dbs, opts.train_img_dbs))
+    train_all_img_dbs = ImageLmdbGroup(opts.conf_th, opts.max_bb, opts.min_bb, opts.num_bb, 
+                                    opts.compressed_db, opts.image_data_augmentation)
     train_datasets = []
     for txt_path, img_path in zip(opts.train_txt_dbs, opts.train_img_dbs):
-        # for cross-validation
+        # Jinming add trn: for cross-validation
         txt_path = txt_path.format(opts.cvNo)
-        img_db = all_img_dbs[img_path]
+        img_db = train_all_img_dbs[img_path]
         txt_db = TxtTokLmdb(txt_path, opts.max_txt_len)
+        print(type(txt_db), type(img_db))
         train_datasets.append(EmoCLsDataset(txt_db, img_db))
     train_dataset = ConcatDataset(train_datasets)
 
+    LOGGER.info("Loading no image_data_augmentation for validation and testing")
+    eval_all_img_dbs = ImageLmdbGroup(opts.conf_th, opts.max_bb, opts.min_bb, opts.num_bb, 
+                                    opts.compressed_db, False)
     # val
     opts.val_txt_db = opts.val_txt_db.format(opts.cvNo)
     LOGGER.info(f"Loading Val Dataset {opts.val_img_db}, {opts.val_txt_db}")
-    val_img_db = all_img_dbs[opts.val_img_db]
+    val_img_db = eval_all_img_dbs[opts.val_img_db]
     val_txt_db = TxtTokLmdb(opts.val_txt_db, -1)
     val_dataset = EmoCLsDataset(val_txt_db, val_img_db)
     val_dataloader = build_dataloader(val_dataset, emocls_collate, False, opts)
     # test
     opts.test_txt_db = opts.test_txt_db.format(opts.cvNo)
     LOGGER.info(f"Loading Test Dataset {opts.test_img_db}, {opts.test_txt_db}")
-    test_img_db = all_img_dbs[opts.test_img_db]
+    test_img_db = eval_all_img_dbs[opts.test_img_db]
     test_txt_db = TxtTokLmdb(opts.test_txt_db, -1)
     test_dataset = EmoCLsDataset(test_txt_db, test_img_db)
     test_dataloader = build_dataloader(test_dataset, emocls_collate, False, opts)
 
     # Prepare model
     if opts.checkpoint:
+        LOGGER.info('[Info] Loading from pretrained model {}'.format(opts.checkpoint))
         checkpoint = torch.load(opts.checkpoint)
     else:
         checkpoint = {}
 
     model = UniterForEmoRecognition.from_pretrained(opts.model_config, state_dict=checkpoint, \
-                            img_dim=IMG_DIM, cls_num=opts.cls_num, frozen_en_layers=opts.frozen_en_layers, \
+                            img_dim=IMG_embedding, cls_num=opts.cls_num, frozen_en_layers=opts.frozen_en_layers, \
                             cls_dropout=opts.cls_dropout, cls_type=opts.cls_type)
     model.to(device)
     # make sure every process has same model parameters in the beginning
@@ -134,7 +135,7 @@ def main(opts):
 
     global_step = 0
     n_examples = 0
-    best_eval_UA = 0
+    best_eval_WA = 0
     best_eval_step = 0
     steps2test_results = {}
     steps2val_results = {}
@@ -168,7 +169,7 @@ def main(opts):
             if (step + 1) % opts.gradient_accumulation_steps == 0:
                 global_step += 1
                 # learning rate scheduling
-                lr_this_step = get_lr_sched(global_step, opts)
+                lr_this_step = get_lr_sched(global_step, opts.lr_sched_type, opts)
                 for param_group in optimizer.param_groups:
                     param_group['lr'] = lr_this_step
                 TB_LOGGER.add_scalar('lr', lr_this_step, global_step)
@@ -198,19 +199,21 @@ def main(opts):
                         {f"valid/{k}": v for k, v in val_log.items()})
                     LOGGER.info(f"[Validation] Loss: {val_log['loss']:.2f},"
                                 f"\t WA: {val_log['WA']*100:.2f},"
+                                f"\t WF1: {val_log['WF1']*100:.2f},"
                                 f"\t UA: {val_log['UA']*100:.2f},\n")
                     test_log = evaluation(model, test_dataloader)
                     TB_LOGGER.log_scaler_dict(
                         {f"test/{k}": v for k, v in test_log.items()})
                     LOGGER.info(f"[Testing] Loss: {test_log['loss']:.2f},"
                                 f"\t WA: {test_log['WA']*100:.2f},"
+                                f"\t WF1: {val_log['WF1']*100:.2f},"
                                 f"\t UA: {test_log['UA']*100:.2f},\n")
                     steps2val_results[global_step] = val_log
                     steps2test_results[global_step] = test_log
                     # update the current best model based on validation results
-                    if val_log['UA'] > best_eval_UA:
+                    if val_log['WA'] > best_eval_WA:
                         best_eval_step = global_step
-                        best_eval_UA = val_log['UA']
+                        best_eval_WA = val_log['WA']
                         patience = opts.patience
                         LOGGER.info('Save model at {} global step'.format(global_step))
                         model_saver.save(model, global_step)
@@ -226,7 +229,8 @@ def main(opts):
     pbar.close()
     LOGGER.info(f"finished {opts.num_train_steps} steps in {time()- start} seconds!")
     ### final use the best model tested on validation set.
-    LOGGER.info('Val: Best eval steps {} found with UA {}'.format(best_eval_step,  best_eval_UA))
+    LOGGER.info('Val: Best eval steps {} found with WA {}'.format(best_eval_step,  best_eval_WA))
+    LOGGER.info('Val: {}'.format(steps2val_results[best_eval_step]))
     LOGGER.info('Test: {}'.format(steps2test_results[best_eval_step]))
     steps2val_results['beststep'] = best_eval_step
     json.dump(steps2test_results, open(join(opts.output_dir, 'log', 'step2test_reuslts.json'),'w',encoding='utf-8'))
@@ -251,7 +255,7 @@ def write_result_to_tsv(file_path, tst_log, cvNo):
     content = f_in.readlines()
     if len(content) != 12:
         content += ['\n'] * (12-len(content))
-    content[cvNo-1] = 'CV{}\t{:.4f}\t{:.4f}\t{:.4f}\n'.format(cvNo, tst_log['WA'], tst_log['UA'], tst_log['F1'])
+    content[cvNo-1] = 'CV{}\t{:.4f}\t{:.4f}\t{:.4f}\n'.format(cvNo, tst_log['WA'], tst_log['WF1'], tst_log['UA'])
     f_out = open(file_path, 'w')
     f_out.writelines(content)
     f_out.close()
@@ -263,6 +267,8 @@ if __name__ == "__main__":
     # Required parameters
     parser.add_argument('--compressed_db', action='store_true',
                         help='use compressed LMDB')
+    parser.add_argument("--model_config", type=str,
+                        help="path to model structure config json")
     parser.add_argument("--checkpoint",
                         default=None, type=str,
                         help="pretrained MLM")
@@ -278,6 +284,8 @@ if __name__ == "__main__":
                         help="tune dropout regularization of final classification layer")
     parser.add_argument("--cls_type", default='vqa',
                         help="for the type of the classfier layer")
+    parser.add_argument("--cls_num", default=4, type=int,
+                        help="number classes of the downstream tasks")
     parser.add_argument('--postfix', required=True, default='None',
                         help='postfix for the output dir')
     # Prepro parameters
@@ -292,7 +300,13 @@ if __name__ == "__main__":
                         help='min number of bounding boxes')
     parser.add_argument('--num_bb', type=int, default=36,
                         help='static number of bounding boxes')
+    parser.add_argument('--IMG_DIM', type=int, default=112,
+                        help='visual features as transformer input')
+    parser.add_argument('--IMG_embedding', type=int, default=512,
+                        help='visual feature embedding from visual encoder')
+    parser.add_argument("--image_data_augmentation", default=True, type=bool)
 
+                        
     # training parameters
     parser.add_argument("--train_batch_size", default=128, type=int,
                         help="Total batch size for training. "
@@ -325,7 +339,8 @@ if __name__ == "__main__":
                              "learning rate warmup for.")
     parser.add_argument("--patience", default=5, type=int,
                         help="Early stop patience")
-
+    parser.add_argument("--lr_sched_type", default='linear_decay',
+                        help="[fixed, linear]")
     # device parameters
     parser.add_argument('--seed', type=int, default=42,
                         help="random seed for initialization")
@@ -341,10 +356,8 @@ if __name__ == "__main__":
     parser.add_argument('--config', help='JSON config files')
 
     args = parse_with_config(parser)
-
-    if args.frozen_en_layers == 0:
-        args.train_batch_size = int(args.train_batch_size / 2)
-        print('Frozen 0 Layers and batch size is {}'.format(args.train_batch_size))
+    IMG_DIM = args.IMG_DIM
+    IMG_embedding = args.IMG_embedding
 
     # for cross-validation
     args.output_dir = args.output_dir + '/drop{}_frozen{}_{}_{}'.format(args.cls_dropout, args.frozen_en_layers, \
