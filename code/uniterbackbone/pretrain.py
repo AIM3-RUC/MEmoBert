@@ -253,6 +253,7 @@ def main(opts):
     set_dropout(model, opts.dropout)
 
     task2scaler = {t: i for i, t in enumerate(train_dataloaders.keys())}
+    print('[Debug] use_backbone_optim {}'.format(opts.use_backbone_optim))
     if opts.use_backbone_optim:
         LOGGER.info('[INFO] Use 2 optimizers for backbone {} and bert model {}'.format(
             opts.optim, opts.backbone_optim))
@@ -662,6 +663,9 @@ if __name__ == "__main__":
         "--output_dir", default=None, type=str,
         help="The output directory where the model checkpoints will be "
              "written.")
+    parser.add_argument('--cvNo', type=int, required=True, default=0,
+                        help='which cross-valiation folder, \
+                        if cvNo=0, then donot use th cross-validation')
 
     parser.add_argument('--melm_prob', default=0.5, type=float,
                         help='probability to mask in MELM training')
@@ -673,7 +677,7 @@ if __name__ == "__main__":
                              'in ITM training')
     parser.add_argument('--itm_ot_lambda', default=0.0, type=float,
                         help='weight of OT (optimal transport) loss (WRA)')
-
+    
     # Prepro parameters
     parser.add_argument('--max_txt_len', type=int, default=60,
                         help='max number of tokens in text (BERT BPE)')
@@ -692,7 +696,8 @@ if __name__ == "__main__":
                         help='visual feature embedding from visual encoder')
 
     # backbone parameters
-    parser.add_argument("--use_backbone_optim", default=True, type=bool)
+    parser.add_argument("--use_backbone_optim", default=False, type=bool, 
+                        help='use individual backbone optim for training')
     parser.add_argument("--backbone_learning_rate", default=1e-3, type=float,
                         help="The initial learning rate of face or audio backbone for Adam.")
     parser.add_argument("--image_data_augmentation", default=True, type=bool)
@@ -739,6 +744,13 @@ if __name__ == "__main__":
     parser.add_argument('--pin_mem', action='store_true', help="pin memory")
 
     args = parse_with_config(parser)
+
+    if args.cvNo > 0:
+        print('[Info] For Cross-Validation and redefine the train_datasets and val_datasets')
+        for i in range(len(args.train_datasets)):
+            args.train_datasets[i]['db'][0] = args.train_datasets[i]['db'][0].format(args.cvNo)
+        for i in range(len(args.val_datasets)):
+            args.val_datasets[i]['db'][0] = args.val_datasets[i]['db'][0].format(args.cvNo)
 
     IMG_DIM = args.IMG_DIM
     IMG_embedding = args.IMG_embedding

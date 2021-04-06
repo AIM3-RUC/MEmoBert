@@ -52,6 +52,7 @@ class ItmDataset(DetectFeatTxtTokDataset):
     def __init__(self, txt_db, img_db, neg_sample_p=0.5):
         assert isinstance(txt_db, TxtTokLmdb)
         assert isinstance(img_db, DetectFeatLmdb)
+        self.img_shape = None
 
         self.txt_db = txt_db
         self.img_db = img_db
@@ -84,7 +85,8 @@ class ItmDataset(DetectFeatTxtTokDataset):
         img_fname = self.train_imgs[i]
         # img_feat, img_pos_feat, num_bb = self._get_img_feat(img_fname)
         # Jinming remove norm-bbx feature
-        img_feat, num_bb = self._get_img_feat(img_fname)
+        img_feat, num_bb = self._get_img_feat(img_fname, self.img_shape)
+        self.img_shape = img_feat.shape[1:]
 
         # text input
         input_ids = example['input_ids']

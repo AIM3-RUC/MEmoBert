@@ -1,20 +1,21 @@
 {
     "compressed_db": false,
-    "checkpoint": "/data7/emobert/exp/pretrain/nomask_movies_v1_uniter_4tasks/ckpt/model_step_100000.pt",
-    "model_config": "config/uniter-base.json",
-    "output_dir": "/data7/emobert/exp/finetune/msp_baseon_nomask_movies_v1_uniter_4tasks/",
+    "checkpoint": "/data7/emobert/exp/pretrain/resnet3d_nomask_movies_v1v2v3_uniter_mlmitm_lr5e5-backbone_scratch_optimFalse-bs480_faceth0.5/ckpt/model_step_8000.pt",
+    "model_config": "config/uniter-base-emoword_nomultitask.json",
+    "output_dir": "/data7/MEmoBert/emobert/exp/evaluation/MELD/finetune/xxx",
     "max_txt_len": 30,
-    "conf_th": 0.1,
+    "conf_th": 0.0,
     "max_bb": 36,
     "min_bb": 10,
     "num_bb": 36,
     "IMG_DIM": 342,
-    "train_batch_size": 64,
-    "inf_batch_size": 64,
+    "IMG_embedding": 512,
+    "train_batch_size": 32,
+    "inf_batch_size": 32,
     "cls_num": 7,
-    "cls_dropout": 0.3,
-    "frozen_en_layers": 11,
-    "patience": 2,
+    "cls_dropout": 0.1,
+    "frozen_en_layers": 0,
+    "patience": 5,
     "gradient_accumulation_steps": 1,
     "learning_rate": 2e-05,
     "valid_steps": 100,
@@ -34,13 +35,13 @@
     "n_workers": 2,
     "pin_mem": true,
     "train_txt_dbs": [
-        "/data7/emobert/exp/evaluation/MSP/txt_db/{}/trn_emowords_emotype.db"
+        "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/trn_emowords_emotype.db"
     ],
     "train_img_dbs": [
-        "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/"
+        "/data7/emobert/exp/evaluation/IEMOCAP/feature/openface_iemocap_raw_img/raw_img_db/"
     ],
-    "val_txt_db": "/data7/emobert/exp/evaluation/MSP/txt_db/{}/val_emowords_emotype.db",
-    "val_img_db": "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/",
-    "test_txt_db": "/data7/emobert/exp/evaluation/MSP/txt_db/{}/tst_emowords_emotype.db",
-    "test_img_db": "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/"
+    "val_txt_db": "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val_emowords_emotype.db",
+    "val_img_db": "/data7/emobert/exp/evaluation/IEMOCAP/feature/openface_iemocap_raw_img/raw_img_db/",
+    "test_txt_db": "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst_emowords_emotype.db",
+    "test_img_db": "/data7/emobert/exp/evaluation/IEMOCAP/feature/openface_iemocap_raw_img/raw_img_db/"
 }

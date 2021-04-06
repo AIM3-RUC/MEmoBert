@@ -30,7 +30,7 @@ from code.uniterbackbone.utils.misc import NoOp, parse_with_config, set_random_s
 
 def build_dataloader(dataset, collate_fn, is_train, opts):
     # 构建训练集合或者测试集合的
-    batch_size = opts.train_batch_size if is_train else 1
+    batch_size = opts.train_batch_size if is_train else opts.inf_batch_size
     dataloader = DataLoader(dataset, batch_size=batch_size,
                             shuffle=is_train, drop_last=is_train,
                             num_workers=opts.n_workers,
