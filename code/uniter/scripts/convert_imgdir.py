@@ -25,7 +25,7 @@ msgpack_numpy.patch()
 def _compute_valid_nbb(img_dump, conf_th, max_bb):
     # 由于不同于bbx, 这里的 face 是有顺序的, 所以需要返回具体的index.
     if img_dump.get('confidence') is None:
-        valid_indexs = list(range(len(img_dump['soft_labels'])))
+        valid_indexs = list(range(len(img_dump['features'])))
         return valid_indexs[:max_bb]
     else:
         # print('Exists confidence and filter the low confidences')

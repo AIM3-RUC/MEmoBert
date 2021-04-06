@@ -31,7 +31,6 @@ if not do_raw_img:
     ft_key = 'feat' # or trans1 trans2 or img_data
     npyz_dir = feature_dir + '/ft_npzs/fc'
 else:
-    feature_dir = root_dir + 'feature/denseface_openface_meld_mean_std_torch/'
     IMD_DIM=[112, 112, 3]
     img_size = 112
     mean, std = 67.61417, 37.89171

@@ -242,7 +242,7 @@ def main(opts):
         checkpoint = {}
     model = UniterForPretraining.from_pretrained(
         opts.model_config, checkpoint,
-        img_dim=IMG_DIM, img_label_dim=IMG_LABEL_DIM)
+        img_dim=IMG_embedding, img_label_dim=IMG_LABEL_DIM)
     # print("****************"*5)
     # print(model.state_dict().keys())
     model.to(device)
@@ -258,7 +258,7 @@ def main(opts):
             opts.optim, opts.backbone_optim))
         backbone = model.uniter.img_embeddings.face_encoder
         backbone_optimizer = build_backbone_optimizer(backbone, opts)   # 只包含denseface的参数
-        optimizer = build_optimizer(model, opts, except_model=backbone) # 除去denseface的参数
+        optimizer = build_optimizer(model, opts, except_model=backbone)  # 除去denseface的参数
         model, [optimizer, backbone_optimizer]  = amp.initialize(model, [optimizer, backbone_optimizer],
                                         num_losses=len(task2scaler),
                                         enabled=opts.fp16, opt_level='O2')
@@ -408,7 +408,7 @@ def main(opts):
                 LOGGER.info(f'==============Step {global_step}===============')
                 LOGGER.info('Current learning rate {}'.format(lr_this_step))
                 if opts.use_backbone_optim:
-                    LOGGER.info('Current learning rate {}'.format(backbone_lr_this_step))
+                    LOGGER.info('Current backbone learning rate {}'.format(backbone_lr_this_step))
                 for t in train_dataloaders.keys():
                     assert all(tt == t for tt in all_gather_list(t))
                     tot_ex = sum(all_gather_list(n_examples[t]))
@@ -556,7 +556,7 @@ def validate_mrfr(model, val_loader):
     st = time()
     for i, batch in enumerate(val_loader):
         loss = model(batch, task='mrfr', compute_loss=True)
-        val_loss += loss.sum().item() / IMG_DIM
+        val_loss += loss.sum().item() / IMG_embedding
         n_feat += batch['img_mask_tgt'].sum().item()
     val_loss = sum(all_gather_list(val_loss))
     n_feat = sum(all_gather_list(n_feat))
@@ -647,8 +647,8 @@ if __name__ == "__main__":
     # NOTE: train tasks and val tasks cannot take command line arguments
     parser.add_argument('--compressed_db', action='store_true',
                         help='use compressed LMDB')
-
-    parser.add_argument("--model_config", type=str,
+    parser.add_argument('--config', required=True, type=str, help='JSON config files')
+    parser.add_argument("--model_config", required=True, type=str,
                         help="path to model structure config json")
     parser.add_argument("--checkpoint", default=None, type=str,
                         help="path to model checkpoint (*.pt)")
@@ -662,6 +662,9 @@ if __name__ == "__main__":
         "--output_dir", default=None, type=str,
         help="The output directory where the model checkpoints will be "
              "written.")
+    parser.add_argument('--cvNo', type=int, required=True, default=0,
+                        help='which cross-valiation folder, \
+                        if cvNo=0, then donot use th cross-validation')
 
     parser.add_argument('--melm_prob', default=0.5, type=float,
                         help='probability to mask in MELM training')
@@ -673,7 +676,7 @@ if __name__ == "__main__":
                              'in ITM training')
     parser.add_argument('--itm_ot_lambda', default=0.0, type=float,
                         help='weight of OT (optimal transport) loss (WRA)')
-
+    
     # Prepro parameters
     parser.add_argument('--max_txt_len', type=int, default=60,
                         help='max number of tokens in text (BERT BPE)')
@@ -686,9 +689,20 @@ if __name__ == "__main__":
                         help='min number of bounding boxes')
     parser.add_argument('--num_bb', type=int, default=36,
                         help='static number of bounding boxes')
-    parser.add_argument('--IMG_DIM', type=int, default=342,
+    parser.add_argument('--IMG_DIM', type=int, default=112,
                         help='visual features as transformer input')
-    parser.add_argument("--image_data_augmentation", default=True, type=bool)
+    parser.add_argument('--IMG_embedding', type=int, default=512,
+                        help='visual feature embedding from visual encoder')
+    # use modality branch
+    parser.add_argument("--use_speech", action='store_true',  help='use speech branch')
+    parser.add_argument("--use_visual", action='store_true',  help='use visual branch')
+
+    # backbone parameters
+    parser.add_argument("--use_backbone_optim", action='store_true',
+                                    help='use individual backbone optim for training')
+    parser.add_argument("--image_data_augmentation", action='store_true')
+    parser.add_argument("--backbone_learning_rate", default=1e-3, type=float,
+                        help="The initial learning rate of face or audio backbone for Adam.")
 
     # training parameters
     parser.add_argument("--train_batch_size", default=4096, type=int,
@@ -702,8 +716,6 @@ if __name__ == "__main__":
                              "performing a backward/update pass.")
     parser.add_argument("--learning_rate", default=3e-5, type=float,
                         help="The initial learning rate for Adam.")
-    parser.add_argument("--backbone_learning_rate", default=1e-3, type=float,
-                        help="The initial learning rate of face or audio backbone for Adam.")
     parser.add_argument("--valid_steps", default=1000, type=int,
                         help="Run validation every X steps")
     parser.add_argument("--num_train_steps", default=100000, type=int,
@@ -722,7 +734,6 @@ if __name__ == "__main__":
     parser.add_argument("--warmup_steps", default=10000, type=int,
                         help="Number of training steps to perform linear "
                              "learning rate warmup for.")
-
     # device parameters
     parser.add_argument('--seed', type=int, default=42,
                         help="random seed for initialization")
@@ -733,12 +744,20 @@ if __name__ == "__main__":
                         help="number of data workers")
     parser.add_argument('--pin_mem', action='store_true', help="pin memory")
 
-    # can use config files
-    parser.add_argument('--config', required=True, help='JSON config files')
-
     args = parse_with_config(parser)
 
+    print('[Debug] use_backbone_optim {}'.format(args.use_backbone_optim))
+    print('[Debug] image_data_augmentation {}'.format(args.image_data_augmentation))
+
+    if args.cvNo > 0:
+        print('[Info] For Cross-Validation and redefine the train_datasets and val_datasets')
+        for i in range(len(args.train_datasets)):
+            args.train_datasets[i]['db'][0] = args.train_datasets[i]['db'][0].format(args.cvNo)
+        for i in range(len(args.val_datasets)):
+            args.val_datasets[i]['db'][0] = args.val_datasets[i]['db'][0].format(args.cvNo)
+
     IMG_DIM = args.IMG_DIM
+    IMG_embedding = args.IMG_embedding
     # options safe guard
     if args.conf_th == -1:
         assert args.max_bb + args.max_txt_len + 2 <= 512

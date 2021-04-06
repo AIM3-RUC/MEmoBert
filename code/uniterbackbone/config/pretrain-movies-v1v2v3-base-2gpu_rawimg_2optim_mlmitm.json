@@ -18,7 +18,7 @@
     "learning_rate": 5e-05,
     "weight_decay": 0.01,
     "warmup_steps": 4000,
-    "use_backbone_optim": true,
+    "use_backbone_optim": false,
     "backbone_optim": "adamw",
     "backbone_learning_rate": 1e-3, 
     "backbone_weight_decay": 5e-04,

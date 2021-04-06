@@ -1,24 +1,31 @@
 import numpy as np
 import h5py
 import os
-import sys
 import json
 
 '''
+export PYTHONPATH=/data7/MEmoBert
 将视觉信息处理成npz的格式, 
 然后可以共同维护一个 img_db, 通过不同的 txt_db 进行索引.
 这里的soft-label都是采用denseface的结构，FER+ 结构，所以是 8 类别
+对于IEMOCAP 的raw-img 数据，在保存为h5的时候已经转化过了，所以可以直接保存。
 '''
 
-# corpus_name = 'IEMOCAP'
-corpus_name = 'MSP'
+do_raw_img = True
+corpus_name = 'IEMOCAP'
 root_dir = f'/data7/emobert/exp/evaluation/{corpus_name}/'
-# feature_dir = root_dir + 'feature/denseface_openface_iemocap_mean_std_torch'
-feature_dir = root_dir + 'feature/denseface_openface_msp_mean_std_torch'
-IMD_DIM=342
 cls_num = 8
+if not do_raw_img:
+    feature_dir = root_dir + 'feature/denseface_openface_msp_mean_std_torch'
+    IMD_DIM=342
+    ft_key = 'feat' # or trans1 trans2 or img_data
+    npyz_dir = feature_dir + '/ft_npzs/fc'
+else:
+    feature_dir = root_dir + 'feature/openface_iemocap_raw_img'
+    IMD_DIM=[112, 112]
+    ft_key = 'img'
+    npyz_dir = feature_dir + '/raw_img_npzs'
 
-npyz_dir = feature_dir + '/ft_npzs/fc'
 if not os.path.exists(npyz_dir):
     os.makedirs(npyz_dir)
 
@@ -51,13 +58,24 @@ for setname in ['trn', 'val', 'tst']:
                 label = int(label)
             soft_labels = np.zeros((1, cls_num), dtype=np.float)
             soft_labels[0][label] = 1.0
-            feat = np.zeros((1, IMD_DIM), dtype=np.float32)
+            if do_raw_img:
+                feat = np.zeros([1] + IMD_DIM, dtype=np.float32)
+            else:
+                feat = np.zeros((1, IMD_DIM), dtype=np.float32)
         else:
-            soft_labels = np.array(data[segment_id]['pred'])
-            feat = np.array(data[segment_id]['feat'])
+            if do_raw_img:
+                feat = np.array(data[segment_id]['img'])
+                label = target[segment_id]['label']
+                if isinstance(label, str):
+                    label = int(label)
+                soft_labels = np.zeros((len(feat), cls_num), dtype=np.float32)
+                soft_labels[:, label] = 1.0
+            else:
+                soft_labels = np.array(data[segment_id]['pred'])
+                feat = np.array(data[segment_id]['feat'])
         assert len(soft_labels) == len(feat)
         np.savez_compressed(outputfile,
                             soft_labels=soft_labels.astype(np.float16),
-                            features=feat.astype(np.float16))
-    print('{} feat {}'.format(setname, feat.shape))
+                            features=feat.astype(np.float16))       
+        print('{} feat {}'.format(setname, feat.shape))
 print('total {} and empty {}'.format(total_video, empty_video))

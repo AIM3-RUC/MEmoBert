@@ -138,11 +138,11 @@ def get_all_utt_ids():
 if __name__ == '__main__':
     detect_type = sys.argv[1]
     Img_dim = 112
-    output_dir = '/data7/MEmoBert/evaluation/IEMOCAP/feature'
+    output_dir = '/data7/MEmoBert/evaluation/MSP/feature'
     if detect_type == 'seetaface':
-        name = "seetaface_iemocap_raw_img{}".format(Img_dim)
+        name = "seetaface_iemocap_raw_img"
     elif detect_type == 'openface':
-        name = "openface_iemocap_raw_img{}".format(Img_dim)
+        name = "openface_iemocap_raw_img"
     else:
         raise ValueError('detect type must be openface or seetaface')
     if not os.path.exists(output_dir + '/' + name):

@@ -12,7 +12,7 @@ do
     start=$((total_videos*(i-1)/${#gpus[*]}))
     end=$((total_videos*i/${#gpus[*]}))
     # echo $start $end
-    CUDA_VISIBLE_DEVICES=$i python denseface.py $start $end
+    CUDA_VISIBLE_DEVICES=$i python extact_denseface.py $start $end
 } &
 done 
 wait

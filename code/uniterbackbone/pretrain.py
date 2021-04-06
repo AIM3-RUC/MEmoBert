@@ -253,13 +253,12 @@ def main(opts):
     set_dropout(model, opts.dropout)
 
     task2scaler = {t: i for i, t in enumerate(train_dataloaders.keys())}
-    print('[Debug] use_backbone_optim {}'.format(opts.use_backbone_optim))
     if opts.use_backbone_optim:
         LOGGER.info('[INFO] Use 2 optimizers for backbone {} and bert model {}'.format(
             opts.optim, opts.backbone_optim))
         backbone = model.uniter.img_embeddings.face_encoder
         backbone_optimizer = build_backbone_optimizer(backbone, opts)   # 只包含denseface的参数
-        optimizer = build_optimizer(model, opts, except_model=backbone) # 除去denseface的参数
+        optimizer = build_optimizer(model, opts, except_model=backbone)  # 除去denseface的参数
         model, [optimizer, backbone_optimizer]  = amp.initialize(model, [optimizer, backbone_optimizer],
                                         num_losses=len(task2scaler),
                                         enabled=opts.fp16, opt_level='O2')
@@ -409,7 +408,7 @@ def main(opts):
                 LOGGER.info(f'==============Step {global_step}===============')
                 LOGGER.info('Current learning rate {}'.format(lr_this_step))
                 if opts.use_backbone_optim:
-                    LOGGER.info('Current learning rate {}'.format(backbone_lr_this_step))
+                    LOGGER.info('Current backbone learning rate {}'.format(backbone_lr_this_step))
                 for t in train_dataloaders.keys():
                     assert all(tt == t for tt in all_gather_list(t))
                     tot_ex = sum(all_gather_list(n_examples[t]))
@@ -696,11 +695,11 @@ if __name__ == "__main__":
                         help='visual feature embedding from visual encoder')
 
     # backbone parameters
-    parser.add_argument("--use_backbone_optim", default=False, type=bool, 
-                        help='use individual backbone optim for training')
+    parser.add_argument("--use_backbone_optim", action='store_true',
+                                    help='use individual backbone optim for training')
+    parser.add_argument("--image_data_augmentation", action='store_true')
     parser.add_argument("--backbone_learning_rate", default=1e-3, type=float,
                         help="The initial learning rate of face or audio backbone for Adam.")
-    parser.add_argument("--image_data_augmentation", default=True, type=bool)
 
     # training parameters
     parser.add_argument("--train_batch_size", default=4096, type=int,
@@ -732,7 +731,6 @@ if __name__ == "__main__":
     parser.add_argument("--warmup_steps", default=10000, type=int,
                         help="Number of training steps to perform linear "
                              "learning rate warmup for.")
-
     # device parameters
     parser.add_argument('--seed', type=int, default=42,
                         help="random seed for initialization")
@@ -744,6 +742,9 @@ if __name__ == "__main__":
     parser.add_argument('--pin_mem', action='store_true', help="pin memory")
 
     args = parse_with_config(parser)
+
+    print('[Debug] use_backbone_optim {}'.format(args.use_backbone_optim))
+    print('[Debug] image_data_augmentation {}'.format(args.image_data_augmentation))
 
     if args.cvNo > 0:
         print('[Info] For Cross-Validation and redefine the train_datasets and val_datasets')
