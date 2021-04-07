@@ -35,13 +35,13 @@
     "n_workers": 2,
     "pin_mem": true,
     "train_txt_dbs": [
-        "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/trn_emowords_emotype.db"
+        "/data7/emobert/exp/evaluation/MSP/txt_db/{}/trn_emowords_emotype.db"
     ],
     "train_img_dbs": [
-        "/data7/emobert/exp/evaluation/IEMOCAP/feature/openface_iemocap_raw_img/raw_img_db/"
+        "/data7/emobert/exp/evaluation/MSP/feature/openface_iemocap_raw_img/raw_img_db/"
     ],
-    "val_txt_db": "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val_emowords_emotype.db",
-    "val_img_db": "/data7/emobert/exp/evaluation/IEMOCAP/feature/openface_iemocap_raw_img/raw_img_db/",
-    "test_txt_db": "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst_emowords_emotype.db",
-    "test_img_db": "/data7/emobert/exp/evaluation/IEMOCAP/feature/openface_iemocap_raw_img/raw_img_db/"
+    "val_txt_db": "/data7/emobert/exp/evaluation/MSP/txt_db/{}/val_emowords_emotype.db",
+    "val_img_db": "/data7/emobert/exp/evaluation/MSP/feature/openface_iemocap_raw_img/raw_img_db/",
+    "test_txt_db": "/data7/emobert/exp/evaluation/MSP/txt_db/{}/tst_emowords_emotype.db",
+    "test_img_db": "/data7/emobert/exp/evaluation/MSP/feature/openface_iemocap_raw_img/raw_img_db/"
 }

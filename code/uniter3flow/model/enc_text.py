@@ -3,7 +3,7 @@ import torch
 import json
 import logging
 from torch import nn
-from code.uniter3flow.model.model import BertConfig, BertPreTrainedModel, BertEncoder
+from code.uniter3flow.model.model_base import BertConfig, BertPreTrainedModel, BertEncoder
 from code.uniter.model.layer import BertLayer, BertPooler
 from apex.normalization.fused_layer_norm import FusedLayerNorm
 
@@ -65,9 +65,13 @@ class TextEncoderBertModel(BertPreTrainedModel):
         self.embeddings = BertTextEmbeddings(config)
         self.encoder = BertEncoder(config)
         self.pooler = BertPooler(config)
-        self.apply(self.init_weights)
+    
+    def _compute_txt_embeddings(self, input_ids, position_ids,
+                                txt_type_ids=None):
+        output = self.embeddings(input_ids, position_ids, txt_type_ids)
+        return output
 
-    def forward(self, batch, output_all_encoded_layers=False, txt_type_ids=None, use_token_type=False):
+    def forward(self, batch, output_all_encoded_layers=False, txt_type_ids=None):
         input_ids = batch['input_ids']
         position_ids = batch['position_ids']
         attention_mask = batch['attn_masks']
@@ -76,13 +80,15 @@ class TextEncoderBertModel(BertPreTrainedModel):
         extended_attention_mask = extended_attention_mask.to(
             dtype=next(self.parameters()).dtype)  # fp16 compatibility
         extended_attention_mask = (1.0 - extended_attention_mask) * -10000.0
-        embedding_output = self.embeddings(input_ids, position_ids, txt_type_ids, use_token_type)
+        # compute token embeddings
+        embedding_output = self._compute_txt_embeddings(input_ids, position_ids, txt_type_ids)
+        # compute bert output embeddings
         encoded_layers = self.encoder(
             embedding_output, extended_attention_mask,
             output_all_encoded_layers=output_all_encoded_layers)
         if not output_all_encoded_layers:
             encoded_layers = encoded_layers[-1]
-        return encoded_layers
+        return encoded_layers, extended_attention_mask
 
 if __name__ == '__main__':
     pretrained_checkpoint = '/data7/emobert/resources/pretrained/uniter-base-uncased-init.pt'

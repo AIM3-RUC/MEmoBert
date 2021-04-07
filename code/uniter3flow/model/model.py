@@ -16,234 +16,89 @@ import torch
 from torch import nn
 from apex.normalization.fused_layer_norm import FusedLayerNorm
 from code.uniter.model.layer import BertLayer, BertPooler
+from code.uniter3flow.model.model_base import BertPreTrainedModel
+from code.uniter3flow.model.enc_speech import SpeechEncoderBertModel
+from code.uniter3flow.model.enc_visual import VisualEncoderBertModel
+from code.uniter3flow.model.enc_text import TextEncoderBertModel
+from code.uniter3flow.model.enc_cross import CrossEncoderBertModel
 
 logger = logging.getLogger(__name__)
 
-class BertConfig(object):
-    """Configuration class to store the configuration of a `BertModel`.
+class MEmoBertModel(BertPreTrainedModel):
+    """ Modification for Joint Vision-Language Encoding
+    BertLayer format:
+        hidden_states = self.dense(hidden_states)
+        hidden_states = self.dropout(hidden_states)
+        hidden_states = self.LayerNorm(hidden_states + input_tensor)
+    So the final output is layernorm.
     """
-    def __init__(self,
-                 vocab_size_or_config_json_file,
-                 hidden_size=768,
-                 num_hidden_layers=12,
-                 num_attention_heads=12,
-                 intermediate_size=3072,
-                 hidden_act="gelu",
-                 hidden_dropout_prob=0.1,
-                 attention_probs_dropout_prob=0.1,
-                 max_position_embeddings=512,
-                 type_vocab_size=2,
-                 initializer_range=0.02):
-        """Constructs BertConfig.
-        Args:
-            vocab_size_or_config_json_file: Vocabulary size of `inputs_ids` in
-                `BertModel`.
-            hidden_size: Size of the encoder layers and the pooler layer.
-            num_hidden_layers: Number of hidden layers in the Transformer
-                encoder.
-            num_attention_heads: Number of attention heads for each attention
-                layer in the Transformer encoder.
-            intermediate_size: The size of the "intermediate" (i.e.
-                feed-forward) layer in the Transformer encoder.
-            hidden_act: The non-linear activation function (function or string)
-                in the encoder and pooler. If string, "gelu", "relu" and
-                "swish" are supported.
-            hidden_dropout_prob: The dropout probabilitiy for all fully
-                connected layers in the embeddings, encoder, and pooler.
-            attention_probs_dropout_prob: The dropout ratio for the attention
-                probabilities.
-            max_position_embeddings: The maximum sequence length that this
-                model might ever be used with. Typically set this to something
-                large just in case (e.g., 512 or 1024 or 2048).
-            type_vocab_size: The vocabulary size of the `token_type_ids` passed
-                into `BertModel`.
-            initializer_range: The sttdev of the truncated_normal_initializer
-                for initializing all weight matrices.
-        """
-        if isinstance(vocab_size_or_config_json_file, str):
-            with open(vocab_size_or_config_json_file,
-                      "r", encoding='utf-8') as reader:
-                json_config = json.loads(reader.read())
-            for key, value in json_config.items():
-                self.__dict__[key] = value
-        elif isinstance(vocab_size_or_config_json_file, int):
-            self.vocab_size = vocab_size_or_config_json_file
-            self.hidden_size = hidden_size
-            self.num_hidden_layers = num_hidden_layers
-            self.num_attention_heads = num_attention_heads
-            self.hidden_act = hidden_act
-            self.intermediate_size = intermediate_size
-            self.hidden_dropout_prob = hidden_dropout_prob
-            self.attention_probs_dropout_prob = attention_probs_dropout_prob
-            self.max_position_embeddings = max_position_embeddings
-            self.type_vocab_size = type_vocab_size
-            self.initializer_range = initializer_range
-        else:
-            raise ValueError("First argument must be either a vocabulary size "
-                             "(int) or the path to a pretrained model config "
-                             "file (str)")
-
-    @classmethod
-    def from_dict(cls, json_object):
-        """Constructs a `BertConfig` from a
-           Python dictionary of parameters."""
-        config = BertConfig(vocab_size_or_config_json_file=-1)
-        for key, value in json_object.items():
-            config.__dict__[key] = value
-        return config
-
-    @classmethod
-    def from_json_file(cls, json_file):
-        """Constructs a `BertConfig` from a json file of parameters."""
-        with open(json_file, "r", encoding='utf-8') as reader:
-            text = reader.read()
-        return cls.from_dict(json.loads(text))
-
-    def __repr__(self):
-        return str(self.to_json_string())
-
-    def to_dict(self):
-        """Serializes this instance to a Python dictionary."""
-        output = copy.deepcopy(self.__dict__)
-        return output
-
-    def to_json_string(self):
-        """Serializes this instance to a JSON string."""
-        return json.dumps(self.to_dict(), indent=2, sort_keys=True) + "\n"
-
-class BertPreTrainedModel(nn.Module):
-    """ An abstract class to handle weights initialization and
-        a simple interface for dowloading and loading pretrained models.
-    """
-    def __init__(self, config, *inputs, **kwargs):
-        super().__init__()
-        if not isinstance(config, BertConfig):
-            raise ValueError(
-                "Parameter config in `{}(config)` should be an instance of "
-                "class `BertConfig`. To create a model from a Google "
-                "pretrained model use "
-                "`model = {}.from_pretrained(PRETRAINED_MODEL_NAME)`".format(
-                    self.__class__.__name__, self.__class__.__name__
-                ))
-        self.config = config
-
-    def init_weights(self, module):
-        """ Initialize the weights.
-        """
-        if isinstance(module, (nn.Linear, nn.Embedding)):
-            # Slightly different from the TF version which uses
-            # truncated_normal for initialization
-            # cf https://github.com/pytorch/pytorch/pull/5617
-            module.weight.data.normal_(mean=0.0,
-                                       std=self.config.initializer_range)
-        elif isinstance(module, FusedLayerNorm):
-            module.bias.data.zero_()
-            module.weight.data.fill_(1.0)
-        if isinstance(module, nn.Linear) and module.bias is not None:
-            module.bias.data.zero_()
-
-    @classmethod
-    def from_pretrained(cls, config_file, state_dict, *inputs, **kwargs):
-        """
-        Instantiate a BertPreTrainedModel from a pre-trained model file or a
-        pytorch state dict.
-        Params:
-            config_file: config json file
-            state_dict: an state dictionnary
-            *inputs, **kwargs: additional input for the specific Bert class
-        """
-        # Load config
-        config = BertConfig.from_json_file(config_file)
-        logger.info("Model config {}".format(config))
-        # Instantiate model.
-        model = cls(config, *inputs, **kwargs)
-        # Load from a PyTorch state_dict
-        old_keys = []
-        new_keys = []
-        for key in state_dict.keys():
-            new_key = None
-            if 'gamma' in key:
-                new_key = key.replace('gamma', 'weight')
-            if 'beta' in key:
-                new_key = key.replace('beta', 'bias')
-            if new_key:
-                old_keys.append(key)
-                new_keys.append(new_key)
-        for old_key, new_key in zip(old_keys, new_keys):
-            state_dict[new_key] = state_dict.pop(old_key)
-
-        missing_keys = []
-        unexpected_keys = []
-        error_msgs = []
-        # copy state_dict so _load_from_state_dict can modify it
-        metadata = getattr(state_dict, '_metadata', None)
-        state_dict = state_dict.copy()
-        if metadata is not None:
-            state_dict._metadata = metadata
-
-        def load(module, prefix=''):
-            local_metadata = ({} if metadata is None
-                              else metadata.get(prefix[:-1], {}))
-            module._load_from_state_dict(
-                state_dict, prefix, local_metadata, True, missing_keys,
-                unexpected_keys, error_msgs)
-            for name, child in module._modules.items():
-                if child is not None:
-                    load(child, prefix + name + '.')
-        start_prefix = ''
-        if not hasattr(model, 'bert') and any(s.startswith('bert.')
-                                              for s in state_dict.keys()):
-            start_prefix = 'bert.'
-        load(model, prefix=start_prefix)
-        if len(missing_keys) > 0:
-            logger.info("Weights of {} not initialized from "
-                        "pretrained model: {}".format(
-                            model.__class__.__name__, missing_keys))
-        if len(unexpected_keys) > 0:
-            logger.info("Weights from pretrained model not used in "
-                        "{}: {}".format(
-                            model.__class__.__name__, unexpected_keys))
-        if len(error_msgs) > 0:
-            raise RuntimeError('Error(s) in loading state_dict for '
-                               '{}:\n\t{}'.format(
-                                   model.__class__.__name__,
-                                   "\n\t".join(error_msgs)))
-        return model
-
-    def forward(self, input_ids, position_ids, token_type_ids=None):
-        '''
-        emo_type_ids: the emotion types of the input ids
-        batch-data
-        '''
-        if token_type_ids is None:
-            token_type_ids = torch.zeros_like(input_ids)
-
-        words_embeddings = self.word_embeddings(input_ids)
-        position_embeddings = self.position_embeddings(position_ids)
-        token_type_embeddings = self.token_type_embeddings(token_type_ids)
-        embeddings = (words_embeddings
-                      + position_embeddings
-                      + token_type_embeddings)
-    
-        embeddings = self.LayerNorm(embeddings)
-        embeddings = self.dropout(embeddings)
-        return embeddings
+    def __init__(self, config, use_speech, use_visual):
+        super().__init__(config)
+        self.c_config = config.c_config  # for cross transformer 
+        self.v_config = config.v_config  # for visual transformer 
+        self.t_config = config.t_config  # for text transformer 
+        self.s_config = config.s_config  # for speech transformer
+        self.use_speech = use_speech
+        self.use_visual = use_visual
         
-class BertEncoder(nn.Module):
-    def __init__(self, config):
-        super().__init__()
-        layer = BertLayer(config)
-        self.layer = nn.ModuleList([copy.deepcopy(layer)
-                                    for _ in range(config.num_hidden_layers)])
+        self.text_encoder = TextEncoderBertModel(self.t_config)
+        if use_speech:
+            logger.info('[Info] use the speech branch')
+            self.visual_encoder = VisualEncoderBertModel(self.v_config)
+        if use_visual:
+            logger.info('[Info] use the visual branch')
+            self.speech_encoder = SpeechEncoderBertModel(self.s_config)
+        self.cross_encoder = CrossEncoderBertModel(self.c_config)
 
-    def forward(self, input_, attention_mask, output_all_encoded_layers=True):
-        # zjm 2020/12/15: add parameter: frozen_en_layer for small dataset finetune.
-        all_encoder_layers = []
-        hidden_states = input_
-        for i, layer_module in enumerate(self.layer):
-            hidden_states = layer_module(hidden_states, attention_mask)
-            if output_all_encoded_layers:
-                all_encoder_layers.append(hidden_states)
+        self.apply(self.init_weights)
+
+
+    def _compute_img_txt_embeddings(self, txt_emb, img_emb,
+                                    gather_index):
+        # align back to most compact input
+        gather_index = gather_index.unsqueeze(-1).expand(
+            -1, -1, self.config.hidden_size)
+        embedding_output = torch.gather(torch.cat([txt_emb, img_emb], dim=1),
+                                        dim=1, index=gather_index)
+        return embedding_output
+
+    def forward(self, batch, frozen_en_layers=0, output_all_encoded_layers=True):
+        '''
+        关于gather-index, 是text-pad到最大长度的，
+        '''
+        gather_index = batch['gather_index']
+
+        combine_modality_outputs = []
+        combine_modality_att_masks = []
+        # case1: use text
+        text_encoder_output, text_extended_att_mask = self.text_encoder(batch)
+        print(f'[Debug] text_encoder_output {text_encoder_output.shape}')
+        combine_modality_outputs.append(text_encoder_output)
+        combine_modality_att_masks.append(text_extended_att_mask)
+
+        if self.use_visual:
+            visual_encoder_output, visual_extended_att_mask = self.visual_encoder(batch, output_all_encoded_layers=False) 
+            combine_modality_outputs.append(visual_encoder_output)
+            combine_modality_att_masks.append(visual_extended_att_mask)
+            print(f'[Debug] visual_encoder_output {visual_encoder_output.shape}')
+
+        if self.use_speech:
+            speech_encoder_output, speech_extended_att_mask = self.speech_encoder(batch)
+            combine_modality_outputs.append(speech_encoder_output)
+            combine_modality_att_masks.append(speech_extended_att_mask)
+            print(f'[Debug] speech_encoder_output {speech_encoder_output.shape}')
+
+        # combine the three modality output and attention mask (batch, seq-len, dim)
+        combine_modality_output = torch.cat(combine_modality_outputs, dim=1)
+        combine_modality_attention_mask = torch.cat(combine_modality_att_masks, dim=1)
+
+        # filter the 
+        combine_modality_output = self._compute_img_txt_embeddings(combine_modality_output, gather_index)
+
+        encoded_layers = self.encoder(
+            combine_modality_output, combine_modality_attention_mask,
+            frozen_en_layers=frozen_en_layers,
+            output_all_encoded_layers=output_all_encoded_layers)
         if not output_all_encoded_layers:
-            all_encoder_layers.append(hidden_states)
-        return all_encoder_layers
+            encoded_layers = encoded_layers[-1]
+        return encoded_layers

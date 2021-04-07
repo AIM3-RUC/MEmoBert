@@ -11,10 +11,11 @@ Conv3D + Conv1D + Transformer
 因为模型中有 Conv1D 所以没法使用 Attention Mask. 因此将AttentionMask全部置为1就行。
 """
 
+from einops import repeat
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from code.uniter3flow.model.model import BertConfig, BertPreTrainedModel, BertEncoder
+from code.uniter3flow.model.model_base import BertConfig, BertPreTrainedModel, BertEncoder
 
 class EncCNN1d(nn.Module):
     def __init__(self, input_dim=130, channel=256, dropout=0.1):
@@ -106,18 +107,23 @@ class SpeechEncoderBertModel(BertPreTrainedModel):
         # due to the viseme is 512 and trans to hidden_size
         self.affine_layer = nn.Linear(self.speechfront.con1d_output_dim, 
                                     config.hidden_size, bias=True)
-        self.apply(self.init_weights)
+        self.cls_token = nn.Parameter(torch.randn(1, 1, config.hidden_size))
 
     def forward(self, inputbatch, output_all_encoded_layers=False):
         # print(f'[Debug] inputbatch {inputbatch.shape}')
         output = self.speechfront(inputbatch)
-        self.a_output = self.affine_layer(output)
+        affine_a_output = self.affine_layer(output)
         # print(f'[Debug] affined a_output {self.a_output.shape}') # torch.Size([1, seq-len/8, 768])
 
-        extended_attention_mask = torch.ones(self.a_output.size()[:-1])
+         ## add the cls token on time dimension of output of the frontend.
+        cls_token = repeat(self.cls_token, '() n d -> b n d', b = affine_a_output.size(0))
+        # print(f'[Debug] cls_token {cls_token.shape}') # [Debug] cls_token torch.Size([1, 5, 768])
+        affine_a_output = torch.cat((cls_token, affine_a_output), dim=1)
+
+        extended_attention_mask = torch.ones((affine_a_output.size(0), affine_a_output.size(1)))
         # print('[Debug] extended_attention_mask {}'.format(extended_attention_mask.shape)) # torch.Size([1, 2])
         # compute embedding 
-        position_ids = torch.arange(0, self.a_output.size(1), dtype=torch.long).unsqueeze(0)
+        position_ids = torch.arange(0, affine_a_output.size(1), dtype=torch.long).unsqueeze(0)
         # print("[Debug] position_ids {}".format(position_ids))
         position_embeddings = self.position_embeddings(position_ids)
         # print('position_embeddings {}'.format(position_embeddings.shape)) # torch.Size([1, 4, 768])
@@ -128,7 +134,7 @@ class SpeechEncoderBertModel(BertPreTrainedModel):
             output_all_encoded_layers=output_all_encoded_layers)
         if not output_all_encoded_layers:
             encoded_layers = encoded_layers[-1]
-        return encoded_layers
+        return encoded_layers, extended_attention_mask
 
 if __name__ == '__main__':
     config_path = '/data7/MEmoBert/code/uniter3flow/config/uniter-speech_enc.json'

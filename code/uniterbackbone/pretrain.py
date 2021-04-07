@@ -237,6 +237,7 @@ def main(opts):
 
     # Prepare model
     if opts.checkpoint:
+        LOGGER.info('[INFO] Loading pretrained from {}'.format(opts.checkpoint))
         checkpoint = torch.load(opts.checkpoint)
     else:
         checkpoint = {}

@@ -1,6 +1,12 @@
 export PYTHONPATH=/data7/MEmoBert
 
-CUDA_VISIBLE_DEVICES=0,1 horovodrun -np 2 python pretrain.py \
-        --config config/pretrain-movies-v1v2v3-base-2gpu_rawimg_2optim_res_onlymlm.json \
-        --output_dir /data7/emobert/exp/pretrain/rawimg_nomask_movies_v1v2v3_uniter_onlymlm_2optim_5e5_1e3_initscratch_res \
-        --learning_rate 5e-05 --backbone_learning_rate 1e-03
+# batchsize=180000/(30*2*8) *20 = 7500
+CUDA_VISIBLE_DEVICES=4 horovodrun -np 1 python pretrain.py \
+        --cvNo 0 --config config/pretrain-movies-v1v2v3-base-2gpu_rawimg_2optim_mlmitm.json \
+        --model_config config/uniter-3flow.json \
+        --train_batch_size 30 --val_batch_size 30 --gradient_accumulation_steps 8 \
+        --learning_rate 1e-4 --lr_sched_type 'linear' \
+        --max_txt_len 30 --IMG_DIM 112 --image_data_augmentation \
+        --conf_th 0.5 --max_bb 36 \
+        --num_train_steps 10000 --warmup_steps 1000 --valid_steps 1000 \
+        --output_dir /data7/emobert/exp/pretrain/resnet3d_nomask_movies_v1v2v3_uniter_mlmitm_lr1e4-backbone_pretrained_optimFalse-bs480_faceth0.5

@@ -6,7 +6,7 @@ Conv3D + Resnet  from:  https://github.com/lordmartian/deep_avsr
 Transformers from: Add by Jinming
 visual branch is Conv3D + Resnet + Transformers
 """
-
+from einops import repeat
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -95,7 +95,7 @@ class ResNet3D(nn.Module):
         # inputBatch shape: (batchsize, timesteps, channle, H, W)
         inputBatch = inputBatch.transpose(0, 1).transpose(1, 2)
         # print('[Debug] inputBatch {}'.format(inputBatch.shape))
-        batchsize = inputBatch.shape[0]
+        batchsize = inputBatch.shape[0] #Note: not-real-batchsize
         batch = self.frontend3D(inputBatch)
         # print('[Debug] Conv3d Output {}'.format(batch.shape))
 
@@ -106,6 +106,8 @@ class ResNet3D(nn.Module):
         # print('[Debug] Res18 Output {}'.format(batch.shape))
         outputBatch = outputBatch.reshape(batchsize, -1, 512)
         # print('[Debug] Output feature {}'.format(outputBatch.shape))
+        outputBatch = outputBatch.transpose(1 ,2)
+        outputBatch = outputBatch.transpose(1, 2).transpose(0, 1)
         return outputBatch
 
 class VisualEncoderBertModel(BertPreTrainedModel):
@@ -126,34 +128,44 @@ class VisualEncoderBertModel(BertPreTrainedModel):
         # due to the viseme is 512 and trans to hidden_size
         self.affine_layer = nn.Linear(self.visualfront.viseme_dim, 
                                     config.hidden_size, bias=True)
-        # add one cls token
-        # self.cls_token = nn.Parameter(torch.randn(1, 1, config.hidden_size))
+        # add one cls token, 在CNN之后加, 即输入transformer的时候加 h878 vgy
+        self.cls_token = nn.Parameter(torch.randn(1, 1, config.hidden_size))
 
-    def forward(self, inputbatch, attention_mask, output_all_encoded_layers=False):
+    def forward(self, batch, output_all_encoded_layers=False):
+        inputbatch = batch['img_feat']
+        attention_mask = batch['img_attn_masks']
         # print(f'[Debug] inputbatch {inputbatch.shape}')
         v_visemes = self.visualfront(inputbatch) # torch.Size([1, 4, 512])
-        self.v_visemes = self.affine_layer(v_visemes)
-        # print(f'[Debug] affined v_visemes {self.v_visemes.shape}') # [Debug] v_visimes torch.Size([1, 4, 768])
-        # compute self-attention mask
+        affine_v_visemes = self.affine_layer(v_visemes)
+        # print(f'[Debug] affined v_visemes {affine_v_visemes.shape}') # [Debug] v_visimes torch.Size([1, 4, 768])
+
+        #  add one mask for cls token.
+        attention_mask = torch.cat((torch.tensor([[1]]), attention_mask), dim=1)
+        # compute self-attention mask.
         extended_attention_mask = attention_mask.unsqueeze(1).unsqueeze(2)
         extended_attention_mask = extended_attention_mask.to(
-            dtype=next(self.parameters()).dtype)  # fp16 compatibility
+                                    dtype=next(self.parameters()).dtype)  # fp16 compatibility
         extended_attention_mask = (1.0 - extended_attention_mask) * -10000.0
         # print(f'[Debug] extended_attention_mask {extended_attention_mask}') # [Debug] [1, 1, 1, 4]
 
+        ## add the cls token on time dimension of output of the frontend.
+        cls_token = repeat(self.cls_token, '() n d -> b n d', b = affine_v_visemes.size(0))
+        # print(f'[Debug] cls_token {cls_token.shape}') # [Debug] cls_token torch.Size([1, 5, 768])
+        affine_v_visemes = torch.cat((cls_token, affine_v_visemes), dim=1)
         # compute embedding 
-        position_ids = torch.arange(0, inputbatch.size(1), dtype=torch.long).unsqueeze(0)
+        position_ids = torch.arange(0, affine_v_visemes.size(1), dtype=torch.long).unsqueeze(0)
         # print("[Debug] position_ids {}".format(position_ids))
         position_embeddings = self.position_embeddings(position_ids)
-        # print('position_embeddings {}'.format(position_embeddings.shape)) # torch.Size([1, 4, 768])
-        embedding_output = self.v_visemes + position_embeddings
-        # print('[Debug] embedding_output {}'.format(embedding_output.shape))  ## torch.Size([1, 4, 768])
+        print('position_embeddings {}'.format(position_embeddings.shape)) # torch.Size([1, 5, 768]), add cls-token
+
+        embedding_output = affine_v_visemes + position_embeddings
+        # print('[Debug] embedding_output {}'.format(embedding_output.shape))  ## torch.Size([1, 5, 768]), add cls-token
         encoded_layers = self.encoder(
             embedding_output, extended_attention_mask,
             output_all_encoded_layers=output_all_encoded_layers)
         if not output_all_encoded_layers:
             encoded_layers = encoded_layers[-1]
-        return encoded_layers
+        return encoded_layers, extended_attention_mask
 
 if __name__ == '__main__':
     # model = ResNet3D()

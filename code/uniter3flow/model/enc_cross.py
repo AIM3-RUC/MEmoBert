@@ -3,12 +3,9 @@ import torch
 import json
 import logging
 from torch import nn
-from code.uniter3flow.model.model import BertConfig, BertPreTrainedModel, BertEncoder
+from code.uniter3flow.model.model_base import BertConfig, BertPreTrainedModel, BertEncoder
 from code.uniter.model.layer import BertLayer, BertPooler
 from apex.normalization.fused_layer_norm import FusedLayerNorm
-from code.uniter3flow.model.enc_text import TextEncoderBertModel
-from code.uniter3flow.model.enc_speech import SpeechEncoderBertModel
-from code.uniter3flow.model.enc_visual import VisualEncoderBertModel
 
 '''
 Cross-encoder model, may including 2~4 transformer layers.
@@ -47,13 +44,8 @@ class CrossEncoderBertModel(BertPreTrainedModel):
     """
     def __init__(self, config):
         super().__init__(config)
-        self.text_encoder = TextEncoderBertModel(config.t_config)
-        self.visual_encoder = VisualEncoderBertModel(config.v_config)
-        self.speech_encoder = SpeechEncoderBertModel(config.s_config)
-
         self.cross_encoder = BertEncoder(config.c_config)
         # due to the viseme is 512 and trans to hidden_size
-        self.apply(self.init_weights)
 
     def forward(self, text_input_batch, visual_input_batch, speech_input_batch, output_all_encoded_layers=False):
         print(f'[Debug] text_input_batch {text_input_batch.shape}')

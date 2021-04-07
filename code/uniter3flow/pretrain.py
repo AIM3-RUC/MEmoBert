@@ -20,23 +20,22 @@ from horovod import torch as hvd
 
 from tqdm import tqdm
 
-from code.uniterbackbone.data import (TokenBucketSampler, TokenBucketSamplerForItm,
+from code.uniter3flow.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   MetaLoader, PrefetchLoader,
                   TxtTokLmdb, ImageLmdbGroup, ConcatDatasetWithLens,
-                  MlmDataset, MelmDataset, MrfrDataset, MrcDataset,
-                  mlm_collate, melm_collate, mrfr_collate, mrc_collate,
+                  MlmDataset, MelmDataset, mlm_collate, melm_collate,
                   ItmDataset, itm_collate)
 
-from code.uniterbackbone.model.pretrain import UniterForPretraining
-from code.uniterbackbone.optim import get_lr_sched, get_backbone_lr_sched
-from code.uniterbackbone.optim.misc import build_backbone_optimizer, build_optimizer
+from code.uniter3flow.model.pretrain import UniterForPretraining
+from code.uniter3flow.optim import get_lr_sched, get_backbone_lr_sched
+from code.uniter3flow.optim.misc import build_backbone_optimizer, build_optimizer
 
-from code.uniterbackbone.utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
-from code.uniterbackbone.utils.distributed import (all_reduce_and_rescale_tensors, all_gather_list,
+from code.uniter3flow.utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
+from code.uniter3flow.utils.distributed import (all_reduce_and_rescale_tensors, all_gather_list,
                                broadcast_tensors)
-from code.uniterbackbone.utils.save import ModelSaver, save_training_meta
-from code.uniterbackbone.utils.misc import NoOp, parse_with_config, set_dropout, set_random_seed, get_grad_flow
-from code.uniterbackbone.utils.const import IMG_LABEL_DIM, BUCKET_SIZE
+from code.uniter3flow.utils.save import ModelSaver, save_training_meta
+from code.uniter3flow.utils.misc import NoOp, parse_with_config, set_dropout, set_random_seed, get_grad_flow
+from code.uniter3flow.utils.const import IMG_LABEL_DIM, BUCKET_SIZE
 
 
 def build_dataloader(dataset, collate_fn, is_train, opts):
@@ -84,26 +83,13 @@ def build_melm_dataset(txt_db, img_db, is_train, opts):
 
     return dataset, melm_collate
 
-def build_mrfr_dataset(txt_db, img_db, is_train, opts):
-    if is_train:
-        datasets = [MrfrDataset(opts.mrm_prob, t, i)
-                    for t, i in zip(txt_db, img_db)]
-        dataset = ConcatDatasetWithLens(datasets)
-    else:
-        dataset = MrfrDataset(opts.mrm_prob, txt_db, img_db)
-
-    return dataset, mrfr_collate
-
-
-def build_mrc_dataset(txt_db, img_db, is_train, opts):
-    if is_train:
-        datasets = [MrcDataset(opts.mrm_prob, t, i)
-                    for t, i in zip(txt_db, img_db)]
-        dataset = ConcatDatasetWithLens(datasets)
-    else:
-        dataset = MrcDataset(opts.mrm_prob, txt_db, img_db)
-
-    return dataset, mrc_collate
+### for build FOM dataset 
+def build_fom_dataset(txt_db, img_db, is_train, opts):
+    pass
+    
+### for build SOM dataset 
+def build_som_dataset(txt_db, img_db, is_train, opts):
+    pass
 
 
 def build_itm_dataset(txt_db, img_db, is_train, opts):
@@ -153,10 +139,10 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None):
                 dataset = build_mlm_dataset(txt_db, img_db, is_train, opts)
             elif task.startswith('melm'):
                 dataset = build_melm_dataset(txt_db, img_db, is_train, opts)
-            elif task.startswith('mrfr'):
-                dataset = build_mrfr_dataset(txt_db, img_db, is_train, opts)
-            elif task.startswith('mrc'):
-                dataset = build_mrc_dataset(txt_db, img_db, is_train, opts)
+            elif task.startswith('fom'):
+                dataset = build_fom_dataset(txt_db, img_db, is_train, opts)
+            elif task.startswith('som'):
+                dataset = build_som_dataset(txt_db, img_db, is_train, opts)
             elif task.startswith('itm'):
                 dataset = build_itm_dataset(txt_db, img_db, is_train, opts)
             else:
@@ -242,9 +228,9 @@ def main(opts):
         checkpoint = {}
     model = UniterForPretraining.from_pretrained(
         opts.model_config, checkpoint,
-        img_dim=IMG_embedding, img_label_dim=IMG_LABEL_DIM)
-    # print("****************"*5)
-    # print(model.state_dict().keys())
+        img_dim=IMG_embedding, img_label_dim=IMG_LABEL_DIM,
+        use_speech=opts.use_speech, use_visual=opts.use_visual)
+    print('[Debug] model info {}'.format(model.state_dict().keys()))
     model.to(device)
     model.train()
 

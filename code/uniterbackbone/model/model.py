@@ -19,6 +19,7 @@ from apex.normalization.fused_layer_norm import FusedLayerNorm
 from code.uniterbackbone.model.layer import BertLayer, BertPooler
 from code.uniter3flow.model.enc_visual import ResNet3D
 
+
 logger = logging.getLogger(__name__)
 
 class UniterConfig(object):

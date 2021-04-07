@@ -42,12 +42,12 @@
     "pin_mem": true,
     "train_datasets": [
         {
-            "name": "meld_trn",
+            "name": "msp_trn",
             "db": [
-                "/data7/emobert/exp/evaluation/MELD/txt_db/{}/train_emowords_emotype.db"
+                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/trn_emowords_emotype.db"
             ],
             "img": [
-                "/data7/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/raw_img_db/"
+                "/data7/emobert/exp/evaluation/MSP/feature/openface_iemocap_raw_img/raw_img_db/"
             ],
             "tasks": [
                 "itm",
@@ -61,12 +61,12 @@
     ],
     "val_datasets": [
         {
-            "name": "meld_val",
+            "name": "msp_val",
             "db": [
-                "/data7/emobert/exp/evaluation/MELD/txt_db/{}/val_emowords_emotype.db"
+                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/val_emowords_emotype.db"
             ],
             "img": [
-                "/data7/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/raw_img_db/"
+                "/data7/emobert/exp/evaluation/MSP/feature/openface_iemocap_raw_img/raw_img_db/"
             ],
             "tasks": [
                 "itm",
@@ -74,12 +74,12 @@
             ]
         },
         {
-            "name": "meld_tst",
+            "name": "msp_tst",
             "db": [
-                "/data7/emobert/exp/evaluation/MELD/txt_db/{}/test_emowords_emotype.db"
+                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/tst_emowords_emotype.db"
             ],
             "img": [
-                "/data7/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/raw_img_db/"
+                "/data7/emobert/exp/evaluation/MSP/feature/openface_iemocap_raw_img/raw_img_db/"
             ],
             "tasks": [
                 "itm",

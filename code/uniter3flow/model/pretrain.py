@@ -61,9 +61,9 @@ class EmoMelmClassification(nn.Module):
 
 class UniterForPretraining(UniterPreTrainedModel):
     """ UNITER pretraining """
-    def __init__(self, config, img_dim, img_label_dim):
+    def __init__(self, config, img_dim, img_label_dim,
+                        use_speech=True, use_visual=True):
         super().__init__(config)
-        self.config = config
         self.uniter = UniterModel(config, img_dim)
         self.cls = BertOnlyMLMHead(
             config, self.uniter.embeddings.word_embeddings.weight)
