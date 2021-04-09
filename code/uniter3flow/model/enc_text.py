@@ -9,17 +9,18 @@ from apex.normalization.fused_layer_norm import FusedLayerNorm
 
 ''' 
 实现思路:
-1. 首先文本输入正常加载预训练的模型, 采用 huggingface 的
+1. 实现方法可以参考
 https://huggingface.co/transformers/main_classes/model.html
 https://huggingface.co/transformers/_modules/transformers/models/bert/modeling_bert.html#BertModel
-里面有各个不同模块的实现
+2. 继承BertPreTrainedModel from pretrained, 加载预训练的 bert-base-model。
+3. 单个分支内不再需要type-embeddings.
 ''' 
 
 logger = logging.getLogger(__name__)
 
 class BertTextEmbeddings(nn.Module):
     def __init__(self, config):
-        super().__init__()
+        super(BertTextEmbeddings, self).__init__()
         # config: 
         self.config = config
         self.word_embeddings = nn.Embedding(config.vocab_size,
@@ -34,8 +35,7 @@ class BertTextEmbeddings(nn.Module):
 
     def forward(self, input_ids, position_ids, token_type_ids=None, use_token_type=False):
         '''
-        emo_type_ids: the emotion types of the input ids
-        batch-data
+        donot use the token type.
         '''
         words_embeddings = self.word_embeddings(input_ids)
         position_embeddings = self.position_embeddings(position_ids)
@@ -65,23 +65,19 @@ class TextEncoderBertModel(BertPreTrainedModel):
         self.embeddings = BertTextEmbeddings(config)
         self.encoder = BertEncoder(config)
         self.pooler = BertPooler(config)
-    
-    def _compute_txt_embeddings(self, input_ids, position_ids,
-                                txt_type_ids=None):
-        output = self.embeddings(input_ids, position_ids, txt_type_ids)
-        return output
+        self.apply(self.init_weights)
 
-    def forward(self, batch, output_all_encoded_layers=False, txt_type_ids=None):
+    def forward(self, batch, output_all_encoded_layers=False):
         input_ids = batch['input_ids']
         position_ids = batch['position_ids']
-        attention_mask = batch['attn_masks']
+        attention_mask = batch['text_attn_masks']
         # compute self-attention mask
         extended_attention_mask = attention_mask.unsqueeze(1).unsqueeze(2)
         extended_attention_mask = extended_attention_mask.to(
             dtype=next(self.parameters()).dtype)  # fp16 compatibility
         extended_attention_mask = (1.0 - extended_attention_mask) * -10000.0
         # compute token embeddings
-        embedding_output = self._compute_txt_embeddings(input_ids, position_ids, txt_type_ids)
+        embedding_output = self.embeddings(input_ids, position_ids, use_token_type=False)
         # compute bert output embeddings
         encoded_layers = self.encoder(
             embedding_output, extended_attention_mask,

@@ -120,6 +120,7 @@ class VisualEncoderBertModel(BertPreTrainedModel):
     """
     def __init__(self, config):
         super().__init__(config)
+        self.config = config
         self.visualfront = ResNet3D()
         self.encoder = BertEncoder(config) # transformer based encoder
         # build audio position embeddings = 128
@@ -130,9 +131,11 @@ class VisualEncoderBertModel(BertPreTrainedModel):
                                     config.hidden_size, bias=True)
         # add one cls token, 在CNN之后加, 即输入transformer的时候加 h878 vgy
         self.cls_token = nn.Parameter(torch.randn(1, 1, config.hidden_size))
+        self.apply(self.init_weights)
 
     def forward(self, batch, output_all_encoded_layers=False):
         inputbatch = batch['img_feat']
+        position_ids = batch['img_position_ids']
         attention_mask = batch['img_attn_masks']
         # print(f'[Debug] inputbatch {inputbatch.shape}')
         v_visemes = self.visualfront(inputbatch) # torch.Size([1, 4, 512])
@@ -140,7 +143,8 @@ class VisualEncoderBertModel(BertPreTrainedModel):
         # print(f'[Debug] affined v_visemes {affine_v_visemes.shape}') # [Debug] v_visimes torch.Size([1, 4, 768])
 
         #  add one mask for cls token.
-        attention_mask = torch.cat((torch.tensor([[1]]), attention_mask), dim=1)
+        if self.config.add_cls_token:
+            attention_mask = torch.cat((torch.tensor([[1]]), attention_mask), dim=1)
         # compute self-attention mask.
         extended_attention_mask = attention_mask.unsqueeze(1).unsqueeze(2)
         extended_attention_mask = extended_attention_mask.to(
@@ -148,12 +152,11 @@ class VisualEncoderBertModel(BertPreTrainedModel):
         extended_attention_mask = (1.0 - extended_attention_mask) * -10000.0
         # print(f'[Debug] extended_attention_mask {extended_attention_mask}') # [Debug] [1, 1, 1, 4]
 
-        ## add the cls token on time dimension of output of the frontend.
-        cls_token = repeat(self.cls_token, '() n d -> b n d', b = affine_v_visemes.size(0))
-        # print(f'[Debug] cls_token {cls_token.shape}') # [Debug] cls_token torch.Size([1, 5, 768])
-        affine_v_visemes = torch.cat((cls_token, affine_v_visemes), dim=1)
-        # compute embedding 
-        position_ids = torch.arange(0, affine_v_visemes.size(1), dtype=torch.long).unsqueeze(0)
+        if self.config.add_cls_token:
+            ## add the cls token on time dimension of output of the frontend.
+            cls_token = repeat(self.cls_token, '() n d -> b n d', b = affine_v_visemes.size(0))
+            # print(f'[Debug] cls_token {cls_token.shape}') # [Debug] cls_token torch.Size([1, 5, 768])
+            affine_v_visemes = torch.cat((cls_token, affine_v_visemes), dim=1)
         # print("[Debug] position_ids {}".format(position_ids))
         position_embeddings = self.position_embeddings(position_ids)
         print('position_embeddings {}'.format(position_embeddings.shape)) # torch.Size([1, 5, 768]), add cls-token

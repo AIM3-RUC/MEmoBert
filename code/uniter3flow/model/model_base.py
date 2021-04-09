@@ -117,7 +117,7 @@ class BertPreTrainedModel(nn.Module):
     """
     def __init__(self, config, *inputs, **kwargs):
         super().__init__()
-        if not isinstance(config, BertConfig):
+        if not isinstance(config, BertConfig) and not isinstance(config, dict):
             raise ValueError(
                 "Parameter config in `{}(config)` should be an instance of "
                 "class `BertConfig`. To create a model from a Google "
@@ -148,12 +148,15 @@ class BertPreTrainedModel(nn.Module):
         Instantiate a BertPreTrainedModel from a pre-trained model file or a
         pytorch state dict.
         Params:
-            config_file: config json file
+            config_file: config json file/BertConfig
             state_dict: an state dictionnary
             *inputs, **kwargs: additional input for the specific Bert class
         """
         # Load config
-        config = BertConfig.from_json_file(config_file)
+        if isinstance(config_file, BertConfig):
+            config = config_file
+        else:
+            config = BertConfig.from_json_file(config_file)
         logger.info("Model config {}".format(config))
         # Instantiate model.
         model = cls(config, *inputs, **kwargs)

@@ -5,31 +5,18 @@ Licensed under the MIT license.
 UNITER for pretraining
 """
 from collections import defaultdict
+import logging
 
 import torch
 from torch import nn
 from torch.nn import functional as F
 from apex.normalization.fused_layer_norm import FusedLayerNorm as LayerNorm
 
-from code.uniterbackbone.model.layer import GELU, BertOnlyMLMHead
-from code.uniterbackbone.model.model import UniterModel, UniterPreTrainedModel
+from code.uniter3flow.model.layer import GELU, BertOnlyMLMHead
+from code.uniter3flow.model.model_base import BertConfig
+from code.uniter3flow.model.model import MEmoBertModel
 
-class RegionFeatureRegression(nn.Module):
-    " for MRM"
-    def __init__(self, hidden_size, feat_dim, img_linear_weight):
-        super().__init__()
-        self.net = nn.Sequential(nn.Linear(hidden_size, hidden_size),
-                                 GELU(),
-                                 LayerNorm(hidden_size, eps=1e-12))
-
-        self.weight = img_linear_weight
-        self.bias = nn.Parameter(torch.zeros(feat_dim))
-
-    def forward(self, input_):
-        hidden = self.net(input_)
-        output = F.linear(hidden, self.weight.t(), self.bias)
-        return output
-
+logger = logging.getLogger(__name__)
 
 class RegionClassification(nn.Module):
     " for MRC(-kl)"
@@ -59,27 +46,39 @@ class EmoMelmClassification(nn.Module):
         # print('[Debug] in EmoMelmClassification output {}'.format(output.shape))
         return output
 
-class UniterForPretraining(UniterPreTrainedModel):
-    """ UNITER pretraining """
-    def __init__(self, config, img_dim, img_label_dim,
-                        use_speech=True, use_visual=True):
-        super().__init__(config)
-        self.uniter = UniterModel(config, img_dim)
+class MEmoBertForPretraining(nn.Module):
+    """ MEmoBert pretraining 
+    classifier的初始化部分采用 cross-encoder 部分的参数, self.emoBert.c_config
+    """
+    def __init__(self, config_file, use_speech, use_visual, pretrained_text_checkpoint=None):
+        super(MEmoBertForPretraining, self).__init__()
+        config = BertConfig.from_json_file(config_file)
+        # logger.info('[Debug] Config {}'.format(type(config))) # BertConfig
+        self.emoBert = MEmoBertModel(config, use_speech, use_visual, pretrained_text_checkpoint)
+        logger.info('[Debug] MEmoBertModel Success!!!')
         self.cls = BertOnlyMLMHead(
-            config, self.uniter.embeddings.word_embeddings.weight)
-        self.feat_regress = RegionFeatureRegression(
-            config.hidden_size, img_dim,
-            self.uniter.img_embeddings.img_linear.weight)
-        self.region_classifier = RegionClassification(
-            config.hidden_size, img_label_dim)
-        
+            self.emoBert.c_config, self.emoBert.text_encoder.embeddings.word_embeddings.weight)
         # Jinming: add for melm multi-task
-        if config.melm_multitask is True:
+        if self.emoBert.c_config.melm_multitask is True:
             print("Use the melm multitask")
             self.emomelm_classifier = EmoMelmClassification(
-            config.hidden_size, config.melm_type_emo_size)
-        self.itm_output = nn.Linear(config.hidden_size, 2)
+            self.emoBert.c_config.hidden_size, self.emoBert.c_config.melm_type_emo_size)
+        self.itm_output = nn.Linear(self.emoBert.c_config.hidden_size, 2)
         self.apply(self.init_weights)
+
+    def init_weights(self, module):
+        """ Initialize the weights.
+        """
+        if isinstance(module, (nn.Linear, nn.Embedding)):
+            # truncated_normal for initialization
+            # cf https://github.com/pytorch/pytorch/pull/5617
+            module.weight.data.normal_(mean=0.0,
+                                       std=self.emoBert.c_config.initializer_range)
+        elif isinstance(module, LayerNorm):
+            module.bias.data.zero_()
+            module.weight.data.fill_(1.0)
+        if isinstance(module, nn.Linear) and module.bias is not None:
+            module.bias.data.zero_()
 
     def forward(self, batch, task, compute_loss=True):
         '''
@@ -90,7 +89,6 @@ class UniterForPretraining(UniterPreTrainedModel):
         attention_mask torch.Size([8, 64]) = batch['attn_masks']
         attn_masks_txt = batch['attn_masks_txt']
         attn_masks_img = batch['attn_masks_img']
-        gather_index torch.Size([8, 64]) = batch['gather_index']
         '''
         batch = defaultdict(lambda: None, batch)
         if task == 'mlm':
@@ -104,22 +102,16 @@ class UniterForPretraining(UniterPreTrainedModel):
             else:
                 txt_emo_labels = None
             return self.forward_melm(batch, txt_labels, txt_emo_labels, compute_loss)
-        elif task == 'mrfr':
-            img_mask_tgt = batch['img_mask_tgt']
-            img_masks = batch['img_masks']
-            mrfr_feat_target = batch['feat_targets']
-            return self.forward_mrfr(batch, img_masks, img_mask_tgt,
-                                     mrfr_feat_target, compute_loss)
         elif task == 'itm':
             targets = batch['targets']
             ot_inputs = batch['ot_inputs']
             return self.forward_itm(batch, targets, ot_inputs, compute_loss)
-        elif task.startswith('mrc'):
-            img_mask_tgt = batch['img_mask_tgt']
-            img_masks = batch['img_masks']
-            mrc_label_target = batch['label_targets']
-            return self.forward_mrc(batch, img_masks, img_mask_tgt,
-                                    mrc_label_target, task, compute_loss)
+        elif task.startswith('fom'):
+            # frame order modeling
+            pass
+        elif task.startswith('som'):
+            # speech order modeling
+            pass
         else:
             raise ValueError('invalid task')
 
@@ -129,7 +121,7 @@ class UniterForPretraining(UniterPreTrainedModel):
         '''
         input_ids = batch['input_ids']
         # (batch, max-len, dim)
-        sequence_output = self.uniter(batch, output_all_encoded_layers=False)
+        sequence_output = self.emoBert(batch, output_all_encoded_layers=False)
         # get only the text part
         sequence_output = sequence_output[:, :input_ids.size(1), :]
         # only compute masked tokens for better efficiency
@@ -152,7 +144,7 @@ class UniterForPretraining(UniterPreTrainedModel):
         '''
         input_ids = batch['input_ids']
         # (batch, max-len, dim)
-        sequence_output = self.uniter(batch, output_all_encoded_layers=False)
+        sequence_output = self.emoBert(batch, output_all_encoded_layers=False)
         # get only the text part
         sequence_output = sequence_output[:, :input_ids.size(1), :]
         # only compute masked tokens for better efficiency
@@ -189,59 +181,13 @@ class UniterForPretraining(UniterPreTrainedModel):
         hidden_masked = hidden[mask].contiguous().view(-1, hidden.size(-1))
         return hidden_masked
 
-    def forward_mrfr(self, batch, img_masks, img_mask_tgt,
-                     feat_targets, compute_loss=True):
-
-        sequence_output = self.uniter(batch, output_all_encoded_layers=False,
-                                      img_masks=img_masks)
-        # only compute masked tokens for better efficiency
-        masked_output = self._compute_masked_hidden(sequence_output,
-                                                    img_mask_tgt)
-        prediction_feat = self.feat_regress(masked_output)
-
-        if compute_loss:
-            mrfr_loss = F.mse_loss(prediction_feat, feat_targets,
-                                   reduction='none')
-            return mrfr_loss
-        else:
-            return prediction_feat
-
-    def forward_itm(self, batch, targets, ot_inputs,
-                    compute_loss=True):
-        sequence_output = self.uniter(batch, output_all_encoded_layers=False)
-        pooled_output = self.uniter.pooler(sequence_output)
+    def forward_itm(self, batch, targets, ot_inputs=None, compute_loss=True):
+        sequence_output = self.emoBert(batch, output_all_encoded_layers=False)
+        pooled_output = self.emoBert.pooler(sequence_output)
         itm_scores = self.itm_output(pooled_output)
-
-        ot_loss = None
 
         if compute_loss:
             itm_loss = F.cross_entropy(itm_scores, targets, reduction='none')
-            return itm_loss, ot_loss
+            return itm_loss
         else:
-            return itm_scores, ot_loss
-
-    def forward_mrc(self, batch, img_masks, img_mask_tgt,
-                    label_targets, task, compute_loss=True):
-        sequence_output = self.uniter(batch, output_all_encoded_layers=False,
-                                      img_masks=img_masks)
-
-        # only compute masked regions for better efficiency
-        masked_output = self._compute_masked_hidden(sequence_output,
-                                                    img_mask_tgt)
-        prediction_soft_label = self.region_classifier(masked_output)
-
-        if compute_loss:
-            if "kl" in task:
-                prediction_soft_label = F.log_softmax(
-                    prediction_soft_label, dim=-1)
-                mrc_loss = F.kl_div(
-                    prediction_soft_label, label_targets, reduction='none')
-            else:
-                # background class should not be the target
-                label_targets = torch.max(label_targets[:, 1:], dim=-1)[1] + 1
-                mrc_loss = F.cross_entropy(
-                    prediction_soft_label, label_targets,
-                    ignore_index=0, reduction='none')
-            return mrc_loss
-        else:
-            return prediction_soft_label
+            return itm_scores

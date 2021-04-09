@@ -44,34 +44,13 @@ class CrossEncoderBertModel(BertPreTrainedModel):
     """
     def __init__(self, config):
         super().__init__(config)
-        self.cross_encoder = BertEncoder(config.c_config)
-        # due to the viseme is 512 and trans to hidden_size
+        self.cross_encoder = BertEncoder(config)
 
-    def forward(self, text_input_batch, visual_input_batch, speech_input_batch, output_all_encoded_layers=False):
-        print(f'[Debug] text_input_batch {text_input_batch.shape}')
-        extended_text_att_mask = text_input_batch['extended_att_mask']
-        text_encoder_output = self.text_encoder(text_input_batch, extended_text_att_mask)
-        print(f'[Debug] text_encoder_output {text_encoder_output.shape}')
-        print(f'[Debug] visual_input_batch {visual_input_batch.shape}')
-        extended_visual_att_mask = visual_input_batch['extended_att_mask']
-        visual_encoder_output = self.visual_encoder(visual_input_batch, extended_visual_att_mask) 
-        print(f'[Debug] visual_encoder_output {visual_encoder_output.shape}')
-        print(f'[Debug] speech_input_batch {speech_input_batch.shape}')
-        extended_speech_att_mask = speech_input_batch['extended_att_mask']
-        speech_encoder_output = self.visual_encoder(speech_input_batch, extended_speech_att_mask) 
-        print(f'[Debug] speech_encoder_output {speech_encoder_output.shape}')
-
-        # combine the three modality output and attention mask (batch, seq-len, dim)
-        combine_modality_output = torch.cat([text_encoder_output, speech_encoder_output, visual_encoder_output], dim=1)
-        combine_modality_attention_mask = torch.cat([extended_text_att_mask, extended_speech_att_mask, extended_visual_att_mask], dim=1)
-        print(f'[Debug] combined modality output {combine_modality_output.shape} and combine_modality_attention_mask {combine_modality_attention_mask.shape}')
+    def forward(self, combine_modality_output, combine_modality_attention_mask, output_all_encoded_layers=False):
         encoded_layers = self.encoder(
             combine_modality_output, combine_modality_attention_mask,
             output_all_encoded_layers=output_all_encoded_layers)
         if not output_all_encoded_layers:
             encoded_layers = encoded_layers[-1]
         return encoded_layers
-
-if __name__ == '__main__':
-    main()
     

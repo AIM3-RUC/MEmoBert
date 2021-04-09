@@ -16,13 +16,32 @@ import torch
 from torch import nn
 from apex.normalization.fused_layer_norm import FusedLayerNorm
 from code.uniter.model.layer import BertLayer, BertPooler
-from code.uniter3flow.model.model_base import BertPreTrainedModel
+from code.uniter3flow.model.model_base import BertConfig, BertPreTrainedModel
 from code.uniter3flow.model.enc_speech import SpeechEncoderBertModel
-from code.uniter3flow.model.enc_visual import VisualEncoderBertModel
+from code.uniter3flow.model.enc_visual_new import VisualEncoderBertModel
 from code.uniter3flow.model.enc_text import TextEncoderBertModel
 from code.uniter3flow.model.enc_cross import CrossEncoderBertModel
 
 logger = logging.getLogger(__name__)
+
+
+def get_gather_index(txt_lens, num_bbs, batch_size, max_len, out_size):
+    '''
+    gather-index, 为了减少对齐成本，指示真实数据所在的index, 比如这里每条数据, 
+    txt=13, img=10, 目前 txt-max=20, img-max=20, pad之后的数据是 
+    [txt20, img20], 而进行gather之后的操作是 [txt-13, img10, img[3~20]]
+    而 Attention-Mask 本身就是 [txt-13, img10, other-1] 
+    因为这里的 Attention-Mask 是先pad后拼接的, 所以应该 gather-index, attention-mask, 
+    但是需要注意的是，最后的剩余的部分全是-1.
+    '''
+    assert len(txt_lens) == len(num_bbs) == batch_size
+    gather_index = torch.arange(0, out_size, dtype=torch.long,
+                                ).unsqueeze(0).repeat(batch_size, 1)
+
+    for i, (tl, nbb) in enumerate(zip(txt_lens, num_bbs)):
+        gather_index.data[i, tl:tl+nbb] = torch.arange(max_len, max_len+nbb,
+                                                       dtype=torch.long).data
+    return gather_index
 
 class MEmoBertModel(BertPreTrainedModel):
     """ Modification for Joint Vision-Language Encoding
@@ -32,42 +51,56 @@ class MEmoBertModel(BertPreTrainedModel):
         hidden_states = self.LayerNorm(hidden_states + input_tensor)
     So the final output is layernorm.
     """
-    def __init__(self, config, use_speech, use_visual):
+    def __init__(self, config, use_speech, use_visual, pretrained_text_checkpoint=None):
         super().__init__(config)
-        self.c_config = config.c_config  # for cross transformer 
-        self.v_config = config.v_config  # for visual transformer 
-        self.t_config = config.t_config  # for text transformer 
-        self.s_config = config.s_config  # for speech transformer
+        self.c_config = BertConfig.from_dict(config.c_config)  # for cross transformer 
+        self.v_config = BertConfig.from_dict(config.v_config)  # for visual transformer 
+        self.t_config = BertConfig.from_dict(config.t_config)  # for text transformer 
+        self.s_config = BertConfig.from_dict(config.s_config)  # for speech transformer
         self.use_speech = use_speech
         self.use_visual = use_visual
-        
+    
         self.text_encoder = TextEncoderBertModel(self.t_config)
-        if use_speech:
-            logger.info('[Info] use the speech branch')
-            self.visual_encoder = VisualEncoderBertModel(self.v_config)
+        # text encoder need pretraind model
+        if pretrained_text_checkpoint is None:
+            checkpoint = {}
+        else:
+            logger.info('[INFO] Loading the pretrained model {}'.format(pretrained_text_checkpoint))
+            checkpoint = torch.load(pretrained_text_checkpoint)
+        self.text_encoder = self.text_encoder.from_pretrained(
+                    self.t_config, checkpoint)
+        
         if use_visual:
             logger.info('[Info] use the visual branch')
+            self.visual_encoder = VisualEncoderBertModel(self.v_config)
+        if use_speech:
+            logger.info('[Info] use the speech branch')
             self.speech_encoder = SpeechEncoderBertModel(self.s_config)
         self.cross_encoder = CrossEncoderBertModel(self.c_config)
 
+        self.do_gather  = False
         self.apply(self.init_weights)
 
-
-    def _compute_img_txt_embeddings(self, txt_emb, img_emb,
-                                    gather_index):
+    def _compute_img_txt_embeddings(self, txt_emb, img_emb, txt_emb_attn, img_emb_attn, txt_lens, num_bbs):
+        '''
+        For gather valid info to the front of the sequence. 
+        Attention Mask 也得做相应的处理.
+        '''
+        out_size = txt_emb.size(1) + img_emb.size(1)
+        bs, max_tl = txt_emb.size(0), txt_emb.size(1)
+        gather_index = get_gather_index(txt_lens, num_bbs, bs, max_tl, out_size)
         # align back to most compact input
         gather_index = gather_index.unsqueeze(-1).expand(
-            -1, -1, self.config.hidden_size)
+            -1, -1, self.c_config.hidden_size)
         embedding_output = torch.gather(torch.cat([txt_emb, img_emb], dim=1),
                                         dim=1, index=gather_index)
-        return embedding_output
+        embedding_output_attn_masks = torch.gather(torch.cat([txt_emb_attn, img_emb_attn], dim=1),
+                                        dim=1, index=gather_index)
+        # 需要将 embedding_output_attn_masks 中大于本身长度的部分都置为-1.
+        # Pending to implement
+        return embedding_output, embedding_output_attn_masks
 
     def forward(self, batch, frozen_en_layers=0, output_all_encoded_layers=True):
-        '''
-        关于gather-index, 是text-pad到最大长度的，
-        '''
-        gather_index = batch['gather_index']
-
         combine_modality_outputs = []
         combine_modality_att_masks = []
         # case1: use text
@@ -88,12 +121,11 @@ class MEmoBertModel(BertPreTrainedModel):
             combine_modality_att_masks.append(speech_extended_att_mask)
             print(f'[Debug] speech_encoder_output {speech_encoder_output.shape}')
 
-        # combine the three modality output and attention mask (batch, seq-len, dim)
-        combine_modality_output = torch.cat(combine_modality_outputs, dim=1)
-        combine_modality_attention_mask = torch.cat(combine_modality_att_masks, dim=1)
-
-        # filter the 
-        combine_modality_output = self._compute_img_txt_embeddings(combine_modality_output, gather_index)
+        if self.do_gather:
+            combine_modality_output, combine_modality_attention_mask = self._compute_img_txt_embeddings(combine_modality_outputs[0])
+        else:
+            combine_modality_output = torch.cat(combine_modality_outputs, dim=1)
+            combine_modality_attention_mask = torch.cat(combine_modality_att_masks, dim=1)
 
         encoded_layers = self.encoder(
             combine_modality_output, combine_modality_attention_mask,

@@ -99,6 +99,7 @@ class SpeechEncoderBertModel(BertPreTrainedModel):
     """
     def __init__(self, config):
         super().__init__(config)
+        self.config = config
         self.speechfront = EncCNN1d()
         self.encoder = BertEncoder(config) # transformer based encoder
         # build audio position embeddings = 128
@@ -108,23 +109,28 @@ class SpeechEncoderBertModel(BertPreTrainedModel):
         self.affine_layer = nn.Linear(self.speechfront.con1d_output_dim, 
                                     config.hidden_size, bias=True)
         self.cls_token = nn.Parameter(torch.randn(1, 1, config.hidden_size))
+        self.apply(self.init_weights)
 
-    def forward(self, inputbatch, output_all_encoded_layers=False):
+    def forward(self, batch, output_all_encoded_layers=False):
+        inputbatch = batch['speech_feat']
+        position_ids = batch['speech_position_ids']
+        attention_mask = batch['speech_attn_masks']
         # print(f'[Debug] inputbatch {inputbatch.shape}')
         output = self.speechfront(inputbatch)
         affine_a_output = self.affine_layer(output)
         # print(f'[Debug] affined a_output {self.a_output.shape}') # torch.Size([1, seq-len/8, 768])
 
-         ## add the cls token on time dimension of output of the frontend.
-        cls_token = repeat(self.cls_token, '() n d -> b n d', b = affine_a_output.size(0))
-        # print(f'[Debug] cls_token {cls_token.shape}') # [Debug] cls_token torch.Size([1, 5, 768])
-        affine_a_output = torch.cat((cls_token, affine_a_output), dim=1)
+        if self.config.add_cls_token:
+            attention_mask = torch.cat((torch.tensor([[1]]), attention_mask), dim=1)
+            ## add the cls token on time dimension of output of the frontend.
+            cls_token = repeat(self.cls_token, '() n d -> b n d', b = affine_a_output.size(0))
+            # print(f'[Debug] cls_token {cls_token.shape}') # [Debug] cls_token torch.Size([1, 5, 768])
+            affine_a_output = torch.cat((cls_token, affine_a_output), dim=1)
 
+        # donnot sure the speech downsample, so set all to be one
         extended_attention_mask = torch.ones((affine_a_output.size(0), affine_a_output.size(1)))
         # print('[Debug] extended_attention_mask {}'.format(extended_attention_mask.shape)) # torch.Size([1, 2])
-        # compute embedding 
-        position_ids = torch.arange(0, affine_a_output.size(1), dtype=torch.long).unsqueeze(0)
-        # print("[Debug] position_ids {}".format(position_ids))
+
         position_embeddings = self.position_embeddings(position_ids)
         # print('position_embeddings {}'.format(position_embeddings.shape)) # torch.Size([1, 4, 768])
         embedding_output = self.a_output + position_embeddings

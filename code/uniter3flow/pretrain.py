@@ -9,6 +9,7 @@ from collections import defaultdict
 import json
 from os.path import join
 from time import time
+from tqdm import tqdm
 
 import torch
 from torch.utils.data import DataLoader
@@ -18,15 +19,13 @@ from torch.nn.utils import clip_grad_norm_
 from apex import amp
 from horovod import torch as hvd
 
-from tqdm import tqdm
-
 from code.uniter3flow.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   MetaLoader, PrefetchLoader,
                   TxtTokLmdb, ImageLmdbGroup, ConcatDatasetWithLens,
                   MlmDataset, MelmDataset, mlm_collate, melm_collate,
                   ItmDataset, itm_collate)
 
-from code.uniter3flow.model.pretrain import UniterForPretraining
+from code.uniter3flow.model.pretrain import MEmoBertForPretraining
 from code.uniter3flow.optim import get_lr_sched, get_backbone_lr_sched
 from code.uniter3flow.optim.misc import build_backbone_optimizer, build_optimizer
 
@@ -49,7 +48,6 @@ def build_dataloader(dataset, collate_fn, is_train, opts):
                         num_workers=opts.n_workers, pin_memory=opts.pin_mem,
                         collate_fn=collate_fn)
     return loader
-
 
 def build_dataloader_itm(dataset, collate_fn, is_train, opts):
     if is_train:
@@ -222,14 +220,8 @@ def main(opts):
     meta_loader = PrefetchLoader(meta_loader)
 
     # Prepare model
-    if opts.checkpoint:
-        checkpoint = torch.load(opts.checkpoint)
-    else:
-        checkpoint = {}
-    model = UniterForPretraining.from_pretrained(
-        opts.model_config, checkpoint,
-        img_dim=IMG_embedding, img_label_dim=IMG_LABEL_DIM,
-        use_speech=opts.use_speech, use_visual=opts.use_visual)
+    model = MEmoBertForPretraining(opts.model_config, use_speech=opts.use_speech, use_visual=opts.use_visual, \
+                                        pretrained_text_checkpoint=opts.pretrained_text_checkpoint)
     print('[Debug] model info {}'.format(model.state_dict().keys()))
     model.to(device)
     model.train()
@@ -239,23 +231,13 @@ def main(opts):
     set_dropout(model, opts.dropout)
 
     task2scaler = {t: i for i, t in enumerate(train_dataloaders.keys())}
-    if opts.use_backbone_optim:
-        LOGGER.info('[INFO] Use 2 optimizers for backbone {} and bert model {}'.format(
-            opts.optim, opts.backbone_optim))
-        backbone = model.uniter.img_embeddings.face_encoder
-        backbone_optimizer = build_backbone_optimizer(backbone, opts)   # 只包含denseface的参数
-        optimizer = build_optimizer(model, opts, except_model=backbone)  # 除去denseface的参数
-        model, [optimizer, backbone_optimizer]  = amp.initialize(model, [optimizer, backbone_optimizer],
-                                        num_losses=len(task2scaler),
-                                        enabled=opts.fp16, opt_level='O2')
-    else:
-        # Prepare optimizer
-        LOGGER.info('[INFO] Use 1 optimizers for backbone and bert model')
-        optimizer = build_optimizer(model, opts)
-        model, optimizer = amp.initialize(model, optimizer,
-                                        num_losses=len(task2scaler),
-                                        enabled=opts.fp16, opt_level='O2')
-        
+    # Prepare optimizer
+    LOGGER.info('[INFO] Use 1 optimizers for backbone and bert model')
+    optimizer = build_optimizer(model, opts)
+    model, optimizer = amp.initialize(model, optimizer,
+                                    num_losses=len(task2scaler),
+                                    enabled=opts.fp16, opt_level='O2')
+    LOGGER.info('[INFO] the models is \n {}'.format(model))
     task2scaler = {t: i for i, t in enumerate(train_dataloaders.keys())}
     global_step = 0
     # Jinming add: restore the break checkpoint
@@ -281,17 +263,10 @@ def main(opts):
     # quick hack for amp delay_unscale bug
     optimizer.zero_grad()
     optimizer.step()
-    if opts.use_backbone_optim:
-        backbone_optimizer.zero_grad()
-        backbone_optimizer.step()
     
     for step, (name, batch) in enumerate(meta_loader):
-        # if global_step == 0:
-        #     LOGGER.info(f'Fisrt Step for init validation')
-        #     validate(model, val_dataloaders)
-        # forward pass
         n_examples[name] += batch['input_ids'].size(0)
-        n_in_units[name] += (batch['attn_masks'] == 1).sum().item()
+        n_in_units[name] += (batch['text_attn_masks'] == 1).sum().item()
         # LOGGER.info('[Debug] batch size {}'.format(batch['input_ids'].size(0)))
         task = name.split('_')[0]
         loss = model(batch, task=task, compute_loss=True)
@@ -307,41 +282,33 @@ def main(opts):
 
         # backward pass
         delay_unscale = (step+1) % opts.gradient_accumulation_steps != 0
-        if opts.use_backbone_optim:
-            with amp.scale_loss(loss, [optimizer, backbone_optimizer], delay_unscale=delay_unscale,
-                                loss_id=task2scaler[name]) as scaled_loss:
-                scaled_loss.backward()
-                if not delay_unscale:
-                    # gather gradients from every processes
-                    # do this before unscaling to make sure every process uses
-                    # the same gradient scale
-                    grads = [p.grad.data for p in model.parameters()
-                            if p.requires_grad and p.grad is not None]
-                    all_reduce_and_rescale_tensors(grads, float(1))
-                    # Jinming add, for get the grad of the last layer and the uniter first layer.
-                    if global_step % 200 == 0:
-                        layers, mean_grads = get_grad_flow(model.named_parameters())
-                        for layer_name, mean_grad in zip(layers, mean_grads):
-                            if layer_name == 'uniter.img_embeddings.face_encoder.features.resblock4.1.bn2.weight':
-                                LOGGER.info('[Debug] Layer {} and mean grad {}'.format(layer_name, mean_grad))
-                                TB_LOGGER.add_scalar('backbone_last1_layer_grad', mean_grad, global_step)
-                            if layer_name == 'uniter.img_embeddings.face_encoder.features.resblock3.1.bn2.weight':
-                                LOGGER.info('[Debug] Layer {} and mean grad {}'.format(layer_name, mean_grad))
-                                TB_LOGGER.add_scalar('backbone_last2_layer_grad', mean_grad, global_step)
-                            if layer_name == 'uniter.img_embeddings.LayerNorm.weight':
-                                LOGGER.info('[Debug] Layer {} and mean grad {}'.format(layer_name, mean_grad))
-                                TB_LOGGER.add_scalar('transformer_first_layer_grad', mean_grad, global_step)
-        else:
-            with amp.scale_loss(loss, optimizer, delay_unscale=delay_unscale,
-                                loss_id=task2scaler[name]) as scaled_loss:
-                scaled_loss.backward()
-                if not delay_unscale:
-                    # gather gradients from every processes
-                    # do this before unscaling to make sure every process uses
-                    # the same gradient scale
-                    grads = [p.grad.data for p in model.parameters()
-                            if p.requires_grad and p.grad is not None]
-                    all_reduce_and_rescale_tensors(grads, float(1))
+        with amp.scale_loss(loss, optimizer, delay_unscale=delay_unscale,
+                            loss_id=task2scaler[name]) as scaled_loss:
+            scaled_loss.backward()
+            if not delay_unscale:
+                # gather gradients from every processes
+                # do this before unscaling to make sure every process uses
+                # the same gradient scale
+                grads = [p.grad.data for p in model.parameters()
+                        if p.requires_grad and p.grad is not None]
+                all_reduce_and_rescale_tensors(grads, float(1))
+        # Jinming add, for get the grad of the last layer and the uniter first layer.
+        if global_step % 200 == 0:
+            layers, mean_grads = get_grad_flow(model.named_parameters())
+            for layer_name, mean_grad in zip(layers, mean_grads):
+                if layer_name == 'emoBert.text_encoder.encoder.layer.11.output.dense.weight':
+                    LOGGER.info('[Debug] Layer {} and mean grad {}'.format(layer_name, mean_grad))
+                    TB_LOGGER.add_scalar('backbone_text_last1_layer_grad', mean_grad, global_step)
+                if layer_name == 'emoBert.speech_encoder.encoder.layer.3.output.dense.weight':
+                    LOGGER.info('[Debug] Layer {} and mean grad {}'.format(layer_name, mean_grad))
+                    TB_LOGGER.add_scalar('backbone_speech_last1_layer_grad', mean_grad, global_step)
+                if layer_name == 'emoBert.visual_encoder.encoder.layer.3.output.dense.weight':
+                    LOGGER.info('[Debug] Layer {} and mean grad {}'.format(layer_name, mean_grad))
+                    TB_LOGGER.add_scalar('backbone_visual_last1_layer_grad', mean_grad, global_step)
+                if layer_name == 'emoBert.cross_encoder.encoder.layer.0.output.dense.weight':
+                    LOGGER.info('[Debug] Layer {} and mean grad {}'.format(layer_name, mean_grad))
+                    TB_LOGGER.add_scalar('cross_encoder_first1_layer_grad', mean_grad, global_step)
+
         task2loss[name](loss.item())
 
         # optimizer update and logging
@@ -356,15 +323,6 @@ def main(opts):
             for param_group in optimizer.param_groups:
                 param_group['lr'] = lr_this_step
             TB_LOGGER.add_scalar('lr', lr_this_step, global_step)
-            # backbone learning rate 
-            if opts.use_backbone_optim:
-                if opts.is_reinit_lr:
-                    backbone_lr_this_step = get_backbone_lr_sched(global_step-opts.checkpoint_step, opts.lr_sched_type, opts)
-                else:
-                    backbone_lr_this_step = get_backbone_lr_sched(global_step, opts.lr_sched_type, opts)
-                for param_group in backbone_optimizer.param_groups:
-                    param_group['lr'] = backbone_lr_this_step
-                TB_LOGGER.add_scalar('backbone_lr', backbone_lr_this_step, global_step)
             # NOTE: not gathered across GPUs for efficiency
             TB_LOGGER.log_scaler_dict({l.name: l.val
                                        for l in task2loss.values()
@@ -376,25 +334,15 @@ def main(opts):
                 grad_norm = clip_grad_norm_(amp.master_params(optimizer),
                                             opts.grad_norm)
                 TB_LOGGER.add_scalar('grad_norm', grad_norm, global_step)
-                if opts.use_backbone_optim:
-                    if opts.backbone_grad_norm > 0:
-                        grad_norm = clip_grad_norm_(amp.master_params(backbone_optimizer),
-                                                opts.backbone_grad_norm)
-                        TB_LOGGER.add_scalar('backbone_grad_norm', grad_norm, global_step)
             
             optimizer.step()
             optimizer.zero_grad()
-            if opts.use_backbone_optim:
-                backbone_optimizer.step()
-                backbone_optimizer.zero_grad()
             pbar.update(1)
 
             if global_step % 100 == 0:
                 # monitor training throughput
                 LOGGER.info(f'==============Step {global_step}===============')
                 LOGGER.info('Current learning rate {}'.format(lr_this_step))
-                if opts.use_backbone_optim:
-                    LOGGER.info('Current backbone learning rate {}'.format(backbone_lr_this_step))
                 for t in train_dataloaders.keys():
                     assert all(tt == t for tt in all_gather_list(t))
                     tot_ex = sum(all_gather_list(n_examples[t]))
@@ -433,10 +381,6 @@ def validate(model, val_dataloaders):
             val_log = validate_mlm(model, loader)
         elif task.startswith('melm'):
             val_log = validate_melm(model, loader)
-        elif task.startswith('mrfr'):
-            val_log = validate_mrfr(model, loader)
-        elif task.startswith('mrc'):
-            val_log = validate_mrc(model, loader, task)
         elif task.startswith('itm'):
             val_log = validate_itm(model, loader)
         else:
@@ -533,68 +477,11 @@ def accuracy_count(out, labels):
     n_correct = (outputs == labels).masked_select(mask).sum().item()
     return n_correct
 
-
-@torch.no_grad()
-def validate_mrfr(model, val_loader):
-    LOGGER.info("start running MRFR validation...")
-    val_loss = 0
-    n_feat = 0
-    st = time()
-    for i, batch in enumerate(val_loader):
-        loss = model(batch, task='mrfr', compute_loss=True)
-        val_loss += loss.sum().item() / IMG_embedding
-        n_feat += batch['img_mask_tgt'].sum().item()
-    val_loss = sum(all_gather_list(val_loss))
-    n_feat = sum(all_gather_list(n_feat))
-    tot_time = time()-st
-    val_loss /= n_feat
-    val_log = {'loss': val_loss,
-               'feat_per_s': n_feat/tot_time}
-    LOGGER.info(f"validation finished in {int(tot_time)} seconds, "
-                f"loss: {val_loss:.2f}")
-    return val_log
-
-
-@torch.no_grad()
-def validate_mrc(model, val_loader, task):
-    LOGGER.info("start running MRC validation...")
-    val_loss = 0
-    n_feat = 0
-    st = time()
-    tot_score = 0
-    for i, batch in enumerate(val_loader):
-        prediction_soft_label = model(
-            batch, task=task, compute_loss=False)
-        # default use "kl" in task:
-        prediction_soft_label = F.log_softmax(
-            prediction_soft_label, dim=-1)
-        label_targets = batch['label_targets']
-        loss = F.kl_div(
-            prediction_soft_label, label_targets, reduction='sum')
-        tot_score += compute_accuracy_for_soft_targets(
-            prediction_soft_label, label_targets)
-        val_loss += loss.item()
-        n_feat += batch['img_mask_tgt'].sum().item()
-    val_loss = sum(all_gather_list(val_loss))
-    tot_score = sum(all_gather_list(tot_score))
-    n_feat = sum(all_gather_list(n_feat))
-    tot_time = time()-st
-    val_loss /= n_feat
-    val_acc = tot_score / n_feat
-    val_log = {'loss': val_loss,
-               'acc': val_acc,
-               'feat_per_s': n_feat/tot_time}
-    LOGGER.info(f"validation finished in {int(tot_time)} seconds, "
-                f"score: {val_acc*100:.2f}")
-    return val_log
-
-
 def compute_accuracy_for_soft_targets(out, labels):
     outputs = out.max(dim=-1)[1]
     labels = labels.max(dim=-1)[1]  # argmax
     n_correct = (outputs == labels).sum().item()
     return n_correct
-
 
 @torch.no_grad()
 def validate_itm(model, val_loader):
@@ -684,11 +571,9 @@ if __name__ == "__main__":
     parser.add_argument("--use_visual", action='store_true',  help='use visual branch')
 
     # backbone parameters
-    parser.add_argument("--use_backbone_optim", action='store_true',
-                                    help='use individual backbone optim for training')
+    parser.add_argument("--pretrained_text_checkpoint", default=None, type=str,
+                                    help='the path of the pretrained text checkpoint')
     parser.add_argument("--image_data_augmentation", action='store_true')
-    parser.add_argument("--backbone_learning_rate", default=1e-3, type=float,
-                        help="The initial learning rate of face or audio backbone for Adam.")
 
     # training parameters
     parser.add_argument("--train_batch_size", default=4096, type=int,
@@ -732,7 +617,8 @@ if __name__ == "__main__":
 
     args = parse_with_config(parser)
 
-    print('[Debug] use_backbone_optim {}'.format(args.use_backbone_optim))
+    print('[Debug] use visual branch {}'.format(args.use_visual))
+    print('[Debug] use speech branch {}'.format(args.use_speech))
     print('[Debug] image_data_augmentation {}'.format(args.image_data_augmentation))
 
     if args.cvNo > 0:
