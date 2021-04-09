@@ -43,7 +43,7 @@
                 "/data7/emobert/rawimg_db_nomask/movies_v1/"
             ],
             "tasks": [
-                "mlm"
+                "itm"
             ],
             "mix_ratio": [
                 1
@@ -60,7 +60,7 @@
                 "/data7/emobert/rawimg_db_nomask/movies_v1/"
             ],
             "tasks": [
-                "mlm"
+                "itm"
             ]
         }
     ]

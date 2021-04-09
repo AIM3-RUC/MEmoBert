@@ -7,7 +7,6 @@ UNITER for pretraining
 from collections import defaultdict
 import logging
 
-import torch
 from torch import nn
 from torch.nn import functional as F
 from apex.normalization.fused_layer_norm import FusedLayerNorm as LayerNorm
@@ -60,7 +59,7 @@ class MEmoBertForPretraining(nn.Module):
             self.emoBert.c_config, self.emoBert.text_encoder.embeddings.word_embeddings.weight)
         # Jinming: add for melm multi-task
         if self.emoBert.c_config.melm_multitask is True:
-            print("Use the melm multitask")
+            logger.info("Use the melm multitask")
             self.emomelm_classifier = EmoMelmClassification(
             self.emoBert.c_config.hidden_size, self.emoBert.c_config.melm_type_emo_size)
         self.itm_output = nn.Linear(self.emoBert.c_config.hidden_size, 2)
@@ -104,8 +103,7 @@ class MEmoBertForPretraining(nn.Module):
             return self.forward_melm(batch, txt_labels, txt_emo_labels, compute_loss)
         elif task == 'itm':
             targets = batch['targets']
-            ot_inputs = batch['ot_inputs']
-            return self.forward_itm(batch, targets, ot_inputs, compute_loss)
+            return self.forward_itm(batch, targets, compute_loss)
         elif task.startswith('fom'):
             # frame order modeling
             pass
@@ -123,6 +121,8 @@ class MEmoBertForPretraining(nn.Module):
         # (batch, max-len, dim)
         sequence_output = self.emoBert(batch, output_all_encoded_layers=False)
         # get only the text part
+        # print('[Debug in MLM] input_ids {}'.format(input_ids.shape))
+        # print('[Debug in MLM] sequence_output {}'.format(sequence_output.shape))
         sequence_output = sequence_output[:, :input_ids.size(1), :]
         # only compute masked tokens for better efficiency
         masked_output = self._compute_masked_hidden(sequence_output,
@@ -181,11 +181,10 @@ class MEmoBertForPretraining(nn.Module):
         hidden_masked = hidden[mask].contiguous().view(-1, hidden.size(-1))
         return hidden_masked
 
-    def forward_itm(self, batch, targets, ot_inputs=None, compute_loss=True):
+    def forward_itm(self, batch, targets, compute_loss=True):
         sequence_output = self.emoBert(batch, output_all_encoded_layers=False)
-        pooled_output = self.emoBert.pooler(sequence_output)
+        pooled_output = self.emoBert.cross_encoder.pooler(sequence_output)
         itm_scores = self.itm_output(pooled_output)
-
         if compute_loss:
             itm_loss = F.cross_entropy(itm_scores, targets, reduction='none')
             return itm_loss

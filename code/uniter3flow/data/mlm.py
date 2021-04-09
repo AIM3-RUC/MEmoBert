@@ -5,11 +5,12 @@ Licensed under the MIT license.
 MLM datasets
 """
 import random
+from numpy.core.fromnumeric import size
 
 import torch
+from torch._C import dtype
 from torch.nn.utils.rnn import pad_sequence
 from toolz.sandbox import unzip
-
 from code.uniter3flow.data.data import (DetectFeatTxtTokDataset, TxtTokLmdb, pad_tensors)
 
 def random_word(tokens, vocab_range, mask):
@@ -86,7 +87,7 @@ class MlmDataset(DetectFeatTxtTokDataset):
         txt_labels = torch.tensor([-1] + txt_labels)
         return input_ids, txt_labels
 
-def mlm_collate(inputs, add_cls_token=False):
+def mlm_collate(inputs, add_cls_token=True):
     """
     Jinming: modify to img_position_ids
     Return:
@@ -108,18 +109,24 @@ def mlm_collate(inputs, add_cls_token=False):
     txt_labels = pad_sequence(txt_labels, batch_first=True, padding_value=-1)
     position_ids = torch.arange(0, input_ids.size(1), dtype=torch.long).unsqueeze(0)
 
-    # image batches
-    num_bbs = [f.size(0) for f in img_feats]
-    img_feat = pad_tensors(img_feats, num_bbs) # (n, max_num_nbb, dim)
-    if add_cls_token:
-        img_position_ids = torch.arange(0, img_feat.size(1)+1, dtype=torch.long).unsqueeze(0)
-    else:
-        img_position_ids = torch.arange(0, img_feat.size(1), dtype=torch.long).unsqueeze(0)
-    # speech batches
-
     text_attn_masks = pad_sequence(text_attn_masks, batch_first=True, padding_value=0)
     img_attn_masks = pad_sequence(img_attn_masks, batch_first=True, padding_value=0)
 
+    # image batches
+    num_bbs = [f.size(0) for f in img_feats]
+    img_feat = pad_tensors(img_feats, num_bbs) # (n, max_num_nbb, dim)
+    # add cls token to img branch
+    if add_cls_token:
+        # print('[Debug] img_attn_masks {}'.format(img_attn_masks.shape, img_attn_masks.dtype))
+        cls_token_attn_masks = torch.ones((img_attn_masks.size(0), 1), dtype=img_attn_masks.dtype)
+        # print('[Debug] cls_token_attn_masks {}'.format(cls_token_attn_masks.shape, type(cls_token_attn_masks)))
+        img_attn_masks = torch.cat((cls_token_attn_masks, img_attn_masks), dim=1)
+        # print('[Debug] img_attn_masks {}'.format(img_attn_masks.shape))
+        img_position_ids = torch.arange(0, img_feat.size(1)+1, dtype=torch.long).unsqueeze(0)
+    else:
+        img_position_ids = torch.arange(0, img_feat.size(1), dtype=torch.long).unsqueeze(0)
+
+    # speech batches
     batch = {'input_ids': input_ids,
              'position_ids': position_ids,
              'txt_lens': txt_lens,

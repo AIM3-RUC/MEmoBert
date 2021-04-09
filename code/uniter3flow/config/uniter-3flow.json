@@ -49,6 +49,6 @@
     "max_position_embeddings": 514,
     "num_hidden_layers": 4,
     "type_vocab_size": 1,
-    "add_cls_token": 4
+    "add_cls_token": true
   }
 }

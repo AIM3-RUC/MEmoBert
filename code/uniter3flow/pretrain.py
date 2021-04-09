@@ -26,8 +26,8 @@ from code.uniter3flow.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   ItmDataset, itm_collate)
 
 from code.uniter3flow.model.pretrain import MEmoBertForPretraining
-from code.uniter3flow.optim import get_lr_sched, get_backbone_lr_sched
-from code.uniter3flow.optim.misc import build_backbone_optimizer, build_optimizer
+from code.uniter3flow.optim import get_lr_sched
+from code.uniter3flow.optim.misc import build_optimizer
 
 from code.uniter3flow.utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
 from code.uniter3flow.utils.distributed import (all_reduce_and_rescale_tensors, all_gather_list,
@@ -222,7 +222,7 @@ def main(opts):
     # Prepare model
     model = MEmoBertForPretraining(opts.model_config, use_speech=opts.use_speech, use_visual=opts.use_visual, \
                                         pretrained_text_checkpoint=opts.pretrained_text_checkpoint)
-    print('[Debug] model info {}'.format(model.state_dict().keys()))
+    # print('[Debug] model info {}'.format(model.state_dict().keys()))
     model.to(device)
     model.train()
 
@@ -237,7 +237,7 @@ def main(opts):
     model, optimizer = amp.initialize(model, optimizer,
                                     num_losses=len(task2scaler),
                                     enabled=opts.fp16, opt_level='O2')
-    LOGGER.info('[INFO] the models is \n {}'.format(model))
+    # LOGGER.info('[INFO] the models is \n {}'.format(model))
     task2scaler = {t: i for i, t in enumerate(train_dataloaders.keys())}
     global_step = 0
     # Jinming add: restore the break checkpoint
@@ -270,15 +270,9 @@ def main(opts):
         # LOGGER.info('[Debug] batch size {}'.format(batch['input_ids'].size(0)))
         task = name.split('_')[0]
         loss = model(batch, task=task, compute_loss=True)
-        if task.startswith('itm'):
-            # OT
-            itm_loss, ot_loss = loss
-            n_loss_units[name] += itm_loss.size(0)
-            itm_loss = itm_loss.mean()
-            loss = itm_loss
-        else:
-            n_loss_units[name] += loss.size(0)
-            loss = loss.mean()  # loss is not normalized in model
+    
+        n_loss_units[name] += loss.size(0)
+        loss = loss.mean()  # loss is not normalized in model
 
         # backward pass
         delay_unscale = (step+1) % opts.gradient_accumulation_steps != 0
@@ -491,7 +485,7 @@ def validate_itm(model, val_loader):
     n_ex = 0
     st = time()
     for i, batch in enumerate(val_loader):
-        scores, ot_loss = model(batch, task='itm', compute_loss=False)
+        scores = model(batch, task='itm', compute_loss=False)
         targets = batch['targets']
         loss = F.cross_entropy(scores, targets, reduction='sum')
         val_loss += loss.item()
@@ -574,6 +568,7 @@ if __name__ == "__main__":
     parser.add_argument("--pretrained_text_checkpoint", default=None, type=str,
                                     help='the path of the pretrained text checkpoint')
     parser.add_argument("--image_data_augmentation", action='store_true')
+    parser.add_argument("--add_cls_token", action='store_true')
 
     # training parameters
     parser.add_argument("--train_batch_size", default=4096, type=int,

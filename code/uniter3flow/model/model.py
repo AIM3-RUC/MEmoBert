@@ -100,12 +100,13 @@ class MEmoBertModel(BertPreTrainedModel):
         # Pending to implement
         return embedding_output, embedding_output_attn_masks
 
-    def forward(self, batch, frozen_en_layers=0, output_all_encoded_layers=True):
+    def forward(self, batch, output_all_encoded_layers=False):
         combine_modality_outputs = []
         combine_modality_att_masks = []
         # case1: use text
         text_encoder_output, text_extended_att_mask = self.text_encoder(batch)
-        print(f'[Debug] text_encoder_output {text_encoder_output.shape}')
+        # print(f'[Debug] text_encoder_output {text_encoder_output.shape}')
+        # print(f'[Debug] text_extended_att_mask {text_extended_att_mask.shape}')
         combine_modality_outputs.append(text_encoder_output)
         combine_modality_att_masks.append(text_extended_att_mask)
 
@@ -113,24 +114,26 @@ class MEmoBertModel(BertPreTrainedModel):
             visual_encoder_output, visual_extended_att_mask = self.visual_encoder(batch, output_all_encoded_layers=False) 
             combine_modality_outputs.append(visual_encoder_output)
             combine_modality_att_masks.append(visual_extended_att_mask)
-            print(f'[Debug] visual_encoder_output {visual_encoder_output.shape}')
+            # print(f'[Debug] visual_encoder_output {visual_encoder_output.shape}')
+            # print(f'[Debug] visual_extended_att_mask {visual_extended_att_mask.shape}')
 
         if self.use_speech:
             speech_encoder_output, speech_extended_att_mask = self.speech_encoder(batch)
             combine_modality_outputs.append(speech_encoder_output)
             combine_modality_att_masks.append(speech_extended_att_mask)
-            print(f'[Debug] speech_encoder_output {speech_encoder_output.shape}')
+            # print(f'[Debug] speech_encoder_output {speech_encoder_output.shape}')
+            # print(f'[Debug] speech_extended_att_mask {speech_extended_att_mask.shape}')
 
         if self.do_gather:
             combine_modality_output, combine_modality_attention_mask = self._compute_img_txt_embeddings(combine_modality_outputs[0])
         else:
             combine_modality_output = torch.cat(combine_modality_outputs, dim=1)
-            combine_modality_attention_mask = torch.cat(combine_modality_att_masks, dim=1)
+            combine_modality_attention_mask = torch.cat(combine_modality_att_masks, dim=-1)
 
-        encoded_layers = self.encoder(
+        # print(f'[Debug] combine_modality_output {combine_modality_output.shape}')
+        # print(f'[Debug] combine_modality_attention_mask {combine_modality_attention_mask.shape}')
+        encoded_layers = self.cross_encoder(
             combine_modality_output, combine_modality_attention_mask,
-            frozen_en_layers=frozen_en_layers,
             output_all_encoded_layers=output_all_encoded_layers)
-        if not output_all_encoded_layers:
-            encoded_layers = encoded_layers[-1]
+        # print('[Debug in model] final output {}'.format(encoded_layers.shape))
         return encoded_layers

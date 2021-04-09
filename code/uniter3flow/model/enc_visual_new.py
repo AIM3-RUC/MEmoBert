@@ -138,13 +138,11 @@ class VisualEncoderBertModel(BertPreTrainedModel):
         position_ids = batch['img_position_ids']
         attention_mask = batch['img_attn_masks']
         # print(f'[Debug] inputbatch {inputbatch.shape}')
+        inputbatch = inputbatch.unsqueeze(2) # add channel
         v_visemes = self.visualfront(inputbatch) # torch.Size([1, 4, 512])
         affine_v_visemes = self.affine_layer(v_visemes)
         # print(f'[Debug] affined v_visemes {affine_v_visemes.shape}') # [Debug] v_visimes torch.Size([1, 4, 768])
-
-        #  add one mask for cls token.
-        if self.config.add_cls_token:
-            attention_mask = torch.cat((torch.tensor([[1]]), attention_mask), dim=1)
+        
         # compute self-attention mask.
         extended_attention_mask = attention_mask.unsqueeze(1).unsqueeze(2)
         extended_attention_mask = extended_attention_mask.to(
@@ -157,9 +155,9 @@ class VisualEncoderBertModel(BertPreTrainedModel):
             cls_token = repeat(self.cls_token, '() n d -> b n d', b = affine_v_visemes.size(0))
             # print(f'[Debug] cls_token {cls_token.shape}') # [Debug] cls_token torch.Size([1, 5, 768])
             affine_v_visemes = torch.cat((cls_token, affine_v_visemes), dim=1)
-        # print("[Debug] position_ids {}".format(position_ids))
+        # print("[Debug] position_ids {}".format(position_ids.shape))
         position_embeddings = self.position_embeddings(position_ids)
-        print('position_embeddings {}'.format(position_embeddings.shape)) # torch.Size([1, 5, 768]), add cls-token
+        # print('position_embeddings {}'.format(position_embeddings.shape)) # torch.Size([1, 5, 768]), add cls-token
 
         embedding_output = affine_v_visemes + position_embeddings
         # print('[Debug] embedding_output {}'.format(embedding_output.shape))  ## torch.Size([1, 5, 768]), add cls-token
