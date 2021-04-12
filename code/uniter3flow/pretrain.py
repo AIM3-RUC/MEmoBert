@@ -26,8 +26,8 @@ from code.uniter3flow.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   ItmDataset, itm_collate)
 
 from code.uniter3flow.model.pretrain import MEmoBertForPretraining
-from code.uniter3flow.optim import get_lr_sched
-from code.uniter3flow.optim.misc import build_optimizer
+from code.uniterbackbone.optim import get_lr_sched, get_backbone_lr_sched
+from code.uniter3flow.optim.misc import build_backbone_optimizer, build_optimizer
 
 from code.uniter3flow.utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
 from code.uniter3flow.utils.distributed import (all_reduce_and_rescale_tensors, all_gather_list,
@@ -122,7 +122,6 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None):
 
         for i, t in enumerate(dset['tasks']):
             task = f'{t}_{dset["name"]}'
-
             if is_train:
                 LOGGER.info(f"Loading {task} train dataset "
                             f"{dset['db']}, {[img.img_dir for img in img_db]}")
@@ -231,12 +230,23 @@ def main(opts):
     set_dropout(model, opts.dropout)
 
     task2scaler = {t: i for i, t in enumerate(train_dataloaders.keys())}
-    # Prepare optimizer
-    LOGGER.info('[INFO] Use 1 optimizers for backbone and bert model')
-    optimizer = build_optimizer(model, opts)
-    model, optimizer = amp.initialize(model, optimizer,
-                                    num_losses=len(task2scaler),
-                                    enabled=opts.fp16, opt_level='O2')
+    if opts.use_backbone_optim:
+        # the text branch using individual optim
+        LOGGER.info('[INFO] Use 2 optimizers for backbone {} and bert model {}'.format(
+            opts.optim, opts.backbone_optim))
+        backbone = model.emoBert.text_encoder
+        backbone_optimizer = build_backbone_optimizer(backbone, opts)   # 只包含denseface的参数
+        optimizer = build_optimizer(model, opts, except_model=backbone)  # 除去denseface的参数
+        model, [optimizer, backbone_optimizer]  = amp.initialize(model, [optimizer, backbone_optimizer],
+                                        num_losses=len(task2scaler),
+                                        enabled=opts.fp16, opt_level='O2')
+    else:
+        # Prepare optimizer
+        LOGGER.info('[INFO] Use 1 optimizers for backbone and bert model')
+        optimizer = build_optimizer(model, opts)
+        model, optimizer = amp.initialize(model, optimizer,
+                                            num_losses=len(task2scaler),
+                                            enabled=opts.fp16, opt_level='O2')
     # LOGGER.info('[INFO] the models is \n {}'.format(model))
     task2scaler = {t: i for i, t in enumerate(train_dataloaders.keys())}
     global_step = 0
@@ -263,6 +273,9 @@ def main(opts):
     # quick hack for amp delay_unscale bug
     optimizer.zero_grad()
     optimizer.step()
+    if opts.use_backbone_optim:
+        backbone_optimizer.zero_grad()
+        backbone_optimizer.step()
     
     for step, (name, batch) in enumerate(meta_loader):
         n_examples[name] += batch['input_ids'].size(0)
@@ -276,35 +289,44 @@ def main(opts):
 
         # backward pass
         delay_unscale = (step+1) % opts.gradient_accumulation_steps != 0
-        with amp.scale_loss(loss, optimizer, delay_unscale=delay_unscale,
-                            loss_id=task2scaler[name]) as scaled_loss:
-            scaled_loss.backward()
-            if not delay_unscale:
-                # gather gradients from every processes
-                # do this before unscaling to make sure every process uses
-                # the same gradient scale
-                grads = [p.grad.data for p in model.parameters()
-                        if p.requires_grad and p.grad is not None]
-                all_reduce_and_rescale_tensors(grads, float(1))
+        if opts.use_backbone_optim:
+            with amp.scale_loss(loss, [optimizer, backbone_optimizer], delay_unscale=delay_unscale,
+                                loss_id=task2scaler[name]) as scaled_loss:
+                scaled_loss.backward()
+                if not delay_unscale:
+                    grads = [p.grad.data for p in model.parameters()
+                            if p.requires_grad and p.grad is not None]
+                    all_reduce_and_rescale_tensors(grads, float(1))
+        else:
+            with amp.scale_loss(loss, optimizer, delay_unscale=delay_unscale,
+                                loss_id=task2scaler[name]) as scaled_loss:
+                scaled_loss.backward()
+                if not delay_unscale:
+                    # gather gradients from every processes
+                    # do this before unscaling to make sure every process uses
+                    # the same gradient scale
+                    grads = [p.grad.data for p in model.parameters()
+                            if p.requires_grad and p.grad is not None]
+                    all_reduce_and_rescale_tensors(grads, float(1))
+        
         # Jinming add, for get the grad of the last layer and the uniter first layer.
         if global_step % 200 == 0:
             layers, mean_grads = get_grad_flow(model.named_parameters())
             for layer_name, mean_grad in zip(layers, mean_grads):
-                if layer_name == 'emoBert.text_encoder.encoder.layer.11.output.dense.weight':
+                if layer_name == 'emoBert.text_encoder.encoder.layer.11.attention.output.LayerNorm.weight':
                     LOGGER.info('[Debug] Layer {} and mean grad {}'.format(layer_name, mean_grad))
-                    TB_LOGGER.add_scalar('backbone_text_last1_layer_grad', mean_grad, global_step)
-                if layer_name == 'emoBert.speech_encoder.encoder.layer.3.output.dense.weight':
+                    TB_LOGGER.add_scalar('backbone_text_encoder_layer11_grad', mean_grad, global_step)
+                if layer_name == 'emoBert.speech_encoder.encoder.layer.1.output.LayerNorm.weight':
                     LOGGER.info('[Debug] Layer {} and mean grad {}'.format(layer_name, mean_grad))
-                    TB_LOGGER.add_scalar('backbone_speech_last1_layer_grad', mean_grad, global_step)
-                if layer_name == 'emoBert.visual_encoder.encoder.layer.3.output.dense.weight':
+                    TB_LOGGER.add_scalar('backbone_speech_layer1_grad', mean_grad, global_step)
+                if layer_name == 'emoBert.visual_encoder.encoder.layer.1.output.LayerNorm.weight':
                     LOGGER.info('[Debug] Layer {} and mean grad {}'.format(layer_name, mean_grad))
-                    TB_LOGGER.add_scalar('backbone_visual_last1_layer_grad', mean_grad, global_step)
-                if layer_name == 'emoBert.cross_encoder.encoder.layer.0.output.dense.weight':
+                    TB_LOGGER.add_scalar('backbone_visual_layer1_grad', mean_grad, global_step)
+                if layer_name == 'emoBert.cross_encoder.cross_encoder.layer.0.output.LayerNorm.weight':
                     LOGGER.info('[Debug] Layer {} and mean grad {}'.format(layer_name, mean_grad))
-                    TB_LOGGER.add_scalar('cross_encoder_first1_layer_grad', mean_grad, global_step)
+                    TB_LOGGER.add_scalar('cross_encoder_layer0_grad', mean_grad, global_step)
 
         task2loss[name](loss.item())
-
         # optimizer update and logging
         if (step + 1) % opts.gradient_accumulation_steps == 0:
             global_step += 1
@@ -317,6 +339,14 @@ def main(opts):
             for param_group in optimizer.param_groups:
                 param_group['lr'] = lr_this_step
             TB_LOGGER.add_scalar('lr', lr_this_step, global_step)
+            if opts.use_backbone_optim:
+                if opts.is_reinit_lr:
+                    backbone_lr_this_step = get_backbone_lr_sched(global_step-opts.checkpoint_step, opts.lr_sched_type, opts)
+                else:
+                    backbone_lr_this_step = get_backbone_lr_sched(global_step, opts.lr_sched_type, opts)
+                for param_group in backbone_optimizer.param_groups:
+                    param_group['lr'] = backbone_lr_this_step
+                TB_LOGGER.add_scalar('backbone_lr', backbone_lr_this_step, global_step)
             # NOTE: not gathered across GPUs for efficiency
             TB_LOGGER.log_scaler_dict({l.name: l.val
                                        for l in task2loss.values()
@@ -328,15 +358,25 @@ def main(opts):
                 grad_norm = clip_grad_norm_(amp.master_params(optimizer),
                                             opts.grad_norm)
                 TB_LOGGER.add_scalar('grad_norm', grad_norm, global_step)
+                if opts.use_backbone_optim:
+                    if opts.backbone_grad_norm > 0:
+                        grad_norm = clip_grad_norm_(amp.master_params(backbone_optimizer),
+                                                opts.backbone_grad_norm)
+                        TB_LOGGER.add_scalar('backbone_grad_norm', grad_norm, global_step)
             
             optimizer.step()
             optimizer.zero_grad()
+            if opts.use_backbone_optim:
+                backbone_optimizer.step()
+                backbone_optimizer.zero_grad()
             pbar.update(1)
 
             if global_step % 100 == 0:
                 # monitor training throughput
                 LOGGER.info(f'==============Step {global_step}===============')
                 LOGGER.info('Current learning rate {}'.format(lr_this_step))
+                if opts.use_backbone_optim:
+                    LOGGER.info('Current backbone learning rate {}'.format(backbone_lr_this_step))
                 for t in train_dataloaders.keys():
                     assert all(tt == t for tt in all_gather_list(t))
                     tot_ex = sum(all_gather_list(n_examples[t]))
@@ -560,6 +600,7 @@ if __name__ == "__main__":
                         help='visual features as transformer input')
     parser.add_argument('--IMG_embedding', type=int, default=512,
                         help='visual feature embedding from visual encoder')
+    
     # use modality branch
     parser.add_argument("--use_speech", action='store_true',  help='use speech branch')
     parser.add_argument("--use_visual", action='store_true',  help='use visual branch')
@@ -569,6 +610,14 @@ if __name__ == "__main__":
                                     help='the path of the pretrained text checkpoint')
     parser.add_argument("--image_data_augmentation", action='store_true')
     parser.add_argument("--add_cls_token", action='store_true')
+    parser.add_argument("--use_backbone_optim", action='store_true',
+                                    help='use individual backbone optim for text-bert training')
+    parser.add_argument("--backbone_optim", default='adamw', type=str,
+                                    help='use backbone optim for text-bert training')
+    parser.add_argument("--backbone_learning_rate", default=1e-5, type=float, help="The initial learning rate of text backbone for Adam.")
+    parser.add_argument("--backbone_weight_decay", default=1e-5, type=float)
+    parser.add_argument("--backbone_warmup_steps", default=0, type=int)
+    parser.add_argument("--backbone_grad_norm", default=5.0, type=float)
 
     # training parameters
     parser.add_argument("--train_batch_size", default=4096, type=int,

@@ -73,11 +73,14 @@ class MEmoBertModel(BertPreTrainedModel):
         if use_visual:
             logger.info('[Info] use the visual branch')
             self.visual_encoder = VisualEncoderBertModel(self.v_config)
+
         if use_speech:
             logger.info('[Info] use the speech branch')
             self.speech_encoder = SpeechEncoderBertModel(self.s_config)
-        self.cross_encoder = CrossEncoderBertModel(self.c_config)
 
+        self.cross_encoder = CrossEncoderBertModel(self.c_config)
+        self.token_type_embeddings = nn.Embedding(self.c_config.type_vocab_size,
+                                                  self.c_config.hidden_size)        
         self.do_gather  = False
         self.apply(self.init_weights)
 
@@ -105,6 +108,10 @@ class MEmoBertModel(BertPreTrainedModel):
         combine_modality_att_masks = []
         # case1: use text
         text_encoder_output, text_extended_att_mask = self.text_encoder(batch)
+        # add text type embeddings, use index 0
+        text_token_type_ids = torch.zeros_like(batch['input_ids'])
+        token_type_embeddings = self.token_type_embeddings(text_token_type_ids)
+        text_encoder_output = text_encoder_output + token_type_embeddings
         # print(f'[Debug] text_encoder_output {text_encoder_output.shape}')
         # print(f'[Debug] text_extended_att_mask {text_extended_att_mask.shape}')
         combine_modality_outputs.append(text_encoder_output)
@@ -112,6 +119,11 @@ class MEmoBertModel(BertPreTrainedModel):
 
         if self.use_visual:
             visual_encoder_output, visual_extended_att_mask = self.visual_encoder(batch, output_all_encoded_layers=False) 
+            # add visual type embeddings, use index 1
+            visual_token_type_ids = torch.ones_like(visual_encoder_output[:, :, 0].long())
+            visual_token_type_embeddings = self.token_type_embeddings(visual_token_type_ids)
+            visual_encoder_output = visual_encoder_output + visual_token_type_embeddings
+            # 
             combine_modality_outputs.append(visual_encoder_output)
             combine_modality_att_masks.append(visual_extended_att_mask)
             # print(f'[Debug] visual_encoder_output {visual_encoder_output.shape}')
@@ -119,13 +131,20 @@ class MEmoBertModel(BertPreTrainedModel):
 
         if self.use_speech:
             speech_encoder_output, speech_extended_att_mask = self.speech_encoder(batch)
+            # add speech type embeddings, use index 2
+            speech_token_type_ids = torch.ones_like(batch['speech_feat'][:, :, 0, 0].long()) + \
+                                                torch.ones_like(batch['speech_feat'][:, :, 0, 0].long())
+            speech_token_type_embeddings = self.token_type_embeddings(speech_token_type_ids)
+            speech_encoder_output = speech_encoder_output + speech_token_type_embeddings
+            #
             combine_modality_outputs.append(speech_encoder_output)
             combine_modality_att_masks.append(speech_extended_att_mask)
             # print(f'[Debug] speech_encoder_output {speech_encoder_output.shape}')
             # print(f'[Debug] speech_extended_att_mask {speech_extended_att_mask.shape}')
 
         if self.do_gather:
-            combine_modality_output, combine_modality_attention_mask = self._compute_img_txt_embeddings(combine_modality_outputs[0])
+            if self.use_visual and not self.use_speech:
+                combine_modality_output, combine_modality_attention_mask = self._compute_img_txt_embeddings(combine_modality_outputs[0])
         else:
             combine_modality_output = torch.cat(combine_modality_outputs, dim=1)
             combine_modality_attention_mask = torch.cat(combine_modality_att_masks, dim=-1)

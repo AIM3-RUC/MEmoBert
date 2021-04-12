@@ -181,7 +181,8 @@ class TxtTokLmdb(object):
     def combine_inputs(self, *inputs):
         input_ids = [self.cls_]
         for ids in inputs:
-            input_ids.extend(ids + [self.sep])
+            # remove the [sep]
+            input_ids.extend(ids)
         return torch.tensor(input_ids)
 
     @property

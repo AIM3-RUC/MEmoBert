@@ -1,5 +1,5 @@
 {
-    "output_dir": "/data7/emobert/exp/pretrain/tasks/iemocap_resnet3d_xxx",
+    "output_dir": "/data7/emobert/exp/pretrain/tasks/meld_resnet3d_xxx",
     "model_config": "config/uniter-base-backbone_3dresnet.json",
     "checkpoint": "/data7/emobert/exp/task_pretrain/xxx",
     "mrm_prob": 0.15,
@@ -42,16 +42,16 @@
     "pin_mem": true,
     "train_datasets": [
         {
-            "name": "iemocap_trn",
+            "name": "meld_trn",
             "db": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/train_emowords_emotype.db"
+                "/data7/emobert/exp/evaluation/MELD/txt_db/{}/train_emowords_emotype.db"
             ],
             "img": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/feature/openface_iemocap_raw_img/raw_img_db/"
+                "/data7/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/raw_img_db/"
             ],
             "tasks": [
-                "itm",
-                "mlm"
+                "mlm",
+                "itm"
             ],
             "mix_ratio": [
                 1,
@@ -61,29 +61,29 @@
     ],
     "val_datasets": [
         {
-            "name": "iemocap_val",
+            "name": "meld_val",
             "db": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val_emowords_emotype.db"
+                "/data7/emobert/exp/evaluation/MELD/txt_db/{}/val_emowords_emotype.db"
             ],
             "img": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/feature/openface_iemocap_raw_img/raw_img_db/"
+                "/data7/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/raw_img_db/"
             ],
             "tasks": [
-                "itm",
-                "mlm"         
+                "mlm",
+                "itm"     
             ]
         },
         {
-            "name": "iemocap_tst",
+            "name": "meld_tst",
             "db": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/test_emowords_emotype.db"
+                "/data7/emobert/exp/evaluation/MELD/txt_db/{}/test_emowords_emotype.db"
             ],
             "img": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/feature/openface_iemocap_raw_img/raw_img_db/"
+                "/data7/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/raw_img_db/"
             ],
             "tasks": [
-                "itm",
-                "mlm"
+                "mlm",
+                "itm"
             ]
         }
     ]

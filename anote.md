@@ -205,7 +205,20 @@ Transformer: AdamW + 5e−5 + weight decay 0.01
 目前考虑的是去掉 ITM 任务，那么就只剩 MLM 和 MELM 任务了。
 Frame Order method.
 
+## Uniter3Flow 的联合训练
+这种训练方式相比之前UNiter的训练需要更多的训练时间。
+1. 多头结构时的CLS和SEP token 要如何设计？
+目前的方法是CLS和SEP都加在文本上，type-embeeding 去掉了，然后其他的保持不变。
+方案2:做法是去掉文本模态的 [Sep] Token, 每个模态输出之后加上type-embedding, 有type-embedding可以不加[Sep].
+使模型任务尽可能的简单。前面的encoder就好好进行特征学习，后面的 cross-encoder 进行任务学习。
+2. 文本+face 已经跑通了. -- evaluating
+
+3. 文本+speech -- going
+采用抽取好的ComparE的特征，采用的数据处理类型, 跟feature的Img保持一致即可。
+
+4. 文本+speech+face --pending
 
 ## 训练策略
 1. 目前的txt=30, img=64, max-token=10240, 得到的batch-size大约100～120左右。
 共有20w训练数据，200,000/100 = 2000 iters. 2000 * 20 = 4w steps..
+

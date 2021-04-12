@@ -33,11 +33,12 @@ def compute_stastic_info(lens):
     return avg_len, mid_len, m80_len
 
 if __name__ == '__main__':
-    lmdb_name = 'movies_v2/fc'
-    filepath = '/data7/emobert/img_db_nomask/{}/nbb_th0.5_max36_min10.json'.format(lmdb_name)
+    lmdb_name = 'movies_v3'
+    # filepath = '/data7/emobert/img_db_nomask/{}/nbb_th0.5_max36_min10.json'.format(lmdb_name)
     # filepath = '/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/{}/nbb_th0.1_max64_min10.json'.format(lmdb_name)
+    filepath = '/data7/emobert/norm_comparE_db/{}/nbb_th1.0_max500_min10.json'.format(lmdb_name)
 
-    if False:
+    if True:
         video2lens = json.load(open(filepath))
         movie_faces_lens = []
         for key in video2lens.keys():
@@ -46,7 +47,7 @@ if __name__ == '__main__':
         avg_len, min_len, m80_len = compute_stastic_info(movie_faces_lens)
         print('\t Face {} Avg {:.2f} Mid {:.2f} Mid80 {:.2f}'.format(len(movie_faces_lens), avg_len, min_len, m80_len) + '\n')
     
-    if True:
+    if False:
         lmdb_name_dir = '/data4/MEmoBert/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/img_db/fc/feat_th0.1_max36_min10'
         img_dump = read_img_lmdb(lmdb_name_dir)
         print(img_dump['soft_labels'].shape)

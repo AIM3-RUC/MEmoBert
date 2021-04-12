@@ -9,10 +9,11 @@
     "itm_ot_lambda": 0.1,
     "max_txt_len": 30,
     "conf_th": 0.1,
-    "max_bb": 36,
+    "max_bb": 500,
     "min_bb": 10,
     "num_bb": 36,
     "IMG_DIM": 512,
+    "Speech_DIM": 130,
     "train_batch_size": 32,
     "val_batch_size": 32,
     "gradient_accumulation_steps": 2,
@@ -22,10 +23,6 @@
     "warmup_steps": 2000,
     "image_data_augmentation": true,
     "betas": [
-        0.9,
-        0.98
-    ],
-    "backbone_betas": [
         0.9,
         0.98
     ],
@@ -44,7 +41,7 @@
                 "/data7/emobert/txt_db/movies_v1_th0.5_emowords_emotype_all_trn.db/"
             ],
             "img": [
-                "/data7/emobert/rawimg_db_nomask/movies_v1/"
+                "/data7/emobert/norm_comparE_db/movies_v1/"
             ],
             "tasks": [
                 "itm",
@@ -61,7 +58,7 @@
                 "/data7/emobert/txt_db/movies_v2_th0.5_emowords_emotype_all_trn.db/"
             ],
             "img": [
-                "/data7/emobert/rawimg_db_nomask/movies_v2/"
+                "/data7/emobert/norm_comparE_db/movies_v2/"
             ],
             "tasks": [
                 "itm",
@@ -78,7 +75,7 @@
                 "/data7/emobert/txt_db/movies_v3_th0.5_emowords_emotype_all_trn.db/"
             ],
             "img": [
-                "/data7/emobert/rawimg_db_nomask/movies_v3/"
+                "/data7/emobert/norm_comparE_db/movies_v3/"
             ],
             "tasks": [
                 "itm",
@@ -97,7 +94,7 @@
                 "/data7/emobert/txt_db/movies_v1_th0.5_emowords_emotype_all_val5k.db/"            
             ],
             "img": [
-                "/data7/emobert/rawimg_db_nomask/movies_v1/"
+                "/data7/emobert/norm_comparE_db/movies_v1/"
             ],
             "tasks": [
                 "itm",
@@ -110,7 +107,7 @@
                 "/data7/emobert/txt_db/movies_v1_th0.5_emowords_emotype_all_trn5k.db/"            
             ],
             "img": [
-                "/data7/emobert/rawimg_db_nomask/movies_v1/"
+                "/data7/emobert/norm_comparE_db/movies_v1/"
             ],
             "tasks": [
                 "itm",
@@ -123,7 +120,7 @@
                 "/data7/emobert/txt_db/movies_v2_th0.5_emowords_emotype_all_val5k.db/"            
             ],
             "img": [
-                "/data7/emobert/rawimg_db_nomask/movies_v2/"
+                "/data7/emobert/norm_comparE_db/movies_v2/"
             ],
             "tasks": [
                 "itm",
@@ -136,7 +133,7 @@
                 "/data7/emobert/txt_db/movies_v2_th0.5_emowords_emotype_all_trn5k.db/"            
             ],
             "img": [
-                "/data7/emobert/rawimg_db_nomask/movies_v2/"
+                "/data7/emobert/norm_comparE_db/movies_v2/"
             ],
             "tasks": [
                 "itm",
@@ -149,7 +146,7 @@
                 "/data7/emobert/txt_db/movies_v3_th0.5_emowords_emotype_all_val5k.db/"            
             ],
             "img": [
-                "/data7/emobert/rawimg_db_nomask/movies_v3/"
+                "/data7/emobert/norm_comparE_db/movies_v3/"
             ],
             "tasks": [
                 "itm",
@@ -162,7 +159,7 @@
                 "/data7/emobert/txt_db/movies_v3_th0.5_emowords_emotype_all_trn5k.db/"            
             ],
             "img": [
-                "/data7/emobert/rawimg_db_nomask/movies_v3/"
+                "/data7/emobert/norm_comparE_db/movies_v3/"
             ],
             "tasks": [
                 "itm",

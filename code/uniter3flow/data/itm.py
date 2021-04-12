@@ -88,7 +88,7 @@ class ItmDataset(DetectFeatTxtTokDataset):
 
         # text input
         input_ids = example['input_ids']
-        input_ids = self.txt_db.combine_inputs(input_ids)
+        input_ids = torch.tensor([self.txt_db.cls_] + input_ids)
 
         text_attn_masks = torch.ones(len(input_ids), dtype=torch.long)
         img_attn_masks = torch.ones(num_bb, dtype=torch.long)

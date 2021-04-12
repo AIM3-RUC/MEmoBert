@@ -126,8 +126,10 @@ class SpeechEncoderBertModel(BertPreTrainedModel):
             # print(f'[Debug] cls_token {cls_token.shape}') # [Debug] cls_token torch.Size([1, 5, 768])
             affine_a_output = torch.cat((cls_token, affine_a_output), dim=1)
 
-        # donnot sure the speech downsample, so set all to be one
-        extended_attention_mask = torch.ones((affine_a_output.size(0), affine_a_output.size(1)))
+        extended_attention_mask = attention_mask.unsqueeze(1).unsqueeze(2)
+        extended_attention_mask = extended_attention_mask.to(
+            dtype=next(self.parameters()).dtype)  # fp16 compatibility
+        extended_attention_mask = (1.0 - extended_attention_mask) * -10000.0
         # print('[Debug] extended_attention_mask {}'.format(extended_attention_mask.shape)) # torch.Size([1, 2])
 
         position_embeddings = self.position_embeddings(position_ids)
@@ -139,7 +141,9 @@ class SpeechEncoderBertModel(BertPreTrainedModel):
             output_all_encoded_layers=output_all_encoded_layers)
         if not output_all_encoded_layers:
             encoded_layers = encoded_layers[-1]
-        return encoded_layers, extended_attention_mask
+        # downsample 之后的 attention-mask.
+        high_extended_attention_mask = torch.ones((affine_a_output.size(0), affine_a_output.size(1)))
+        return encoded_layers, high_extended_attention_mask
 
 if __name__ == '__main__':
     config_path = '/data7/MEmoBert/code/uniter3flow/config/uniter-speech_enc.json'

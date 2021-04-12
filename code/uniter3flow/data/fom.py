@@ -5,7 +5,10 @@ Licensed under the MIT license.
 MLM datasets
 """
 import random
+from numpy.core.fromnumeric import size
+
 import torch
+from torch._C import dtype
 from torch.nn.utils.rnn import pad_sequence
 from toolz.sandbox import unzip
 from code.uniter3flow.data.data import (DetectFeatTxtTokDataset, TxtTokLmdb, pad_tensors)

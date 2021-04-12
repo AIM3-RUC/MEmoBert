@@ -129,7 +129,7 @@ class VisualEncoderBertModel(BertPreTrainedModel):
         # due to the viseme is 512 and trans to hidden_size
         self.affine_layer = nn.Linear(self.visualfront.viseme_dim, 
                                     config.hidden_size, bias=True)
-        # add one cls token, 在CNN之后加, 即输入transformer的时候加 h878 vgy
+        # add one cls token, 在CNN之后加, 即输入transformer的时候加
         self.cls_token = nn.Parameter(torch.randn(1, 1, config.hidden_size))
         self.apply(self.init_weights)
 

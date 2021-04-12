@@ -20,9 +20,9 @@ https://github.com/linjieli222/HERO/blob/faaf15d6ccc3aa4accd24643d77d75699e9d7fa
 文本和视觉的type都是1有点奇怪。
 然后经过 Cross-Transformer 输入是 [CLS] + input_ids/img_fts + [SEP] + img_fts/input_ids, HERO 采用的是 concat[img_emb,txt_emb]. Img在前面。
 在 Cross-Transformer 层上只有一个MLM的预训练任务。输入是 img + txt 来预测 masked token.
+
 最后过 Temporal-Transformer 的输入是: 直接 Cross-Transformer 的输出，如果需要mask/shuffle的话，则是在 Cross-Transformer 之后做。
 https://github.com/linjieli222/HERO/blob/f938515424b5f3249fc1d2e7f0373f64112a6529/model/encoder.py#L287
-
 关于视觉和语音模态是否要加 CLS Token, 可以自定义token进行分类。
 https://github.com/lucidrains/vit-pytorch/blob/main/vit_pytorch/vit.py#L88
 '''
@@ -30,13 +30,13 @@ https://github.com/lucidrains/vit-pytorch/blob/main/vit_pytorch/vit.py#L88
 class CrossEncoderBertModel(BertPreTrainedModel):
     """ Modification for Joint Vision-Language Encoding
     Input: 
-        combine_modality_output, (batch, multi-modality-len, dim)
-        combine_modality_attention_mask, (batch, 1, 1 multi-modality-len)
+        combine_modality_output, (num_modalities, batch, multi-modality-len, dim)
+        combine_modality_attention_mask, (num_modalities, batch, 1, 1 multi-modality-len)
     BertLayer format:
         hidden_states = self.dense(hidden_states)
         hidden_states = self.dropout(hidden_states)
         hidden_states = self.LayerNorm(hidden_states + input_tensor)
-    So the final output is layernorm.
+    So the final output is layernorm. 
     """
     def __init__(self, config):
         super().__init__(config)

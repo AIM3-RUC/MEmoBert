@@ -44,6 +44,7 @@ def load_npz(conf_th, max_bb, fname):
         valid_indexs = _compute_valid_nbb(img_dump, conf_th, max_bb)
         dump = {}
         for key, arr in img_dump.items():
+            # print(key, arr.ndim)
             if arr.dtype == np.float32:
                 arr = arr.astype(np.float16)
             if arr.ndim == 3:
@@ -82,6 +83,7 @@ def main(opts):
         opts.img_dir = opts.img_dir[:-1]
     db_name = (f'feat_th{opts.conf_th}_max{opts.max_bb}'
                     f'_min{opts.min_bb}')
+    json_filename = f'nbb_th{opts.conf_th}_max{opts.max_bb}_min{opts.min_bb}.json'
     if opts.compress:
         db_name += '_compressed'
     if not exists(f'{opts.output}'):
@@ -111,9 +113,7 @@ def main(opts):
         txn.commit()
         env.close()
     print('total {} name2nbb'.format(len(name2nbb)))
-    with open(f'{opts.output}/'
-                f'nbb_th{opts.conf_th}_'
-                f'max{opts.max_bb}_min{opts.min_bb}.json', 'w') as f:
+    with open(f'{opts.output}/{json_filename}', 'w') as f:
         json.dump(name2nbb, f)
 
 
