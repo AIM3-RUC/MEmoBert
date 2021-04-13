@@ -10,13 +10,15 @@ import json
 from os.path import exists
 
 import numpy as np
+from numpy.lib.function_base import copy
+import copy
 import torch
 from torch import tensor
 from torch.utils.data import Dataset, ConcatDataset
 import horovod.torch as hvd
 import lmdb
 from lz4.frame import compress, decompress
-from code.denseface.data.fer import augment_image, augment_batch_images
+from code.denseface.data.fer import augment_batch_images
 
 import msgpack
 import msgpack_numpy
@@ -38,13 +40,11 @@ def _check_distributed():
     return dist
 
 class DetectFeatLmdb(object):
-    def __init__(self, img_dir, conf_th=0.2, max_bb=100, min_bb=10, \
-                 compress=True, data_augmentation=False):
-        '''
-        for img-db and speech db.
-        '''
+    def __init__(self, img_dir, conf_th=0.2, max_bb=100, min_bb=10,
+                 compress=True, data_augmentation=True):
         # Jinming add: data_augmentation for raw image.
         self.data_augmentation = data_augmentation
+        
         self.img_dir = img_dir
         # read the generated json file
         db_name = f'feat_th{conf_th}_max{max_bb}_min{min_bb}'
@@ -104,7 +104,6 @@ class DetectFeatLmdb(object):
         elif len(img_dump['features'].shape) == 2:
             img_feat = torch.tensor(img_dump['features'][:nbb, :]).float()
         elif len(img_dump['features'].shape) == 1:
-            # for raw audio signals
             img_feat = torch.tensor(img_dump['features'][:nbb]).float()
         else:
             print("[Error] of img feature dimension {}".format(img_dump['features'].shape))
@@ -217,16 +216,24 @@ def get_ids_and_lens(db):
     return lens, ids
 
 class DetectFeatTxtTokDataset(Dataset):
-    def __init__(self, txt_db, img_db):
+    def __init__(self, txt_db, img_db=None, speech_db=None):
         assert isinstance(txt_db, TxtTokLmdb)
-        assert isinstance(img_db, DetectFeatLmdb)
+        if img_db:
+            assert isinstance(img_db, DetectFeatLmdb)
+        if speech_db:
+            assert isinstance(speech_db, DetectFeatLmdb)
         self.txt_db = txt_db
         self.img_db = img_db
-        txt_lens, self.ids = get_ids_and_lens(txt_db)
-
+        self.speech_db = speech_db
+        self.txt_lens, self.ids = get_ids_and_lens(txt_db)
+        self.lens = copy.deepcopy(self.txt_lens)
         txt2img = txt_db.txt2img
-        self.lens = [tl + self.img_db.name2nbb[txt2img[id_]]
-                     for tl, id_ in zip(txt_lens, self.ids)]
+        if img_db:
+            self.lens = [tl + self.img_db.name2nbb[txt2img[id_]]
+                     for tl, id_ in zip(self.lens, self.ids)]
+        if speech_db:
+            self.lens = [tl + self.speech_db.name2nbb[txt2img[id_]]
+                     for tl, id_ in zip(self.lens, self.ids)]
 
     def __len__(self):
         return len(self.ids)
@@ -241,7 +248,12 @@ class DetectFeatTxtTokDataset(Dataset):
         img_feat = self.img_db[fname]
         num_bb = img_feat.size(0)
         return img_feat, num_bb
-
+    
+    def _get_speech_feat(self, fname):
+        # Jinimng: add this for speech 
+        speech_feat = self.speech_db[fname]
+        num_bb = speech_feat.size(0)
+        return speech_feat, num_bb
 
 def pad_tensors(tensors, lens=None, pad=0):
     """B x [T, ...], for 2d (batchsize, T, dim)
@@ -282,19 +294,18 @@ class ConcatDatasetWithLens(ConcatDataset):
         return run_all
 
 class ImageLmdbGroup(object):
-    def __init__(self, conf_th, max_bb, min_bb, num_bb, compress, image_data_augmentation=False):
+    def __init__(self, conf_th, max_bb, min_bb, compress, data_augmentation=False):
         self.path2imgdb = {}
         self.conf_th = conf_th
         self.max_bb = max_bb
         self.min_bb = min_bb
-        self.num_bb = num_bb
         self.compress = compress
-        self.image_data_augmentation = image_data_augmentation
+        self.data_augmentation = data_augmentation
 
     def __getitem__(self, path):
         img_db = self.path2imgdb.get(path, None)
         if img_db is None:
             img_db = DetectFeatLmdb(path, self.conf_th, self.max_bb,
-                                    self.min_bb, self.num_bb, self.compress,
-                                    data_augmentation=self.image_data_augmentation)
+                                    self.min_bb, self.compress,
+                                    data_augmentation=self.data_augmentation)
         return img_db
