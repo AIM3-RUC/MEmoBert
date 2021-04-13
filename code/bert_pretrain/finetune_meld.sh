@@ -11,28 +11,29 @@ output_dir=/data7/emobert/exp/finetune/onlytext
 
 for cvNo in `seq 1 1`;
 do
-    for lr in 1e-5;
+    for lr in 1e-5 2e-5;
     do
         bert_data_dir=/data7/emobert/exp/evaluation/MELD/bert_data
         CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
-            --model_name_or_path bert-base-uncased  \
-            --train_file ${bert_data_dir}/train.csv \
-            --validation_file ${bert_data_dir}/val.csv \
+            --model_name_or_path ${pretrain_model_dir}/meld/bert_taskpretain_base_uncased_2e5_epoch10_bs64_trnval/  \
+            --train_file ${bert_data_dir}/train_val.csv \
+            --validation_file ${bert_data_dir}/test.csv \
             --test_file ${bert_data_dir}/test.csv \
             --max_length 50 \
             --per_device_train_batch_size 32 \
             --per_device_eval_batch_size 32 \
-            --num_train_epochs 10 \
+            --num_train_epochs 8 \
             --patience 2 \
             --learning_rate ${lr} \
             --lr_scheduler_type 'linear' \
-            --output_dir ${output_dir}/meld_bert_base_lr${lr}_bs32/${cvNo}
+            --output_dir ${output_dir}/meld_taskpretain-trnval_bert_base_lr${lr}_bs32_trnval/${cvNo}
     done
 done
 
 
 # pretrained dir = /data7/MEmoBert/emobert/exp/mlm_pretrain/results/
 # ${pretrain_model_dir}/meld/bert_base_uncased_2e5_epoch10_bs64/
+# ${pretrain_model_dir}/meld/bert_base_uncased_2e5_epoch10_bs64_trnval/
 # ${pretrain_model_dir}/meld/bert_taskpretain_on_moviesv1v2v3_base_uncased_2e5_epoch10_bs64/
 # ${pretrain_model_dir}/meld/bert_taskpretain_on_opensub1000w_base_uncased_2e5_epoch10_bs64/
 

@@ -8,11 +8,11 @@ result_dir=/data7/MEmoBert/emobert/exp/mlm_pretrain/results
 # corpus_name='meld'
 # corpus_name_L='MELD'
 # bert_data_dir=/data7/emobert/exp/evaluation/${corpus_name_L}/bert_data/
-# CUDA_VISIBLE_DEVICES=0,1 python run_mlm.py \
-#     --model_name_or_path  ${result_dir}/moviesv1v2v3/bert_base_uncased_2e5/checkpoint-34409 \
+# CUDA_VISIBLE_DEVICES=4 python run_mlm.py \
+#     --model_name_or_path  bert-base-uncased \
 #     --do_train --do_eval \
-#     --train_file /data7/MEmoBert/emobert/exp/evaluation/${corpus_name_L}/bert_data/train.txt \
-#     --validation_file /data7/MEmoBert/emobert/exp/evaluation/${corpus_name_L}/bert_data/val.txt \
+#     --train_file /data7/MEmoBert/emobert/exp/evaluation/${corpus_name_L}/bert_data/train_val.txt \
+#     --validation_file /data7/MEmoBert/emobert/exp/evaluation/${corpus_name_L}/bert_data/test.txt \
 #     --line_by_line \
 #     --max_seq_length 50 \
 #     --per_device_train_batch_size 64 \
@@ -25,18 +25,18 @@ result_dir=/data7/MEmoBert/emobert/exp/mlm_pretrain/results
 #     --lr_scheduler_type 'linear' \
 #     --load_best_model_at_end true \
 #     --overwrite_output_dir true \
-#     --output_dir ${result_dir}/${corpus_name}/bert_taskpretain_on_moviesv1v2v3_base_uncased_2e5_epoch10_bs64
+#     --output_dir ${result_dir}/${corpus_name}/bert_taskpretain_base_uncased_2e5_epoch10_bs64_trnval
 
 ### for msp 
-corpus_name='msp'
-corpus_name_L='MSP'
-for cvNo in `seq 1 12`;
+corpus_name='iemocap'
+corpus_name_L='IEMOCAP'
+for cvNo in `seq 1 10`;
 do
 bert_data_dir=/data7/emobert/exp/evaluation/${corpus_name_L}/bert_data/${cvNo}
-CUDA_VISIBLE_DEVICES=5,6 python run_mlm.py \
-    --model_name_or_path ${result_dir}/moviesv1v2v3/bert_base_uncased_2e5/checkpoint-34409/ \
+CUDA_VISIBLE_DEVICES=4 python run_mlm.py \
+    --model_name_or_path bert-base-uncased \
     --do_train --do_eval \
-    --train_file /data7/emobert/exp/evaluation/${corpus_name_L}/bert_data/${cvNo}/trn.txt \
+    --train_file /data7/emobert/exp/evaluation/${corpus_name_L}/bert_data/${cvNo}/trn_val.txt \
     --validation_file /data7/emobert/exp/evaluation/${corpus_name_L}/bert_data/${cvNo}/val.txt \
     --line_by_line \
     --max_seq_length 50 \
@@ -50,7 +50,7 @@ CUDA_VISIBLE_DEVICES=5,6 python run_mlm.py \
     --lr_scheduler_type 'linear' \
     --load_best_model_at_end true \
     --overwrite_output_dir true \
-    --output_dir ${result_dir}/${corpus_name}/${cvNo}/bert_taskpretain_on_moviesv1v2v3_base_uncased_2e5_epoch10_bs64
+    --output_dir ${result_dir}/${corpus_name}/${cvNo}/bert_taskpretain_base_uncased_2e5_epoch10_bs64_trnval
 done
 
 ##for opensubtile 1000w

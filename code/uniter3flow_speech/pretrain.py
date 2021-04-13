@@ -21,7 +21,7 @@ from horovod import torch as hvd
 
 from code.uniter3flow_speech.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   MetaLoader, PrefetchLoader,
-                  TxtTokLmdb, ImageLmdbGroup, ConcatDatasetWithLens,
+                  TxtTokLmdb, ImageLmdbGroup, SpeechLmdbGroup, ConcatDatasetWithLens,
                   MlmDataset, MelmDataset, mlm_collate, melm_collate,
                   ItmDataset, itm_collate)
 
@@ -110,8 +110,8 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None):
                                     opts.compressed_db, 
                                      data_augmentation=image_data_augmentation)
         # No augmentation for speech
-        all_speech_dbs = ImageLmdbGroup(opts.speech_conf_th, opts.max_frames, opts.min_frames,
-                                       opts.compressed_db, data_augmentation=False)
+        all_speech_dbs = SpeechLmdbGroup(opts.speech_conf_th, opts.max_frames, opts.min_frames,
+                                       opts.compressed_db)
     dataloaders = {}
     for dset in datasets:
         if is_train:

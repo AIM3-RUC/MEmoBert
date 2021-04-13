@@ -13,23 +13,23 @@ corpus_name_L='IEMOCAP'
 
 for cvNo in `seq 1 10`;
 do
-    for lr in 1e-5; 
+    for lr in 1e-5 2e-5 5e-5; 
     do
     bert_data_dir=/data7/emobert/exp/evaluation/${corpus_name_L}/bert_data/${cvNo}
     CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
-        --model_name_or_path ${pretrain_model_dir}/opensub/bert_base_uncased_1000w_linear_lr1e4_warm4k_bs256_acc2_4gpu/checkpoint-93980/ \
+        --model_name_or_path ${pretrain_model_dir}/${corpus_name}/${cvNo}/bert_taskpretain_base_uncased_2e5_epoch10_bs64_trnval \
         --cvNo ${cvNo} \
-        --train_file ${bert_data_dir}/trn.csv \
-        --validation_file ${bert_data_dir}/val.csv \
+        --train_file ${bert_data_dir}/trn_val.csv \
+        --validation_file ${bert_data_dir}/tst.csv \
         --test_file ${bert_data_dir}/tst.csv \
         --max_length 50 \
         --per_device_train_batch_size 32 \
         --per_device_eval_batch_size 32 \
-        --num_train_epochs 6 \
+        --num_train_epochs 8 \
         --patience 2 \
         --learning_rate ${lr} \
         --lr_scheduler_type 'linear' \
-        --output_dir ${output_dir}/${corpus_name}_bert_base_uncased_opensub1000w_lr${lr}_bs32/${cvNo}
+        --output_dir ${output_dir}/${corpus_name}_taskpretrain-trnval_bert_base_lr${lr}_bs32_trnval/${cvNo}
     done
 done
 

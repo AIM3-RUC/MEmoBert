@@ -309,3 +309,20 @@ class ImageLmdbGroup(object):
                                     self.min_bb, self.compress,
                                     data_augmentation=self.data_augmentation)
         return img_db
+
+class SpeechLmdbGroup(object):
+    def __init__(self, speech_conf_th, max_frames, min_frames, compress, data_augmentation=False):
+        self.path2imgdb = {}
+        self.conf_th = speech_conf_th
+        self.max_bb = max_frames
+        self.min_bb = min_frames
+        self.compress = compress
+        self.data_augmentation = data_augmentation
+
+    def __getitem__(self, path):
+        img_db = self.path2imgdb.get(path, None)
+        if img_db is None:
+            img_db = DetectFeatLmdb(path, self.conf_th, self.max_bb,
+                                    self.min_bb, self.compress,
+                                    data_augmentation=self.data_augmentation)
+        return img_db
