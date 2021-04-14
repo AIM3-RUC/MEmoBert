@@ -327,10 +327,11 @@ def main(opts):
         if global_step % 200 == 0:
             layers, mean_grads = get_grad_flow(model.named_parameters())
             for layer_name, mean_grad in zip(layers, mean_grads):
+                # print(layer_name)
                 if layer_name == 'emoBert.text_encoder.encoder.layer.11.attention.output.LayerNorm.weight':
                     LOGGER.info('[Debug] Layer {} and mean grad {}'.format(layer_name, mean_grad))
                     TB_LOGGER.add_scalar('backbone_text_encoder_layer11_grad', mean_grad, global_step)
-                if layer_name == 'emoBert.speech_encoder.encoder.layer.1.output.LayerNorm.weight':
+                if layer_name == 'emoBert.speech_encoder.speech_encoder.layer.1.output.LayerNorm.weight':
                     LOGGER.info('[Debug] Layer {} and mean grad {}'.format(layer_name, mean_grad))
                     TB_LOGGER.add_scalar('backbone_speech_layer1_grad', mean_grad, global_step)
                 if layer_name == 'emoBert.visual_encoder.encoder.layer.1.output.LayerNorm.weight':

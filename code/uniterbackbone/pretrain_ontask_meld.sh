@@ -19,7 +19,7 @@ do
                 --max_txt_len 30 --IMG_DIM 112 --image_data_augmentation \
                 --conf_th 0.5 --max_bb 36  \
                 --train_batch_size 24 --val_batch_size 24 \
-                --num_train_steps 2000 --valid_steps 500 \
-                --output_dir /data7/emobert/exp/task_pretrain/${corpus_name}_basedon-resnet3d_nomask_movies_v1v2v3_uniter_lr5e5-backbone_scratch_optimFalse_continue1w-2tasks_maxbb36_faceth${conth}/${cvNo}
+                --num_train_steps 2000 --valid_steps 1000 \
+                --output_dir /data7/emobert/exp/task_pretrain/${corpus_name}_basedon-resnet3d_nomask_movies_v1v2v3_uniter_lr5e5-backbone_scratch_optimFalse_continue1w-2tasks_maxbb36_faceth${conth}_trnval/${cvNo}
         done
 done

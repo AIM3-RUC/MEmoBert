@@ -9,9 +9,9 @@ corpus_name='iemocap'
 # for iemocap, directly pretrain, trnsize = 4000/32 * 10 = 1000, if maxbb=36, batchsize=32, if maxbb=64 then batchsize=16, step=5000
 for max_bb in 36;
 do
-        for lr in 2e-5 5e-5;
+        for lr in 2e-5;
         do
-                for cvNo in `seq 1 10`;
+                for cvNo in `seq 10 10`;
                 do
                 if [ ${max_bb} == 36 ]; then
                         train_batch_size=32

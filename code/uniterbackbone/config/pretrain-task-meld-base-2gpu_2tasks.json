@@ -57,13 +57,30 @@
                 1,
                 1
             ]
+        },
+        {
+            "name": "meld_trnval",
+            "db": [
+                "/data7/emobert/exp/evaluation/MELD/txt_db/{}/val_emowords_emotype.db"
+            ],
+            "img": [
+                "/data7/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/raw_img_db/"
+            ],
+            "tasks": [
+                "mlm",
+                "itm"
+            ],
+            "mix_ratio": [
+                1,
+                1
+            ]
         }
     ],
     "val_datasets": [
         {
             "name": "meld_val",
             "db": [
-                "/data7/emobert/exp/evaluation/MELD/txt_db/{}/val_emowords_emotype.db"
+                "/data7/emobert/exp/evaluation/MELD/txt_db/{}/test_emowords_emotype.db"
             ],
             "img": [
                 "/data7/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/raw_img_db/"

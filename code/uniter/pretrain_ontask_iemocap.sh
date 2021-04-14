@@ -7,7 +7,7 @@ corpus_name='iemocap'
 ## Then use same trn-data train on downsteam task 
 
 # iemocap maxbb=64, conf_th=0.0, 4500 / 128  * 10 = 400
-for maxbb in 36 64;
+for maxbb in 36;
 do
     for cvNo in `seq 1 10`;
     do
@@ -18,8 +18,8 @@ do
             --learning_rate 2e-05 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
             --conf_th 0.0 --max_bb ${maxbb} \
             --train_batch_size 64 --val_batch_size 64 \
-            --num_train_steps 500 --warmup_steps 0 --valid_steps 100 \
-            --output_dir /data7/emobert/exp/task_pretrain/${corpus_name}_basedon-nomask_movies_v1v2v3_uniter_4tasks_faceth0.5_5k-4tasks_maxbb${maxbb}_faceth0.0_train4k/${cvNo}
+            --num_train_steps 1000 --warmup_steps 0 --valid_steps 500 \
+            --output_dir /data7/emobert/exp/task_pretrain/${corpus_name}_basedon-nomask_movies_v1v2v3_uniter_4tasks_faceth0.5_5k-4tasks_maxbb${maxbb}_faceth0.0_trnval/${cvNo}
     done
 done
 

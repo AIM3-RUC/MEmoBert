@@ -51,6 +51,27 @@
                 1,
                 1
             ]
+        },
+        {
+            "name": "iemocap_trnval",
+            "db": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val_emowords_emotype.db"
+            ],
+            "img": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/"
+            ],
+            "tasks": [
+                "mrckl",
+                "itm",
+                "mlm",
+                "mrfr"
+            ],
+            "mix_ratio": [
+                1,
+                1,
+                1,
+                1
+            ]
         }
     ],
     "val_datasets": [

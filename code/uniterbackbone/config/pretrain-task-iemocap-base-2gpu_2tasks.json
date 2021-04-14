@@ -1,5 +1,5 @@
 {
-    "output_dir": "/data7/emobert/exp/pretrain/tasks/msp_resnet3d_xxx",
+    "output_dir": "/data7/emobert/exp/pretrain/tasks/iemocap_resnet3d_xxx",
     "model_config": "config/uniter-base-backbone_3dresnet.json",
     "checkpoint": "/data7/emobert/exp/task_pretrain/xxx",
     "mrm_prob": 0.15,
@@ -42,9 +42,26 @@
     "pin_mem": true,
     "train_datasets": [
         {
-            "name": "msp_trn",
+            "name": "iemocap_trn",
             "db": [
                 "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/trn_emowords_emotype.db"
+            ],
+            "img": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/feature/openface_iemocap_raw_img/raw_img_db/"
+            ],
+            "tasks": [
+                "itm",
+                "mlm"
+            ],
+            "mix_ratio": [
+                1,
+                1
+            ]
+        },
+        {
+            "name": "iemocap_trnval",
+            "db": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val_emowords_emotype.db"
             ],
             "img": [
                 "/data7/emobert/exp/evaluation/IEMOCAP/feature/openface_iemocap_raw_img/raw_img_db/"
@@ -61,9 +78,9 @@
     ],
     "val_datasets": [
         {
-            "name": "msp_val",
+            "name": "iemocap_val",
             "db": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val_emowords_emotype.db"
+                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst_emowords_emotype.db"
             ],
             "img": [
                 "/data7/emobert/exp/evaluation/IEMOCAP/feature/openface_iemocap_raw_img/raw_img_db/"
@@ -74,7 +91,7 @@
             ]
         },
         {
-            "name": "msp_tst",
+            "name": "iemocap_tst",
             "db": [
                 "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst_emowords_emotype.db"
             ],

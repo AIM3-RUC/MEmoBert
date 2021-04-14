@@ -2,138 +2,116 @@
 Copyright (c) Microsoft Corporation.
 Licensed under the MIT license.
 
-MLM datasets
+FOM datasets
+refer:
+https://github.com/linjieli222/HERO/blob/faaf15d6ccc3aa4accd24643d77d75699e9d7fae/data/fom.py
 """
 import random
 from numpy.core.fromnumeric import size
 
+import copy
 import torch
 from torch._C import dtype
 from torch.nn.utils.rnn import pad_sequence
 from toolz.sandbox import unzip
-from code.uniter3flow_speech.data.data import (DetectFeatTxtTokDataset, TxtTokLmdb, pad_tensors)
+from code.uniter3flow_speech.data.data import (DetectFeatTxtTokDataset, TxtTokLmdb, DetectFeatLmdb, pad_tensors)
 
-def random_word(tokens, vocab_range, mask):
-    """
-    Masking some random tokens for Language Model task with probabilities as in
-        the original BERT paper.
-    :param tokens: list of int, tokenized sentence.
-    :param vocab_range: for choosing a random word
-    :return: (list of int, list of int), masked tokens and related labels for
-        LM prediction
-    """
-    output_label = []
-
-    for i, token in enumerate(tokens):
-        prob = random.random()
-        # mask token with 15% probability
-        if prob < 0.15:
-            prob /= 0.15
-
-            # 80% randomly change token to mask token
-            if prob < 0.8:
-                tokens[i] = mask
-
-            # 10% randomly change token to random token
-            elif prob < 0.9:
-                tokens[i] = random.choice(list(range(*vocab_range)))
-
-            # -> rest 10% randomly keep current token
-
-            # append current token to output (we will predict these later)
-            output_label.append(token)
-        else:
-            # no masking token (will be ignored by loss function later)
-            output_label.append(-1)
-    if all(o == -1 for o in output_label):
-        # at least mask 1
-        output_label[0] = tokens[0]
-        tokens[0] = mask
-    return tokens, output_label
-
-class MlmDataset(DetectFeatTxtTokDataset):
-    def __init__(self, txt_db, img_db):
+class FomDataset(DetectFeatTxtTokDataset):
+    def __init__(self, txt_db, img_db, speech_db, random_reorder_p=0.15):
         assert isinstance(txt_db, TxtTokLmdb)
-        super().__init__(txt_db, img_db)
+        if img_db:
+            assert isinstance(img_db, DetectFeatLmdb)
+        if speech_db:
+            assert isinstance(speech_db, DetectFeatLmdb)
+        self.random_reorder_p = random_reorder_p
+        self.txt_db = txt_db
+        self.img_db = img_db
+        self.speech_db = speech_db
+
+    def __len__(self):
+        return len(self.ids)
 
     def __getitem__(self, i):
-        """
-        Return:
-        - input_ids    : (L, ), i.e., [cls, wd, wd, ..., sep, 0, 0], 0s padded
-        - img_feat     : (num_bb, d)
-        - text_attn_masks   : (num_bb, ), ie., [1, 1, ..., 0, 0]
-        - img_attn_masks   : (num_bb, ), ie., [1, 1, ..., 0, 0]
-        - txt_labels   : (L, ), [-1, -1, wid, -1, -1, -1]
-        """
-        example = super().__getitem__(i)
+        vid_ = self.ids[i]
+        (f_sub_input_ids, f_v_feats, f_attn_masks,
+         c_v_feats, c_attn_masks,
+         num_subs, sub2frames) = self.vid_sub_db[vid_]
+        c_pos_ids = [i for i in range(len(c_v_feats))]
+        # Random shuffle 15% of pos_ids
+        orders, targets = random_reorder(
+            list(range(len(c_pos_ids))), self.random_reorder_p)
+        orders = torch.tensor(orders, dtype=torch.long)
+        targets = torch.tensor(targets, dtype=torch.long)
+        video_inputs = (
+            f_sub_input_ids, f_v_feats, f_attn_masks,
+            c_v_feats, c_attn_masks,
+            num_subs, sub2frames)
+        out = (video_inputs, orders, targets)
+        return out
 
-        # text input
-        input_ids, txt_labels = self.create_mlm_io(example['input_ids'])
 
-        # img input Jinming remove the norm-bbx fts
-        img_feat, num_bb = self._get_img_feat(example['img_fname'])
+def fom_collate(inputs):
+    (video_inputs, orders, targets) = map(list, unzip(inputs))
+    batch = video_collate(video_inputs)
 
-        text_attn_masks = torch.ones(len(input_ids), dtype=torch.long)
-        img_attn_masks = torch.ones(num_bb, dtype=torch.long)
+    clip_level_v_feats = batch["c_v_feats"]
+    num_frames = [item.size(0) for item in orders]
 
-        return input_ids, img_feat, text_attn_masks, img_attn_masks, txt_labels
+    all_orders = torch.arange(
+        0, clip_level_v_feats.size(1), dtype=torch.long).unsqueeze(0).repeat(
+            clip_level_v_feats.size(0), 1)
+    all_targets = torch.ones_like(all_orders) * -1
+    for i, nframe in enumerate(num_frames):
+        all_orders[i, :nframe] = orders[i]
+        all_targets[i, :nframe] = targets[i]
+    reordered_frame_idx = []
+    binary_targets = []
+    bs, max_vl = all_orders.size()
+    for clip_idx in range(bs):
+        for i in range(num_frames[clip_idx]):
+            if all_targets[clip_idx, i] == -1:
+                continue
+            for j in range(i+1, num_frames[clip_idx]):
+                if all_targets[clip_idx, j] == -1:
+                    continue
+                reordered_frame_idx.append(clip_idx*max_vl+i)
+                reordered_frame_idx.append(clip_idx*max_vl+j)
+                if all_targets[clip_idx, i] > all_targets[clip_idx, j]:
+                    binary_targets.append(0)
+                else:
+                    binary_targets.append(1)
 
-    def create_mlm_io(self, input_ids):
-        input_ids, txt_labels = random_word(input_ids,
-                                            self.txt_db.v_range,
-                                            self.txt_db.mask)
-        # remove the sep token
-        input_ids = torch.tensor([self.txt_db.cls_] + input_ids)
-        txt_labels = torch.tensor([-1] + txt_labels)
-        return input_ids, txt_labels
-
-def mlm_collate(inputs, add_cls_token=True):
-    """
-    Jinming: modify to img_position_ids
-    Return:
-    :input_ids    (n, max_L) padded with 0
-    :txt_lens     list of [txt_len]
-    :img_feat     (n, max_num_bb, feat_dim)
-    :num_bbs      list of [num_bb]
-    :text_att_masks   (n, max_{L}) padded with 0
-    :img_att_masks   (n, max_{num_bb}) padded with 0
-    :txt_labels   (n, max_L) padded with -1
-    :add_cls_token, add cls token or not
-    """
-    (input_ids, img_feats, text_attn_masks, img_attn_masks, txt_labels
-     ) = map(list, unzip(inputs))
-
-    # text batches
-    txt_lens = [i.size(0) for i in input_ids]
-    input_ids = pad_sequence(input_ids, batch_first=True, padding_value=0)
-    txt_labels = pad_sequence(txt_labels, batch_first=True, padding_value=-1)
-    position_ids = torch.arange(0, input_ids.size(1), dtype=torch.long).unsqueeze(0)
-
-    text_attn_masks = pad_sequence(text_attn_masks, batch_first=True, padding_value=0)
-    img_attn_masks = pad_sequence(img_attn_masks, batch_first=True, padding_value=0)
-
-    # image batches
-    num_bbs = [f.size(0) for f in img_feats]
-    img_feat = pad_tensors(img_feats, num_bbs) # (n, max_num_nbb, dim)
-    # add cls token to img branch
-    if add_cls_token:
-        # print('[Debug] img_attn_masks {}'.format(img_attn_masks.shape, img_attn_masks.dtype))
-        cls_token_attn_masks = torch.ones((img_attn_masks.size(0), 1), dtype=img_attn_masks.dtype)
-        # print('[Debug] cls_token_attn_masks {}'.format(cls_token_attn_masks.shape, type(cls_token_attn_masks)))
-        img_attn_masks = torch.cat((cls_token_attn_masks, img_attn_masks), dim=1)
-        # print('[Debug] img_attn_masks {}'.format(img_attn_masks.shape))
-        img_position_ids = torch.arange(0, img_feat.size(1)+1, dtype=torch.long).unsqueeze(0)
-    else:
-        img_position_ids = torch.arange(0, img_feat.size(1), dtype=torch.long).unsqueeze(0)
-
-    # speech batches
-    batch = {'input_ids': input_ids,
-             'position_ids': position_ids,
-             'txt_lens': txt_lens,
-             'img_feat': img_feat,
-             'img_position_ids': img_position_ids,
-             'num_bbs': num_bbs,
-             'text_attn_masks': text_attn_masks,
-             'img_attn_masks': img_attn_masks,
-             'txt_labels': txt_labels}
+                reordered_frame_idx.append(clip_idx*max_vl+j)
+                reordered_frame_idx.append(clip_idx*max_vl+i)
+                if all_targets[clip_idx, j] > all_targets[clip_idx, i]:
+                    binary_targets.append(0)
+                else:
+                    binary_targets.append(1)
+    reordered_frame_idx = torch.tensor(reordered_frame_idx, dtype=torch.long)
+    binary_targets = torch.tensor(binary_targets, dtype=torch.long)
+    batch["shuffled_orders"] = all_orders
+    batch["targets"] = all_targets
+    batch['reordered_frame_idx'] = reordered_frame_idx
+    batch['binary_targets'] = binary_targets
     return batch
+
+def random_reorder(pos_ids, random_reorder_p=0.15):
+    """
+    random reorder frame positions
+    """
+    selected_pos = []
+    target_pos = []
+    for i, pos_id in enumerate(pos_ids):
+        prob = random.random()
+        # mask token with 15% probability
+        if prob < random_reorder_p:
+            selected_pos.append(i)
+            target_pos.append(pos_id)
+    target_pos_shuffled = copy.deepcopy(target_pos)
+    random.shuffle(target_pos_shuffled)
+    output_order = copy.deepcopy(pos_ids)
+    output_target = [-1] * len(output_order)
+    for i, pos in enumerate(selected_pos):
+        output_order[pos] = target_pos_shuffled[i]
+        output_target[target_pos_shuffled[i]] = pos
+    return output_order, output_target

@@ -51,6 +51,27 @@
                 1,
                 1
             ]
+        },
+        {
+            "name": "meld_trnval",
+            "db": [
+                "/data7/emobert/exp/evaluation/MELD/txt_db/{}/val_emowords_emotype.db"
+            ],
+            "img": [
+                "/data7/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/img_db/fc/"
+            ],
+            "tasks": [
+                "mrckl",
+                "itm",
+                "mlm",
+                "mrfr"           
+            ],
+            "mix_ratio": [
+                1,
+                1,
+                1,
+                1
+            ]
         }
     ],
     "val_datasets": [
