@@ -10,7 +10,7 @@ from einops import repeat
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from code.uniter3flow_speech.model.model_base import BertConfig, BertPreTrainedModel, BertEncoder
+from code.uniter3flow.model.model_base import BertConfig, BertPreTrainedModel, BertEncoder
 
 class ResNetLayer(nn.Module):
     """

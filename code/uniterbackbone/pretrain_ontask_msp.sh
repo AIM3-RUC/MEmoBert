@@ -3,7 +3,7 @@ export PYTHONPATH=/data7/MEmoBert
 gpu_id=$1
 corpus_name='msp'
 
-for cvNo in `seq 1 12`;
+for cvNo in `seq 6 12`;
 do
 CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python pretrain.py \
         --cvNo ${cvNo}  --config config/pretrain-task-${corpus_name}-base-2gpu_2tasks.json \

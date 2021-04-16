@@ -19,22 +19,22 @@ from torch.nn.utils import clip_grad_norm_
 from apex import amp
 from horovod import torch as hvd
 
-from code.uniter3flow_speech.data import (TokenBucketSampler, TokenBucketSamplerForItm,
+from code.uniter3flow.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   MetaLoader, PrefetchLoader,
                   TxtTokLmdb, ImageLmdbGroup, SpeechLmdbGroup, ConcatDatasetWithLens,
                   MlmDataset, MelmDataset, mlm_collate, melm_collate,
                   ItmDataset, itm_collate)
 
-from code.uniter3flow_speech.model.pretrain import MEmoBertForPretraining
-from code.uniter3flow_speech.optim import get_lr_sched, get_backbone_lr_sched
-from code.uniter3flow_speech.optim.misc import build_backbone_optimizer, build_optimizer
+from code.uniter3flow.model.pretrain import MEmoBertForPretraining
+from code.uniter3flow.optim import get_lr_sched, get_backbone_lr_sched
+from code.uniter3flow.optim.misc import build_backbone_optimizer, build_optimizer
 
-from code.uniter3flow_speech.utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
-from code.uniter3flow_speech.utils.distributed import (all_reduce_and_rescale_tensors, all_gather_list,
+from code.uniter3flow.utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
+from code.uniter3flow.utils.distributed import (all_reduce_and_rescale_tensors, all_gather_list,
                                broadcast_tensors)
-from code.uniter3flow_speech.utils.save import ModelSaver, save_training_meta
-from code.uniter3flow_speech.utils.misc import NoOp, parse_with_config, set_dropout, set_random_seed, get_grad_flow
-from code.uniter3flow_speech.utils.const import IMG_LABEL_DIM, BUCKET_SIZE
+from code.uniter3flow.utils.save import ModelSaver, save_training_meta
+from code.uniter3flow.utils.misc import NoOp, parse_with_config, set_dropout, set_random_seed, get_grad_flow
+from code.uniter3flow.utils.const import IMG_LABEL_DIM, BUCKET_SIZE
 
 def build_dataloader(dataset, collate_fn, is_train, opts):
     if is_train:
@@ -83,11 +83,9 @@ def build_melm_dataset(txt_db, img_db, speech_db, is_train, opts):
 ### for build FOM dataset 
 def build_fom_dataset(txt_db, img_db, speech_db, is_train, opts):
     pass
-    
-### for build SOM dataset 
+
 def build_som_dataset(txt_db, img_db, speech_db, is_train, opts):
     pass
-
 
 def build_itm_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:
@@ -98,7 +96,6 @@ def build_itm_dataset(txt_db, img_db, speech_db, is_train, opts):
         dataset = ItmDataset(txt_db, img_db, speech_db, opts.itm_neg_prob)
     collate_fn = itm_collate
     return dataset, collate_fn
-
 
 def create_dataloaders(datasets, is_train, opts, all_img_dbs=None):
     if all_img_dbs is None:
@@ -235,6 +232,7 @@ def main(opts):
     # Prepare model
     model = MEmoBertForPretraining(opts.model_config, use_speech=opts.use_speech, use_visual=opts.use_visual, \
                                         pretrained_text_checkpoint=opts.pretrained_text_checkpoint)
+    
     # print('[Debug] model info {}'.format(model.state_dict().keys()))
     model.to(device)
     model.train()

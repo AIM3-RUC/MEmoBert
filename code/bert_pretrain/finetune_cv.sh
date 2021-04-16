@@ -8,16 +8,16 @@ gpuid=$1
 pretrain_model_dir=/data7/MEmoBert/emobert/exp/mlm_pretrain/results
 output_dir=/data7/emobert/exp/finetune/onlytext
 
-corpus_name='iemocap'
-corpus_name_L='IEMOCAP'
+corpus_name='msp'
+corpus_name_L='MSP'
 
-for cvNo in `seq 1 10`;
+for cvNo in `seq 11 12`;
 do
-    for lr in 1e-5 2e-5 5e-5; 
+    for lr in 2e-5 5e-5; 
     do
     bert_data_dir=/data7/emobert/exp/evaluation/${corpus_name_L}/bert_data/${cvNo}
     CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
-        --model_name_or_path ${pretrain_model_dir}/${corpus_name}/${cvNo}/bert_taskpretain_base_uncased_2e5_epoch10_bs64_trnval \
+        --model_name_or_path ${pretrain_model_dir}/moviesv1v2v3/bert_base_uncased_2e5/checkpoint-34409/  \
         --cvNo ${cvNo} \
         --train_file ${bert_data_dir}/trn_val.csv \
         --validation_file ${bert_data_dir}/tst.csv \
@@ -29,7 +29,7 @@ do
         --patience 2 \
         --learning_rate ${lr} \
         --lr_scheduler_type 'linear' \
-        --output_dir ${output_dir}/${corpus_name}_taskpretrain-trnval_bert_base_lr${lr}_bs32_trnval/${cvNo}
+        --output_dir ${output_dir}/${corpus_name}_taskpretrain_moviesv1v2v3-trnval_bert_base_lr${lr}_bs32_trnval/${cvNo}
     done
 done
 

@@ -15,12 +15,11 @@ import numpy as np
 import torch
 from torch import nn
 from apex.normalization.fused_layer_norm import FusedLayerNorm
-from code.uniter.model.layer import BertLayer, BertPooler
-from code.uniter3flow_speech.model.model_base import BertConfig, BertPreTrainedModel
-from code.uniter3flow_speech.model.enc_speech import SpeechEncoderBertModel
-from code.uniter3flow_speech.model.enc_visual_new import VisualEncoderBertModel
-from code.uniter3flow_speech.model.enc_text import TextEncoderBertModel
-from code.uniter3flow_speech.model.enc_cross import CrossEncoderBertModel
+from code.uniter3flow.model.model_base import BertConfig, BertPreTrainedModel
+from code.uniter3flow.model.enc_speech import SpeechEncoderBertModel
+from code.uniter3flow.model.enc_visual_new import VisualEncoderBertModel
+from code.uniter3flow.model.enc_text import TextEncoderBertModel
+from code.uniter3flow.model.enc_cross import CrossEncoderBertModel
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +80,7 @@ class MEmoBertModel(BertPreTrainedModel):
         self.cross_encoder = CrossEncoderBertModel(self.c_config)
         self.token_type_embeddings = nn.Embedding(self.c_config.type_vocab_size,
                                                   self.c_config.hidden_size)        
-        self.do_gather  = False
+        self.do_gather = False
         self.apply(self.init_weights)
 
     def _compute_img_txt_embeddings(self, txt_emb, img_emb, txt_emb_attn, img_emb_attn, txt_lens, num_bbs):

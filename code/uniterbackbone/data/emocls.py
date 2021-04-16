@@ -46,7 +46,7 @@ class EmoCLsDataset(DetectFeatTxtTokDataset):
 
         # img input Jinming remove the norm-bbx fts
         img_feat, num_bb = self._get_img_feat(example['img_fname'], self.img_shape)
-        self.img_shape = img_feat.shape[1:]  
+        self.img_shape = img_feat.shape[1:]
         attn_masks = torch.ones(len(input_ids) + num_bb, dtype=torch.long)
 
         # for visualization

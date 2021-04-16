@@ -18,14 +18,14 @@ from apex import amp
 from horovod import torch as hvd
 from tqdm import tqdm
 
-from code.uniterbackbone.data import (PrefetchLoader, TxtTokLmdb, ImageLmdbGroup, EmoCLsDataset, emocls_collate)
-from code.uniterbackbone.model.emocls import UniterForEmoRecognition, evaluation
-from code.uniterbackbone.optim import get_lr_sched
-from code.uniterbackbone.optim.misc import build_optimizer
-from code.uniterbackbone.utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
-from code.uniterbackbone.utils.distributed import (all_reduce_and_rescale_tensors, broadcast_tensors)
-from code.uniterbackbone.utils.save import ModelSaver, save_training_meta
-from code.uniterbackbone.utils.misc import NoOp, parse_with_config, set_random_seed
+from code.uniter3flow.data import (PrefetchLoader, TxtTokLmdb, ImageLmdbGroup, EmoCLsDataset, emocls_collate)
+from code.uniter3flow.model.emocls import MEmoBertForEmoTraining, evaluation
+from code.uniter3flow.optim import get_lr_sched
+from code.uniter3flow.optim.misc import build_optimizer
+from code.uniter3flow.utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
+from code.uniter3flow.utils.distributed import (all_reduce_and_rescale_tensors, broadcast_tensors)
+from code.uniter3flow.utils.save import ModelSaver, save_training_meta
+from code.uniter3flow.utils.misc import NoOp, parse_with_config, set_random_seed
 
 
 def build_dataloader(dataset, collate_fn, is_train, opts):
@@ -75,7 +75,7 @@ def main(opts):
         model_saver = NoOp()
 
     LOGGER.info("Loading Train Dataset {} {}".format(opts.train_txt_dbs, opts.train_img_dbs))
-    train_all_img_dbs = ImageLmdbGroup(opts.conf_th, opts.max_bb, opts.min_bb, opts.num_bb, 
+    train_all_img_dbs = ImageLmdbGroup(opts.conf_th, opts.max_bb, opts.min_bb,
                                     opts.compressed_db, opts.image_data_augmentation)
     train_datasets = []
     for txt_path, img_path in zip(opts.train_txt_dbs, opts.train_img_dbs):
@@ -88,7 +88,7 @@ def main(opts):
     train_dataset = ConcatDataset(train_datasets)
 
     LOGGER.info("Loading no image_data_augmentation for validation and testing")
-    eval_all_img_dbs = ImageLmdbGroup(opts.conf_th, opts.max_bb, opts.min_bb, opts.num_bb, 
+    eval_all_img_dbs = ImageLmdbGroup(opts.conf_th, opts.max_bb, opts.min_bb, 
                                     opts.compressed_db, False)
     # val
     opts.val_txt_db = opts.val_txt_db.format(opts.cvNo)
@@ -105,16 +105,12 @@ def main(opts):
     test_dataset = EmoCLsDataset(test_txt_db, test_img_db)
     test_dataloader = build_dataloader(test_dataset, emocls_collate, False, opts)
 
-    # Prepare model
+    model = MEmoBertForEmoTraining(opts.model_config, use_speech=opts.use_speech, use_visual=opts.use_visual, \
+                                cls_num=opts.cls_num, frozen_en_layers=opts.frozen_en_layers, \
+                                cls_dropout=opts.cls_dropout, cls_type=opts.cls_type)
     if opts.checkpoint:
         LOGGER.info('[Info] Loading from pretrained model {}'.format(opts.checkpoint))
-        checkpoint = torch.load(opts.checkpoint)
-    else:
-        checkpoint = {}
-
-    model = UniterForEmoRecognition.from_pretrained(opts.model_config, state_dict=checkpoint, \
-                            img_dim=IMG_embedding, cls_num=opts.cls_num, frozen_en_layers=opts.frozen_en_layers, \
-                            cls_dropout=opts.cls_dropout, cls_type=opts.cls_type)
+        model.load_state_dict(torch.load(opts.checkpoint))
     model.to(device)
     # make sure every process has same model parameters in the beginning
     broadcast_tensors([p.data for p in model.parameters()], 0)
@@ -300,13 +296,12 @@ if __name__ == "__main__":
                         help='min number of bounding boxes')
     parser.add_argument('--num_bb', type=int, default=36,
                         help='static number of bounding boxes')
-    parser.add_argument('--IMG_DIM', type=int, default=112,
-                        help='visual features as transformer input')
-    parser.add_argument('--IMG_embedding', type=int, default=512,
-                        help='visual feature embedding from visual encoder')
     parser.add_argument("--image_data_augmentation", default=True, type=bool)
 
-                        
+    # use modality branch
+    parser.add_argument("--use_speech", action='store_true',  help='use speech branch')
+    parser.add_argument("--use_visual", action='store_true',  help='use visual branch')
+
     # training parameters
     parser.add_argument("--train_batch_size", default=128, type=int,
                         help="Total batch size for training. "
@@ -356,8 +351,6 @@ if __name__ == "__main__":
     parser.add_argument('--config', help='JSON config files')
 
     args = parse_with_config(parser)
-    IMG_DIM = args.IMG_DIM
-    IMG_embedding = args.IMG_embedding
 
     # for cross-validation
     args.output_dir = args.output_dir + '/drop{}_frozen{}_{}_{}'.format(args.cls_dropout, args.frozen_en_layers, \

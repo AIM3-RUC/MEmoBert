@@ -9,8 +9,8 @@ from tqdm import tqdm
 
 import torch
 from horovod import torch as hvd
-from code.uniter3flow_speech.model.model import UniterModel, UniterPreTrainedModel
-from code.uniter3flow_speech.utils.misc import NoOp
+from code.uniter3flow.model.model import UniterModel, UniterPreTrainedModel
+from code.uniter3flow.utils.misc import NoOp
 
 '''
 For extracting features or evaluation on the downstream tasks

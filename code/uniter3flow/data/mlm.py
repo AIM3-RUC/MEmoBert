@@ -9,7 +9,7 @@ import math
 import torch
 from torch.nn.utils.rnn import pad_sequence
 from toolz.sandbox import unzip
-from code.uniter3flow_speech.data.data import (DetectFeatTxtTokDataset, TxtTokLmdb, pad_tensors)
+from code.uniter3flow.data.data import (DetectFeatTxtTokDataset, TxtTokLmdb, pad_tensors)
 
 def random_word(tokens, vocab_range, mask):
     """
@@ -106,7 +106,6 @@ def mlm_collate(inputs, add_cls_token=True):
     :img_att_masks   (n, max_{num_bb}) padded with 0
     :speech_att_masks   (n, max_{num_bb}) padded with 0
     :txt_labels   (n, max_L) padded with -1
-    :add_cls_token, add cls token or not
     """
     (input_ids, img_feats, speech_feats, text_attn_masks, img_attn_masks, speech_attn_masks, txt_labels
      ) = map(list, unzip(inputs))
@@ -118,7 +117,8 @@ def mlm_collate(inputs, add_cls_token=True):
     position_ids = torch.arange(0, input_ids.size(1), dtype=torch.long).unsqueeze(0)
     text_attn_masks = pad_sequence(text_attn_masks, batch_first=True, padding_value=0)
 
-    if img_attn_masks:
+    # list of None
+    if img_feats[0] is not None:
         img_attn_masks = pad_sequence(img_attn_masks, batch_first=True, padding_value=0)
         num_bbs = [f.size(0) for f in img_feats]
         img_feat = pad_tensors(img_feats, num_bbs) # (n, max_num_nbb, dim)
@@ -135,14 +135,13 @@ def mlm_collate(inputs, add_cls_token=True):
     else:
         num_bbs, img_position_ids, img_feat = None, None, None
 
-    if speech_attn_masks:
+    if speech_feats[0] is not None:
         # 对于speech来说由于
         num_frames = [f.size(0) for f in speech_feats]
         speech_feat = pad_tensors(speech_feats, num_frames) # (n, max_num_nbb, dim)
     else:
         num_frames, speech_feat = None, None
 
-    # speech batches
     batch = {'input_ids': input_ids,
              'position_ids': position_ids,
              'txt_lens': txt_lens,

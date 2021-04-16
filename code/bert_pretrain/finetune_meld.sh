@@ -15,7 +15,7 @@ do
     do
         bert_data_dir=/data7/emobert/exp/evaluation/MELD/bert_data
         CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
-            --model_name_or_path ${pretrain_model_dir}/meld/bert_taskpretain_base_uncased_2e5_epoch10_bs64_trnval/  \
+            --model_name_or_path ${pretrain_model_dir}/moviesv1v2v3/bert_base_uncased_2e5/checkpoint-34409/  \
             --train_file ${bert_data_dir}/train_val.csv \
             --validation_file ${bert_data_dir}/test.csv \
             --test_file ${bert_data_dir}/test.csv \
@@ -26,7 +26,7 @@ do
             --patience 2 \
             --learning_rate ${lr} \
             --lr_scheduler_type 'linear' \
-            --output_dir ${output_dir}/meld_taskpretain-trnval_bert_base_lr${lr}_bs32_trnval/${cvNo}
+            --output_dir ${output_dir}/meld_taskpretain_moviesv1v2v3-trnval_bert_base_lr${lr}_bs32_trnval/${cvNo}
     done
 done
 

@@ -104,12 +104,12 @@ def extract_one_video_mid_layers(video_dir, denseface_model):
 def get_face_dir_seetaface(utt_id):
     # Ses01F_impro06_F002
     session_id = utt_id[4]
-    return '/data7/MEmoBert/evaluation/IEMOCAP/Session{}/face/{}'.format(session_id, utt_id)
+    return '/data7/emobert/exp/evaluation/IEMOCAP/Session{}/face/{}'.format(session_id, utt_id)
 
 def get_face_dir_openface(utt_id):
     # Ses01F_impro06_F002
     session_id = utt_id[4]
-    return '/data7/MEmoBert/evaluation/IEMOCAP/Session{}/openface/{}/{}_aligned'.format(session_id, utt_id, utt_id)
+    return '/data7/emobert/exp/evaluation/IEMOCAP/Session{}/openface/{}/{}_aligned'.format(session_id, utt_id, utt_id)
 
 def get_trn_val_tst(cv, target_root='target'):
     target_dir = os.path.join(target_root, str(cv))
@@ -130,7 +130,7 @@ def split_h5(all_h5, save_root='feature/denseface'):
         save_dir = os.path.join(save_root, str(cv))
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        trn_int2name, val_int2name, tst_int2name, _, _, _ = get_trn_val_tst(cv, target_root='/data7/MEmoBert/evaluation/IEMOCAP/target')
+        trn_int2name, val_int2name, tst_int2name, _, _, _ = get_trn_val_tst(cv, target_root='/data7/emobert/exp/evaluation/IEMOCAP/target')
         trn_int2name = list(map(lambda x: x[0].decode(), trn_int2name.tolist()))
         val_int2name = list(map(lambda x: x[0].decode(), val_int2name.tolist()))
         tst_int2name = list(map(lambda x: x[0].decode(), tst_int2name.tolist()))
@@ -156,7 +156,7 @@ def split_by_utt_id(in_h5f, utt_ids, save_path):
     out_h5f.close()
 
 def get_all_utt_ids():
-    target_root = '/data7/MEmoBert/evaluation/IEMOCAP/target/1'
+    target_root = '/data7/emobert/exp/evaluation/IEMOCAP/target/1'
     ans = []
     for set_name in ['trn', 'val', 'tst']:
         utt_ids = np.load(os.path.join(target_root, f'{set_name}_int2name.npy')).tolist()
@@ -165,32 +165,40 @@ def get_all_utt_ids():
     return ans
     
 if __name__ == '__main__':
-    detect_type = sys.argv[1]
-    output_dir = '/data7/MEmoBert/evaluation/IEMOCAP/feature'
-    if detect_type == 'seetaface':
-        name = "denseface_seetaface_iemocap_mean_std_torch"
-    elif detect_type == 'openface':
-        name = "denseface_openface_iemocap_mean_std_torch"
-    else:
-        raise ValueError('detect type must be openface or seetaface')
+    
+    # for face
+    if False:
+        detect_type = sys.argv[1]
+        output_dir = '/data7/MEmoBert/evaluation/IEMOCAP/feature'
+        if detect_type == 'seetaface':
+            name = "denseface_seetaface_iemocap_mean_std_torch"
+        elif detect_type == 'openface':
+            name = "denseface_openface_iemocap_mean_std_torch"
+        else:
+            raise ValueError('detect type must be openface or seetaface')
 
-    if not os.path.exists(output_dir + '/' + name):
-        os.mkdir(output_dir + '/' + name)
-    utt_ids = get_all_utt_ids()
-    # iemocap
-    images_mean = 131.0754
-    images_std = 47.8581
-    denseface = DensefaceExtractor(mean=images_mean, std=images_std)
-    denseface.register_midlayer_hook([
-        "features.transition1.relu",
-        "features.transition2.relu"
-    ])
-    extract_func = partial(extract_one_video_mid_layers, denseface_model=denseface)
-    save_path = os.path.join(output_dir, name, 'all.h5')
-    if detect_type == 'seetaface':
-        extract_features_h5(extract_func, get_face_dir_seetaface, utt_ids, save_path)
-    else:
-        extract_features_h5(extract_func, get_face_dir_openface, utt_ids, save_path)
-    save_path = os.path.join(output_dir, name, 'all.h5')
-    split_h5(save_path, save_root=os.path.join(output_dir, name))
+        if not os.path.exists(output_dir + '/' + name):
+            os.mkdir(output_dir + '/' + name)
+        utt_ids = get_all_utt_ids()
+        images_mean = 131.0754
+        images_std = 47.8581
+        denseface = DensefaceExtractor(mean=images_mean, std=images_std)
+        denseface.register_midlayer_hook([
+            "features.transition1.relu",
+            "features.transition2.relu"
+        ])
+        extract_func = partial(extract_one_video_mid_layers, denseface_model=denseface)
+        save_path = os.path.join(output_dir, name, 'all.h5')
+        if detect_type == 'seetaface':
+            extract_features_h5(extract_func, get_face_dir_seetaface, utt_ids, save_path)
+        else:
+            extract_features_h5(extract_func, get_face_dir_openface, utt_ids, save_path)
+        save_path = os.path.join(output_dir, name, 'all.h5')
+        split_h5(save_path, save_root=os.path.join(output_dir, name))
+
+    if True:
+        print('Start to split')
+        output_dir = '/data7/emobert/exp/evaluation/IEMOCAP/feature/comparE_raw'
+        save_path = os.path.join(output_dir, 'all.h5')
+        split_h5(save_path, save_root=output_dir)
     # PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=7 python extract_denseface.py openface/seetaface

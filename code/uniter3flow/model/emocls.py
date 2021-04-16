@@ -14,20 +14,22 @@ from torch import nn
 from torch.nn import CrossEntropyLoss
 from apex.normalization.fused_layer_norm import FusedLayerNorm as LayerNorm
 from sklearn.metrics import accuracy_score, recall_score, f1_score, confusion_matrix
-from code.uniter3flow_speech.model.model import UniterPreTrainedModel, UniterModel
-from code.uniter3flow_speech.utils.misc import NoOp
-from code.uniter3flow_speech.model.layer import GELU
+from code.uniter3flow.model.model import MEmoBertModel
+from code.uniter3flow.model.model_base import BertConfig
+from code.uniter3flow.model.layer import GELU
 
-class UniterForEmoRecognition(UniterPreTrainedModel):
+class MEmoBertForEmoTraining(nn.Module):
     """ Finetune UNITER for Emotion Recognition
     """
-    def __init__(self, config, img_dim, cls_num, frozen_en_layers, cls_dropout=0.5, cls_type='vqa'):
+    def __init__(self, config_file, use_speech, use_visual, cls_num, frozen_en_layers, cls_dropout=0.1, cls_type='vqa'):
         '''
         cls_type: "emocls" is similar with  https://github.com/brightmart/roberta_zh/blob/master/run_classifier.py#L478
         and "vqa" is similar with official-uniter/model/vqa.py 
         '''
-        super().__init__(config)
-        self.uniter = UniterModel(config, img_dim)
+        super(MEmoBertForEmoTraining, self).__init__()
+        config = BertConfig.from_json_file(config_file)
+        print(f'[Debug] config {type(config)}')
+        self.emoBert = MEmoBertModel(config, use_speech, use_visual)
         ## for paraphrase loss
         if cls_type == 'emocls':
             self.output = nn.Sequential(
@@ -48,16 +50,30 @@ class UniterForEmoRecognition(UniterPreTrainedModel):
         self.criterion = CrossEntropyLoss()
         self.apply(self.init_weights)
 
+    def init_weights(self, module):
+        """ Initialize the weights.
+        """
+        if isinstance(module, (nn.Linear, nn.Embedding)):
+            # truncated_normal for initialization
+            # cf https://github.com/pytorch/pytorch/pull/5617
+            module.weight.data.normal_(mean=0.0,
+                                       std=self.emoBert.c_config.initializer_range)
+        elif isinstance(module, LayerNorm):
+            module.bias.data.zero_()
+            module.weight.data.fill_(1.0)
+        if isinstance(module, nn.Linear) and module.bias is not None:
+            module.bias.data.zero_()
+
+
     def forward(self, batch, compute_loss=True):
         '''
         if compute_loss is true, the function will return the loss = (1)
         else the the function will return the logits = (batch, cls_num)
         '''
         batch = defaultdict(lambda: None, batch)
-        sequence_output = self.uniter(batch, frozen_en_layers=self.frozen_en_layers,
-                                      output_all_encoded_layers=False)
+        sequence_output = self.emoBert(batch, output_all_encoded_layers=False)
         # the output of the first token [CLS]
-        pooled_output = self.uniter.pooler(sequence_output)
+        pooled_output = self.emoBert.cross_encoder.pooler(sequence_output)
         logits = self.output(pooled_output)
         # one-hot targets
         self.pred = torch.softmax(logits, dim=-1)
@@ -89,9 +105,10 @@ def evaluation(model, loader):
     try:
         acc = accuracy_score(total_label, total_pred)
         uar = recall_score(total_label, total_pred, average='macro')
+        wf1 = f1_score(total_label, total_pred, average='weighted')
         f1 = f1_score(total_label, total_pred, average='macro')
         cm = confusion_matrix(total_label, total_pred)
     except:
-        acc, uar, f1, cm =0, 0, 0, 0
+        acc, uar, wf1, f1, cm =0, 0, 0, 0,0
     model.train()
-    return {'loss': avg_loss,  'WA': acc,  'UA': uar, 'F1': f1}
+    return {'loss': avg_loss, 'WA': acc, 'WF1': wf1, 'UA': uar,  'F1': f1}

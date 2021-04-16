@@ -11,9 +11,9 @@ from torch import nn
 from torch.nn import functional as F
 from apex.normalization.fused_layer_norm import FusedLayerNorm as LayerNorm
 
-from code.uniter3flow_speech.model.layer import GELU, BertOnlyMLMHead
-from code.uniter3flow_speech.model.model_base import BertConfig
-from code.uniter3flow_speech.model.model import MEmoBertModel
+from code.uniter3flow.model.layer import GELU, BertOnlyMLMHead
+from code.uniter3flow.model.model_base import BertConfig
+from code.uniter3flow.model.model import MEmoBertModel
 
 logger = logging.getLogger(__name__)
 

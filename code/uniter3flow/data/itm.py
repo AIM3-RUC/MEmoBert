@@ -13,9 +13,9 @@ from toolz.sandbox import unzip
 from cytoolz import concat
 import numpy as np
 
-from code.uniter3flow_speech.data.data import (DetectFeatTxtTokDataset, DetectFeatLmdb, TxtTokLmdb,
+from code.uniter3flow.data.data import (DetectFeatTxtTokDataset, DetectFeatLmdb, TxtTokLmdb,
                    pad_tensors, get_ids_and_lens)
-from code.uniter3flow_speech.data.sampler import TokenBucketSampler
+from code.uniter3flow.data.sampler import TokenBucketSampler
 
 class TokenBucketSamplerForItm(TokenBucketSampler):
     def __init__(self, dset, *args, **kwargs):
@@ -123,7 +123,7 @@ def itm_collate(inputs, add_cls_token=True):
     position_ids = torch.arange(0, input_ids.size(1), dtype=torch.long).unsqueeze(0)
     text_attn_masks = pad_sequence(text_attn_masks, batch_first=True, padding_value=0)
 
-    if img_attn_masks:
+    if img_feats[0] is not None:
         img_attn_masks = pad_sequence(img_attn_masks, batch_first=True, padding_value=0)
         num_bbs = [f.size(0) for f in img_feats]
         img_feat = pad_tensors(img_feats, num_bbs) # (n, max_num_nbb, dim)
@@ -140,7 +140,7 @@ def itm_collate(inputs, add_cls_token=True):
     else:
         num_bbs, img_position_ids, img_feat = None, None, None
 
-    if speech_attn_masks:
+    if speech_feats[0] is not None:
         # conv1d downsample 8 times, --- Pending.
         num_frames = [f.size(0) for f in speech_feats]
         speech_feat = pad_tensors(speech_feats, num_frames) # (n, max_num_nbb, dim)
