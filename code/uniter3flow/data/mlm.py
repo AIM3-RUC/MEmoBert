@@ -71,7 +71,8 @@ class MlmDataset(DetectFeatTxtTokDataset):
         text_attn_masks = torch.ones(len(input_ids), dtype=torch.long)
 
         if self.img_db:
-            img_feat, num_bb = self._get_img_feat(example['img_fname'])
+            img_feat, num_bb = self._get_img_feat(example['img_fname'], self.img_shape)
+            self.img_shape = img_feat.shape[1:]
             img_attn_masks = torch.ones(num_bb, dtype=torch.long)
         else:
             img_feat, img_attn_masks = None, None
