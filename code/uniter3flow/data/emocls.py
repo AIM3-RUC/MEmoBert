@@ -104,7 +104,7 @@ def emocls_collate(inputs, add_cls_token=True):
             'img_position_ids': img_position_ids,
             'num_bbs': num_bbs,
             'img_attn_masks': img_attn_masks,
-             'speech_feat': speech_feat,
+            'speech_feat': speech_feat,
             'num_frames': num_frames,
             'targets': targets}
     return batch

@@ -53,6 +53,7 @@ class MlmDataset(DetectFeatTxtTokDataset):
     def __init__(self, txt_db, img_db, speech_db):
         assert isinstance(txt_db, TxtTokLmdb)
         super().__init__(txt_db, img_db, speech_db)
+        self.img_shape = None
 
     def __getitem__(self, i):
         """
@@ -76,7 +77,8 @@ class MlmDataset(DetectFeatTxtTokDataset):
             img_feat, img_attn_masks = None, None
         
         if self.speech_db:
-            speech_feat, num_frame = self._get_speech_feat(example['img_fname'])
+            speech_feat, num_frame = self._get_speech_feat(example['img_fname'], self.img_shape)
+            self.img_shape = img_feat.shape[1:]
             speech_attn_masks = torch.ones(num_frame, dtype=torch.long)
         else:
             speech_feat, speech_attn_masks = None, None

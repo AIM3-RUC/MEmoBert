@@ -18,7 +18,7 @@ from apex import amp
 from horovod import torch as hvd
 from tqdm import tqdm
 
-from code.uniter3flow.data import (PrefetchLoader, TxtTokLmdb, ImageLmdbGroup, EmoCLsDataset, emocls_collate)
+from code.uniter3flow.data import (PrefetchLoader, TxtTokLmdb, ImageLmdbGroup, SpeechLmdbGroup, EmoCLsDataset, emocls_collate)
 from code.uniter3flow.model.emocls import MEmoBertForEmoTraining, evaluation
 from code.uniter3flow.optim import get_lr_sched
 from code.uniter3flow.optim.misc import build_optimizer
@@ -74,35 +74,41 @@ def main(opts):
         pbar = NoOp()
         model_saver = NoOp()
 
-    LOGGER.info("Loading Train Dataset {} {}".format(opts.train_txt_dbs, opts.train_img_dbs))
+    LOGGER.info("Loading Train Dataset {} {}".format(opts.train_txt_dbs, opts.train_img_dbs, opts.train_speech_dbs))
     train_all_img_dbs = ImageLmdbGroup(opts.conf_th, opts.max_bb, opts.min_bb,
-                                    opts.compressed_db, opts.image_data_augmentation)
+                                opts.compressed_db, opts.image_data_augmentation)
+    train_speech_dbs = SpeechLmdbGroup(opts.speech_conf_th, opts.max_frames, opts.min_frames,
+                                    opts.compressed_db, False)
     train_datasets = []
-    for txt_path, img_path in zip(opts.train_txt_dbs, opts.train_img_dbs):
-        # Jinming add trn: for cross-validation
+    for txt_path, img_path, speech_path in zip(opts.train_txt_dbs, opts.train_img_dbs, opts.train_speech_dbs):
         txt_path = txt_path.format(opts.cvNo)
         img_db = train_all_img_dbs[img_path]
+        speech_db = train_speech_dbs[speech_path]
         txt_db = TxtTokLmdb(txt_path, opts.max_txt_len)
-        print(type(txt_db), type(img_db))
-        train_datasets.append(EmoCLsDataset(txt_db, img_db))
+        print(type(txt_db), type(img_db), type(speech_path))
+        train_datasets.append(EmoCLsDataset(txt_db, img_db, speech_db))
     train_dataset = ConcatDataset(train_datasets)
 
     LOGGER.info("Loading no image_data_augmentation for validation and testing")
     eval_all_img_dbs = ImageLmdbGroup(opts.conf_th, opts.max_bb, opts.min_bb, 
                                     opts.compressed_db, False)
+    eval_all_speech_dbs = SpeechLmdbGroup(opts.speech_conf_th, opts.max_frames, opts.min_frames,
+                                    opts.compressed_db, False)
     # val
     opts.val_txt_db = opts.val_txt_db.format(opts.cvNo)
-    LOGGER.info(f"Loading Val Dataset {opts.val_img_db}, {opts.val_txt_db}")
+    LOGGER.info(f"Loading Val Dataset {opts.val_img_db}, {opts.val_txt_db}, {opts.val_speech_db}")
     val_img_db = eval_all_img_dbs[opts.val_img_db]
+    val_speech_db = eval_all_speech_dbs[opts.val_speech_db]
     val_txt_db = TxtTokLmdb(opts.val_txt_db, -1)
-    val_dataset = EmoCLsDataset(val_txt_db, val_img_db)
+    val_dataset = EmoCLsDataset(val_txt_db, val_img_db, val_speech_db)
     val_dataloader = build_dataloader(val_dataset, emocls_collate, False, opts)
     # test
     opts.test_txt_db = opts.test_txt_db.format(opts.cvNo)
-    LOGGER.info(f"Loading Test Dataset {opts.test_img_db}, {opts.test_txt_db}")
+    LOGGER.info(f"Loading Test Dataset {opts.test_img_db}, {opts.test_txt_db} {opts.test_speech_db}")
     test_img_db = eval_all_img_dbs[opts.test_img_db]
+    test_speech_db = eval_all_speech_dbs[opts.test_speech_db]
     test_txt_db = TxtTokLmdb(opts.test_txt_db, -1)
-    test_dataset = EmoCLsDataset(test_txt_db, test_img_db)
+    test_dataset = EmoCLsDataset(test_txt_db, test_img_db, test_speech_db)
     test_dataloader = build_dataloader(test_dataset, emocls_collate, False, opts)
 
     model = MEmoBertForEmoTraining(opts.model_config, use_speech=opts.use_speech, use_visual=opts.use_visual, \
@@ -297,6 +303,12 @@ if __name__ == "__main__":
     parser.add_argument('--num_bb', type=int, default=36,
                         help='static number of bounding boxes')
     parser.add_argument("--image_data_augmentation", default=True, type=bool)
+    parser.add_argument('--speech_conf_th', type=float, default=1.0,
+                        help='threshold for dynamic speech frames boxes')
+    parser.add_argument('--max_frames', type=int, default=360,
+                        help='max number of speech frames')
+    parser.add_argument('--min_frames', type=int, default=10,
+                        help='min number of speech frames')
 
     # use modality branch
     parser.add_argument("--use_speech", action='store_true',  help='use speech branch')

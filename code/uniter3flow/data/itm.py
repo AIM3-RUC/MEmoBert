@@ -59,6 +59,8 @@ class ItmDataset(DetectFeatTxtTokDataset):
         self.speech_db = speech_db
         self.txt_lens, self.ids = get_ids_and_lens(txt_db)
 
+        self.img_shape = None
+
         self.all_imgs = list(set(txt_db[id_]['img_fname'] for id_ in self.ids))
         self.neg_sample_p = neg_sample_p
         self.new_epoch()
@@ -100,7 +102,8 @@ class ItmDataset(DetectFeatTxtTokDataset):
 
         img_fname = self.train_imgs[i]
         if self.img_db:
-            img_feat, num_bb = self._get_img_feat(img_fname)
+            img_feat, num_bb = self._get_img_feat(img_fname, self.img_shape)
+            self.img_shape = img_feat.shape[1:]
             img_attn_masks = torch.ones(num_bb, dtype=torch.long)
         else:
             img_feat, img_attn_masks = None, None
