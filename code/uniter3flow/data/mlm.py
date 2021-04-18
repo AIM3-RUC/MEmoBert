@@ -78,8 +78,7 @@ class MlmDataset(DetectFeatTxtTokDataset):
             img_feat, img_attn_masks = None, None
         
         if self.speech_db:
-            speech_feat, num_frame = self._get_speech_feat(example['img_fname'], self.img_shape)
-            self.img_shape = img_feat.shape[1:]
+            speech_feat, num_frame = self._get_speech_feat(example['img_fname'])
             speech_attn_masks = torch.ones(num_frame, dtype=torch.long)
         else:
             speech_feat, speech_attn_masks = None, None
