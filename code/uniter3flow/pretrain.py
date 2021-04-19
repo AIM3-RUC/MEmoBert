@@ -233,6 +233,9 @@ def main(opts):
     model = MEmoBertForPretraining(opts.model_config, use_speech=opts.use_speech, use_visual=opts.use_visual, \
                                         pretrained_text_checkpoint=opts.pretrained_text_checkpoint)
     
+    if opts.checkpoint:
+        LOGGER.info('[Info] Loading from pretrained model {}'.format(opts.checkpoint))
+        model.load_state_dict(torch.load(opts.checkpoint))
     # print('[Debug] model info {}'.format(model.state_dict().keys()))
     model.to(device)
     model.train()

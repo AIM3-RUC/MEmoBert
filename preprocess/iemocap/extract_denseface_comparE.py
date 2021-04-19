@@ -38,7 +38,7 @@ def extract_features_h5(extract_func, get_input_func, utt_ids, save_path):
             continue
     h5f.close()
 
-def extract_one_video(video_dir, denseface_model):
+def extract_one_video(video_dir, denseface_model, detect_type):
     using_frame = False
     if detect_type == 'seetaface':
         imgs = glob.glob(video_dir+'/*.jpg')
@@ -64,7 +64,7 @@ def extract_one_video(video_dir, denseface_model):
     pred = np.concatenate(pred, axis=0)
     return {'feat': feats, 'pred': pred}
 
-def extract_one_video_mid_layers(video_dir, denseface_model):
+def extract_one_video_mid_layers(video_dir, denseface_model, detect_type):
     using_frame = False
     if detect_type == 'seetaface':
         imgs = glob.glob(video_dir+'/*.jpg')
@@ -187,7 +187,7 @@ if __name__ == '__main__':
             "features.transition1.relu",
             "features.transition2.relu"
         ])
-        extract_func = partial(extract_one_video_mid_layers, denseface_model=denseface)
+        extract_func = partial(extract_one_video_mid_layers, denseface_model=denseface, detect_type=detect_type)
         save_path = os.path.join(output_dir, name, 'all.h5')
         if detect_type == 'seetaface':
             extract_features_h5(extract_func, get_face_dir_seetaface, utt_ids, save_path)
@@ -197,6 +197,7 @@ if __name__ == '__main__':
         split_h5(save_path, save_root=os.path.join(output_dir, name))
 
     if True:
+        # for speech
         print('Start to split')
         output_dir = '/data7/emobert/exp/evaluation/IEMOCAP/feature/comparE_raw'
         save_path = os.path.join(output_dir, 'all.h5')

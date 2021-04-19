@@ -117,6 +117,8 @@ def main(opts):
     if opts.checkpoint:
         LOGGER.info('[Info] Loading from pretrained model {}'.format(opts.checkpoint))
         model.load_state_dict(torch.load(opts.checkpoint))
+    # print('[Debug] {}'.format(model.state_dict()['emoBert.visual_encoder.visualfront.frontend3D.1.weight']))
+    # print('[Debug] {}'.format(model.state_dict()['emoBert.text_encoder.encoder.layer.0.attention.output.LayerNorm.weight']))
     model.to(device)
     # make sure every process has same model parameters in the beginning
     broadcast_tensors([p.data for p in model.parameters()], 0)

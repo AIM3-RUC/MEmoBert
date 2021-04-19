@@ -389,22 +389,40 @@ class UniterModel(UniterPreTrainedModel):
             dtype=next(self.parameters()).dtype)  # fp16 compatibility
         extended_attention_mask = (1.0 - extended_attention_mask) * -10000.0
 
-        # embedding layer
-        if input_ids is None:
-            # image only
-            embedding_output = self._compute_img_embeddings(
-                img_feat, img_position_ids, img_masks, img_type_ids)
-        elif img_feat is None:
-            # print('[Debug] ****** only use text info')
-            embedding_output = self._compute_txt_embeddings(
-                input_ids, position_ids, txt_type_ids, emo_type_ids)
+        # 当只 finetune top layers的时候, embeddings 也都要 fixed.
+        if frozen_en_layers > 0:
+            with torch.no_grad():
+                # embedding layer
+                if input_ids is None:
+                    # image only
+                    embedding_output = self._compute_img_embeddings(
+                        img_feat, img_position_ids, img_masks, img_type_ids)
+                elif img_feat is None:
+                    # print('[Debug] ****** only use text info')
+                    embedding_output = self._compute_txt_embeddings(
+                        input_ids, position_ids, txt_type_ids, emo_type_ids)
+                else:
+                    embedding_output = self._compute_img_txt_embeddings(
+                        input_ids, position_ids,
+                        img_feat, img_position_ids,
+                        gather_index, img_masks, txt_type_ids, 
+                        img_type_ids, emo_type_ids)
         else:
-            embedding_output = self._compute_img_txt_embeddings(
-                input_ids, position_ids,
-                img_feat, img_position_ids,
-                gather_index, img_masks, txt_type_ids, 
-                img_type_ids, emo_type_ids)
-
+            # embedding layer
+            if input_ids is None:
+                # image only
+                embedding_output = self._compute_img_embeddings(
+                    img_feat, img_position_ids, img_masks, img_type_ids)
+            elif img_feat is None:
+                # print('[Debug] ****** only use text info')
+                embedding_output = self._compute_txt_embeddings(
+                    input_ids, position_ids, txt_type_ids, emo_type_ids)
+            else:
+                embedding_output = self._compute_img_txt_embeddings(
+                    input_ids, position_ids,
+                    img_feat, img_position_ids,
+                    gather_index, img_masks, txt_type_ids, 
+                    img_type_ids, emo_type_ids)
         encoded_layers = self.encoder(
             embedding_output, extended_attention_mask,
             frozen_en_layers=frozen_en_layers,

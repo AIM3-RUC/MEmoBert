@@ -11,6 +11,7 @@ from toolz.sandbox import unzip
 import torch.nn.functional as F
 from preprocess.tasks.vision import DensefaceExtractor, FaceSelector
 from preprocess.extract_features import extract_denseface_trans_dir
+from preprocess.tasks.audio import ComParEExtractor
 import cv2
 
 '''
@@ -48,7 +49,7 @@ def extract_features_h5(extract_func, get_input_func, utt_ids, save_path):
             continue
     h5f.close()
 
-def extract_one_video(video_dir, denseface_model):
+def extract_one_video(video_dir, denseface_model, detect_type):
     using_frame = False
     if detect_type == 'seetaface':
         imgs = glob.glob(video_dir+'/*.jpg')
@@ -91,7 +92,7 @@ def get_confidence(imgs, conf_df):
         ret.append(conf.iloc[0])
     return ret
 
-def extract_one_video_mid_layers(video_dir, denseface_model, face_selector):
+def extract_one_video_mid_layers(video_dir, denseface_model, face_selector, detect_type):
     '''
     存储的时候frame-idx, 如果有 active_spk_id 那么存储形式是该 spk 的frames, 比如 1 2 3 等
     如果没有 active_spk_id 那么存储形式是该 所有spk的frames, 比如 1001 2001 3001 等
@@ -200,8 +201,7 @@ def transform_utt_id(utt_id, set_name):
     dia_num, utt_num = utt_id.split('_')
     return f'{set_name}/dia{dia_num}_utt{utt_num}'
 
-def get_all_utt_ids():
-    target_root = '/data7/emobert/exp/evaluation/MELD/target'
+def get_all_utt_ids(target_root='/data7/emobert/exp/evaluation/MELD/target'):
     ans = []
     for set_name in ['train', 'val', 'test']:
         utt_ids = np.load(os.path.join(target_root, set_name, f'int2name.npy'))
@@ -209,42 +209,85 @@ def get_all_utt_ids():
         ans += utt_ids
     return ans
 
+def extract_comparE_file(audio_path, extractor_model):
+    # for one audio clip, audio_path = audio_dir + {set_name}/dia{dia_num}_utt{utt_num}
+    audio_path = audio_path + '.wav'
+    # print(audio_path)
+    if not os.path.exists(audio_path):
+        print(f'[Not exist] {audio_path}')
+        feat = np.zeros([1,130])
+        frame_nums =np.array(1)
+    else:
+        feat = extractor_model(audio_path)
+        frame_nums = np.array(len(feat))
+    return {'feat': feat, 'frame_idx': frame_nums}
+
 if __name__ == '__main__':
-    detect_type = sys.argv[1]
+    
     output_dir = '/data7/emobert/exp/evaluation/MELD/feature'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
+
+
+    if False:
+        detect_type = sys.argv[1]
+        if detect_type == 'seetaface':
+            name = "denseface_seetaface_meld_mean_std_torch"
+        elif detect_type == 'openface':
+            name = "denseface_openface_meld_mean_std_torch"
+        else:
+            raise ValueError('detect type must be openface or seetaface')
+
+        if not os.path.exists(output_dir + '/' + name):
+            os.mkdir(output_dir + '/' + name)
+        # for visual face
+        utt_ids = get_all_utt_ids()
+        images_mean, images_std = 67.61417, 37.89171
+        save_path = os.path.join(output_dir, name, 'all.h5')
+        denseface = DensefaceExtractor(mean=images_mean, std=images_std)
+        denseface.register_midlayer_hook([
+            "features.transition1.relu",
+            "features.transition2.relu"
+        ])
+        face_selector = FaceSelector()
+        extract_func = partial(extract_one_video_mid_layers, denseface_model=denseface, face_selector=face_selector, detect_type=detect_type)
+        if detect_type == 'seetaface':
+            raise NotImplemented()
+            extract_features_h5(extract_func, get_face_dir_seetaface, utt_ids, save_path)
+        else:
+            extract_features_h5(extract_func, get_face_dir_openface, utt_ids, save_path)
+        split_h5(save_path, save_root=os.path.join(output_dir, name))
     
-    if detect_type == 'seetaface':
-        name = "denseface_seetaface_meld_mean_std_torch"
-    elif detect_type == 'openface':
-        name = "denseface_openface_meld_mean_std_torch"
-    else:
-        raise ValueError('detect type must be openface or seetaface')
-
-    if not os.path.exists(output_dir + '/' + name):
-        os.mkdir(output_dir + '/' + name)
-
-    utt_ids = get_all_utt_ids()
-    # msp
-    images_mean = 67.61417
-    images_std = 37.89171
-    save_path = os.path.join(output_dir, name, 'all.h5')
-
-    # denseface = DensefaceExtractor(mean=images_mean, std=images_std)
-    # denseface.register_midlayer_hook([
-    #     "features.transition1.relu",
-    #     "features.transition2.relu"
-    # ])
-    # face_selector = FaceSelector()
-    # extract_func = partial(extract_one_video_mid_layers, denseface_model=denseface, face_selector=face_selector)
-    # if detect_type == 'seetaface':
-    #     raise NotImplemented()
-    #     extract_features_h5(extract_func, get_face_dir_seetaface, utt_ids, save_path)
-    # else:
-    #     extract_features_h5(extract_func, get_face_dir_openface, utt_ids, save_path)
-
-    split_h5(save_path, save_root=os.path.join(output_dir, name))
+    if True:
+        # for speech comparE
+        audio_feature_dir = os.path.join(output_dir, 'comparE_raw')
+        # if not os.path.exists(audio_feature_dir):
+        #     os.mkdir(audio_feature_dir)
+        # comparE_model = ComParEExtractor(tmp_dir=f'{output_dir}/raw_fts')
+        # # 偏函数: 主要目的是冻结固定参数？将所作用的函数作为 partial() 函数的第一个参数，原函数的各个参数依次作为 partial（）函数的后续参数，
+        # # 原函数有关键字参数的一定要带上关键字，没有的话，按原有参数顺序进行补充.
+        # extract_comparE = partial(extract_comparE_file, extractor_model=comparE_model)
+        # save_path = os.path.join(audio_feature_dir, 'all_set.h5')
+        # audio_dir = '/data7/MEmoBert/emobert/exp/evaluation/MELD/audio'
+        # utt_ids = get_all_utt_ids()
+        # print('total {} uttids'.format(len(utt_ids)))
+        # extract_features_h5(extract_comparE, lambda x: os.path.join(audio_dir, x),  utt_ids, save_path)
+        # trans h5 format, val-dia0_utt0.npz
+        save_path = os.path.join(audio_feature_dir, 'all_set.h5')
+        new_save_path = os.path.join(audio_feature_dir, 'all.h5')
+        data = h5py.File(save_path)
+        out_h5f = h5py.File(new_save_path, 'w')
+        for setname in data.keys():
+            for uttid in data[setname].keys():
+                new_uttid = setname + '-' + uttid
+                tgt = data[setname][uttid]['feat']
+                if isinstance(tgt, h5py._hl.dataset.Dataset):
+                    out_h5f[new_uttid] = deepcopy(tgt[()])
+                elif isinstance(tgt, h5py._hl.group.Group):
+                    _group = out_h5f.create_group(new_uttid)
+                    for key in tgt.keys():
+                        _group[key] = deepcopy(tgt[key][()])
+        out_h5f.close()
 
 # PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=0 python extract_denseface.py openface
 # PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=0 python extract_denseface.py seetaface

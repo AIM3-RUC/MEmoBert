@@ -5,7 +5,6 @@ import numpy as np
 import collections
 from tqdm import tqdm
 import traceback
-
 sys.path.append('/data7/lrc/MuSe2020/MuSe2020_features/code/denseface/vision_network')
 from models.dense_net import DenseNet
 

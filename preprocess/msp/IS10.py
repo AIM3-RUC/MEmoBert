@@ -36,5 +36,6 @@ def make_all_IS10():
         save_path = os.path.join(save_root, uuid+'.npy')
         np.save(save_path, feat)
 
+
 if __name__ == '__main__':
     make_all_IS10()
