@@ -38,11 +38,11 @@ do
                 valid_steps=100
                 train_batch_size=24
                 inf_batch_size=24
-                CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo_img.py \
-                        --cvNo 1 --model_config config/uniter-3flow_s4v4c4.json \
+                CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
+                        --cvNo ${cvNo} --model_config config/uniter-3flow_s4v4c4.json \
                         --cls_num 4 --use_visual --use_speech \
                         --config config/train-emo-${corpus_name}-openface_${norm_type}-base-2gpu.json \
-                        --checkpoint /data7/MEmoBert/emobert/exp/pretrain/flow3_text12_visual4_speech4_cross4_typeEmb-nomask_movies_v1v2v3_uniter_mlmitm_lr5e5-textbackbone_optimFalse-bs480_faceth0.5/ckpt/model_step_13000.pt \
+                        --checkpoint /data7/MEmoBert/emobert/exp/pretrain/flow3_text12_visual4_speech4_cross4_typeEmb-nomask_movies_v1v2v3_uniter_mlmitm_lr5e5-textbackbone_optimFalse-bs480_faceth0.5/ckpt/model_step_20000.pt \
                         --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
                         --learning_rate ${lr} --lr_sched_type 'linear' \
                         --conf_th 0.0 --max_bb 36 --min_bb 10 \

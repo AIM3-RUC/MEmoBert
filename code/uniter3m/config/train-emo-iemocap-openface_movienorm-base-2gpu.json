@@ -41,8 +41,13 @@
     "train_img_dbs": [
         "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/"
     ],
+    "train_speech_dbs": [
+        "/data7/emobert/exp/evaluation/IEMOCAP/feature/movies_norm_comparE_db_5mean/"
+    ],
     "val_txt_db": "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst_emowords_emotype.db",
     "val_img_db": "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/",
+    "val_speech_db": "/data7/emobert/exp/evaluation/IEMOCAP/feature/movies_norm_comparE_db_5mean/",
     "test_txt_db": "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst_emowords_emotype.db",
-    "test_img_db": "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/"
+    "test_img_db": "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/",
+    "test_speech_db": "/data7/emobert/exp/evaluation/IEMOCAP/feature/movies_norm_comparE_db_5mean/"
 }

@@ -3,7 +3,6 @@ Copyright (c) Microsoft Corporation.
 Licensed under the MIT license.
 
 UNITER finetuning for Image-Text Retrieval
-"checkpoint": "/data7/emobert/exp/pretrain/nomask_movies_v1_uniter_4tasks/ckpt/model_step_100000.pt",
 """
 import argparse
 import os
@@ -19,8 +18,7 @@ from apex import amp
 from horovod import torch as hvd
 from tqdm import tqdm
 
-from  code.uniter.data import (PrefetchLoader, TxtTokLmdb, ImageLmdbGroup, EmoCLsDataset,
-                                emocls_collate)
+from code.uniter3m.data import (PrefetchLoader, TxtTokLmdb, ImageLmdbGroup, SpeechLmdbGroup, EmoCLsDataset, emocls_collate)
 from code.uniter3m.model.emocls import UniterForEmoRecognition, evaluation
 from code.uniter3m.optim import get_lr_sched
 from code.uniter3m.optim.misc import build_optimizer
@@ -76,34 +74,45 @@ def main(opts):
         pbar = NoOp()
         model_saver = NoOp()
 
-    all_img_dbs = ImageLmdbGroup(opts.conf_th, opts.max_bb, opts.min_bb, opts.num_bb, opts.compressed_db)
-
-    LOGGER.info("Loading Train Dataset {} {}".format(opts.train_txt_dbs, opts.train_img_dbs))
+    LOGGER.info("Loading Train Dataset {} {}".format(opts.train_txt_dbs, opts.train_img_dbs,
+                         opts.train_speech_dbs))
+    train_all_img_dbs = ImageLmdbGroup(opts.conf_th, opts.max_bb, opts.min_bb, \
+                    compress=opts.compressed_db)
+    train_speech_dbs = SpeechLmdbGroup(opts.speech_conf_th, opts.max_frames, opts.min_frames, \
+                    compress=opts.compressed_db)
     train_datasets = []
-    for txt_path, img_path in zip(opts.train_txt_dbs, opts.train_img_dbs):
-        # Jinming add trn: for cross-validation
+    for txt_path, img_path, speech_path in zip(opts.train_txt_dbs, opts.train_img_dbs, opts.train_speech_dbs):
         txt_path = txt_path.format(opts.cvNo)
-        img_db = all_img_dbs[img_path]
+        img_db = train_all_img_dbs[img_path]
+        speech_db = train_speech_dbs[speech_path]
         txt_db = TxtTokLmdb(txt_path, opts.max_txt_len)
-        train_datasets.append(EmoCLsDataset(txt_db, img_db))
+        print(type(txt_db), type(img_db), type(speech_path))
+        train_datasets.append(EmoCLsDataset(txt_db, img_db, speech_db))
     train_dataset = ConcatDataset(train_datasets)
 
+    LOGGER.info("Loading no image_data_augmentation for validation and testing")
+    eval_all_img_dbs = ImageLmdbGroup(opts.conf_th, opts.max_bb, opts.min_bb, \
+                                    compress=opts.compressed_db)
+    eval_all_speech_dbs = SpeechLmdbGroup(opts.speech_conf_th, opts.max_frames, opts.min_frames, \
+                                    compress=opts.compressed_db)
     # val
     opts.val_txt_db = opts.val_txt_db.format(opts.cvNo)
-    LOGGER.info(f"Loading Val Dataset {opts.val_img_db}, {opts.val_txt_db}")
-    val_img_db = all_img_dbs[opts.val_img_db]
+    LOGGER.info(f"Loading Val Dataset {opts.val_img_db}, {opts.val_txt_db}, {opts.val_speech_db}")
+    val_img_db = eval_all_img_dbs[opts.val_img_db]
+    val_speech_db = eval_all_speech_dbs[opts.val_speech_db]
     val_txt_db = TxtTokLmdb(opts.val_txt_db, -1)
-    val_dataset = EmoCLsDataset(val_txt_db, val_img_db)
+    val_dataset = EmoCLsDataset(val_txt_db, val_img_db, val_speech_db)
     val_dataloader = build_dataloader(val_dataset, emocls_collate, False, opts)
     # test
     opts.test_txt_db = opts.test_txt_db.format(opts.cvNo)
-    LOGGER.info(f"Loading Test Dataset {opts.test_img_db}, {opts.test_txt_db}")
-    test_img_db = all_img_dbs[opts.test_img_db]
+    LOGGER.info(f"Loading Test Dataset {opts.test_img_db}, {opts.test_txt_db} {opts.test_speech_db}")
+    test_img_db = eval_all_img_dbs[opts.test_img_db]
+    test_speech_db = eval_all_speech_dbs[opts.test_speech_db]
     test_txt_db = TxtTokLmdb(opts.test_txt_db, -1)
-    test_dataset = EmoCLsDataset(test_txt_db, test_img_db)
+    test_dataset = EmoCLsDataset(test_txt_db, test_img_db, test_speech_db)
     test_dataloader = build_dataloader(test_dataset, emocls_collate, False, opts)
 
-    # Prepare model
+     # Prepare model
     if opts.checkpoint:
         LOGGER.info('[Info] Loading from pretrained model {}'.format(opts.checkpoint))
         checkpoint = torch.load(opts.checkpoint)
@@ -111,8 +120,14 @@ def main(opts):
         checkpoint = {}
 
     model = UniterForEmoRecognition.from_pretrained(opts.model_config, state_dict=checkpoint, \
-                            img_dim=IMG_DIM, cls_num=opts.cls_num, frozen_en_layers=opts.frozen_en_layers, \
+                            img_dim=IMG_DIM, speech_dim=Speech_DIM,
+                            use_visual=opts.use_visual, use_speech=opts.use_speech,
+                            cls_num=opts.cls_num, \
+                            frozen_en_layers=opts.frozen_en_layers, \
                             cls_dropout=opts.cls_dropout, cls_type=opts.cls_type)
+
+    # print('[Debug] {}'.format(model.state_dict()['emoBert.visual_encoder.visualfront.frontend3D.1.weight']))
+    # print('[Debug] {}'.format(model.state_dict()['emoBert.text_encoder.encoder.layer.0.attention.output.LayerNorm.weight']))
     model.to(device)
     # make sure every process has same model parameters in the beginning
     broadcast_tensors([p.data for p in model.parameters()], 0)
@@ -298,6 +313,21 @@ if __name__ == "__main__":
                         help='min number of bounding boxes')
     parser.add_argument('--num_bb', type=int, default=36,
                         help='static number of bounding boxes')
+    parser.add_argument("--image_data_augmentation", default=True, type=bool)
+    parser.add_argument('--speech_conf_th', type=float, default=1.0,
+                        help='threshold for dynamic speech frames boxes')
+    parser.add_argument('--max_frames', type=int, default=360,
+                        help='max number of speech frames')
+    parser.add_argument('--min_frames', type=int, default=10,
+                        help='min number of speech frames')
+    parser.add_argument('--IMG_DIM', type=int, default=342,
+                        help='visual features as transformer input')
+    parser.add_argument('--Speech_DIM', type=int, default=130,
+                        help='speech features as transformer input')
+
+    # use modality branch
+    parser.add_argument("--use_speech", action='store_true',  help='use speech branch')
+    parser.add_argument("--use_visual", action='store_true',  help='use visual branch')
 
     # training parameters
     parser.add_argument("--train_batch_size", default=128, type=int,
@@ -348,8 +378,7 @@ if __name__ == "__main__":
     parser.add_argument('--config', help='JSON config files')
 
     args = parse_with_config(parser)
-    IMG_DIM = args.IMG_DIM
-    
+
     # for cross-validation
     args.output_dir = args.output_dir + '/drop{}_frozen{}_{}_{}'.format(args.cls_dropout, args.frozen_en_layers, \
                 args.cls_type, args.postfix) 
@@ -360,6 +389,10 @@ if __name__ == "__main__":
     args.output_dir = output_dir = join(args.output_dir, str(args.cvNo))
     if not exists(args.output_dir):
         os.makedirs(args.output_dir)
+    
+    IMG_DIM = args.IMG_DIM
+    Speech_DIM = args.Speech_DIM
+
     # options safe guard
     if args.conf_th == -1:
         assert args.max_bb + args.max_txt_len + 2 <= 512

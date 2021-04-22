@@ -37,10 +37,9 @@ def _check_distributed():
     return dist
 
 class DetectFeatLmdb(object):
-    def __init__(self, img_dir, conf_th=0.2, max_bb=100, min_bb=10, num_bb=36,
+    def __init__(self, img_dir, conf_th=0.2, max_bb=100, min_bb=10,
                  compress=False):
         self.img_dir = img_dir
-
         # read the generated json file
         db_name = f'feat_th{conf_th}_max{max_bb}_min{min_bb}'
         nbb = f'nbb_th{conf_th}_max{max_bb}_min{min_bb}.json'
@@ -296,19 +295,18 @@ class ConcatDatasetWithLens(ConcatDataset):
 
 
 class ImageLmdbGroup(object):
-    def __init__(self, conf_th, max_bb, min_bb, num_bb, compress):
+    def __init__(self, conf_th, max_bb, min_bb, compress):
         self.path2imgdb = {}
         self.conf_th = conf_th
         self.max_bb = max_bb
         self.min_bb = min_bb
-        self.num_bb = num_bb
         self.compress = compress
 
     def __getitem__(self, path):
         img_db = self.path2imgdb.get(path, None)
         if img_db is None:
             img_db = DetectFeatLmdb(path, self.conf_th, self.max_bb,
-                                    self.min_bb, self.num_bb, self.compress)
+                                    self.min_bb, self.compress)
         return img_db
 
 class SpeechLmdbGroup(object):

@@ -21,13 +21,15 @@ from code.uniter3m.utils.misc import NoOp
 class UniterForEmoRecognition(UniterPreTrainedModel):
     """ Finetune UNITER for Emotion Recognition
     """
-    def __init__(self, config, img_dim, cls_num, frozen_en_layers, cls_dropout=0.5, cls_type='vqa'):
+    def __init__(self, config, img_dim, speech_dim, cls_num, frozen_en_layers, \
+                        use_visual, use_speech, \
+                        cls_dropout=0.5, cls_type='vqa'):
         '''
         cls_type: "emocls" is similar with  https://github.com/brightmart/roberta_zh/blob/master/run_classifier.py#L478
         and "vqa" is similar with official-uniter/model/vqa.py 
         '''
         super().__init__(config)
-        self.uniter = UniterModel(config, img_dim)
+        self.uniter = UniterModel(config, img_dim, speech_dim, use_visual, use_speech)
         ## for paraphrase loss
         if cls_type == 'emocls':
             self.output = nn.Sequential(

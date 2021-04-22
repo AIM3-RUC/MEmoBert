@@ -237,7 +237,8 @@ https://github.com/linjieli222/HERO/blob/f938515424b5f3249fc1d2e7f0373f64112a652
 关于视觉和语音模态是否要加 CLS Token, 可以自定义token进行分类。
 https://github.com/lucidrains/vit-pytorch/blob/main/vit_pytorch/vit.py#L88
 
-FOM 任务是如何做的？？--Pending
+FOM 任务是如何做的？？--Going
+
 '''
 
 ## Uniter3m 的联合训练
@@ -246,7 +247,6 @@ FOM 任务是如何做的？？--Pending
 --done
 视觉的特征任务中加入语音的信息, 目的是做多模态，所以三个模态的信息要一块出现比较好。
 --done
-
 图像特征和语音特征之间需不需要加 [SEP] 标签？--pending
 语音特征要不要添加预训练任务,  尝试加 speech-itm 的任务？
 

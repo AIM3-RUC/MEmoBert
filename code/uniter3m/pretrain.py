@@ -399,9 +399,9 @@ def validate(model, val_dataloaders):
             val_log = validate_mlm(model, loader)
         elif task.startswith('melm'):
             val_log = validate_melm(model, loader)
-        elif task.startswith('mrfr'):
+        elif task.startswith('mrfr') and args.use_viusal:
             val_log = validate_mrfr(model, loader)
-        elif task.startswith('mrc'):
+        elif task.startswith('mrc') and args.use_viusal:
             val_log = validate_mrc(model, loader, task)
         elif task.startswith('itm'):
             val_log = validate_itm(model, loader)

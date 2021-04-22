@@ -67,7 +67,7 @@ def convert_hdf5_to_npz(hdf5_dir, output_dir, meta_data_dir, movie_names_path, u
 if __name__ == "__main__":
     start = int(sys.argv[1])  # 0
     end =  int(sys.argv[2]) # 100
-    use_mean_pooling = True # 连续的三帧进行平均
+    use_mean_pooling = True # 连续的5帧进行平均
     hdf5_dir = '/data7/emobert/comparE_feature/movies_v2'
     meta_data_dir = '/data7/emobert/data_nomask_new/meta'
     movie_names_path = '/data7/emobert/data_nomask_new/movies_v2/movie_names.npy'
