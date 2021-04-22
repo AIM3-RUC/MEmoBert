@@ -13,7 +13,7 @@ export PYTHONPATH=/data7/MEmoBert
 均值和方差的地址是:
 '''
 
-def convert_hdf5_to_npz(hdf5_dir, output_dir, meta_data_dir, movie_names_path, start=None, end=None):
+def convert_hdf5_to_npz(hdf5_dir, output_dir, meta_data_dir, movie_names_path, use_mean_pooling=False, start=None, end=None):
     '''
     fileter_dict: 未来加很多数据的时候可能
     segment_id = movie_name + '_' + segment_index
@@ -45,8 +45,21 @@ def convert_hdf5_to_npz(hdf5_dir, output_dir, meta_data_dir, movie_names_path, s
             feat = np.array(audio_ft[movie_name][segment_index]['feat'])
             # norm 
             norm_feat = (feat - mean) / std
-            frame_indexs = np.array(list(range(0, int(np.array(audio_ft[movie_name][segment_index]['frame_idx'])))))
-            assert len(norm_feat) == len(feat)
+            if len(norm_feat) == 0:
+                print('segment {} norm {}'.format(segment_index, len(norm_feat)))
+            if use_mean_pooling:
+                # 连续的5帧进行平均, 360 / 5 = 90, (300,130) -> (300/5, 5, 130)
+                mean_norm_feat = []
+                # print(norm_feat.shape)
+                for i in range(0, len(norm_feat), 5):
+                    if i+5 >= len(norm_feat):
+                        mean_norm_feat.append(np.mean(norm_feat[i:], axis=0))
+                    else:
+                        mean_norm_feat.append(np.mean(norm_feat[i:i+5], axis=0))
+                if len(mean_norm_feat) == 0:
+                    print('[Afer Mean]segment {} meam-norm {}'.format(segment_index, len(mean_norm_feat)))
+                norm_feat = np.array(mean_norm_feat)
+            frame_indexs = np.array(list(range(0, len(norm_feat))))
             np.savez_compressed(outputfile,
                                 frame_idxs=frame_indexs.astype(np.float16),
                                 features=norm_feat.astype(np.float16))
@@ -54,10 +67,11 @@ def convert_hdf5_to_npz(hdf5_dir, output_dir, meta_data_dir, movie_names_path, s
 if __name__ == "__main__":
     start = int(sys.argv[1])  # 0
     end =  int(sys.argv[2]) # 100
-    hdf5_dir = '/data7/emobert/comparE_feature/movies_v3'
+    use_mean_pooling = True # 连续的三帧进行平均
+    hdf5_dir = '/data7/emobert/comparE_feature/movies_v2'
     meta_data_dir = '/data7/emobert/data_nomask_new/meta'
-    movie_names_path = '/data7/emobert/data_nomask_new/movies_v3/movie_names.npy'
-    npzs_dir = '/data7/emobert/norm_comparE_npzs/movies_v3' 
+    movie_names_path = '/data7/emobert/data_nomask_new/movies_v2/movie_names.npy'
+    npzs_dir = '/data7/emobert/norm_comparE_npzs/movies_v2_5mean' 
     mean_std_path = '/data7/MEmoBert/emobert/comparE_feature/mean_std.npz'
     mean_std = np.load(mean_std_path, allow_pickle=True)
     mean = mean_std['mean']
@@ -66,4 +80,4 @@ if __name__ == "__main__":
     # print(mean_std['std'].shape)
     if not os.path.exists(npzs_dir):
         os.makedirs(npzs_dir)
-    convert_hdf5_to_npz(hdf5_dir, npzs_dir, meta_data_dir, movie_names_path, start=start, end=end)
+    convert_hdf5_to_npz(hdf5_dir, npzs_dir, meta_data_dir, movie_names_path, use_mean_pooling, start=start, end=end)

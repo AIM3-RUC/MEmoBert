@@ -6,6 +6,7 @@ Dataset interfaces
 """
 from contextlib import contextmanager
 import io
+import copy
 import json
 from os.path import exists
 
@@ -37,7 +38,7 @@ def _check_distributed():
 
 class DetectFeatLmdb(object):
     def __init__(self, img_dir, conf_th=0.2, max_bb=100, min_bb=10, num_bb=36,
-                 compress=True):
+                 compress=False):
         self.img_dir = img_dir
 
         # read the generated json file
@@ -194,16 +195,24 @@ def get_ids_and_lens(db):
     return lens, ids
 
 class DetectFeatTxtTokDataset(Dataset):
-    def __init__(self, txt_db, img_db):
+    def __init__(self, txt_db, img_db=None, speech_db=None):
         assert isinstance(txt_db, TxtTokLmdb)
-        assert isinstance(img_db, DetectFeatLmdb)
+        if img_db:
+            assert isinstance(img_db, DetectFeatLmdb)
+        if speech_db:
+            assert isinstance(speech_db, DetectFeatLmdb)
         self.txt_db = txt_db
         self.img_db = img_db
-        txt_lens, self.ids = get_ids_and_lens(txt_db)
-
+        self.speech_db = speech_db
+        self.txt_lens, self.ids = get_ids_and_lens(txt_db)
+        self.lens = copy.deepcopy(self.txt_lens)
         txt2img = txt_db.txt2img
-        self.lens = [tl + self.img_db.name2nbb[txt2img[id_]]
-                     for tl, id_ in zip(txt_lens, self.ids)]
+        if img_db:
+            self.lens = [tl + self.img_db.name2nbb[txt2img[id_]]
+                     for tl, id_ in zip(self.lens, self.ids)]
+        if speech_db:
+            self.lens = [tl + self.speech_db.name2nbb[txt2img[id_]]
+                     for tl, id_ in zip(self.lens, self.ids)]
 
     def __len__(self):
         return len(self.ids)
@@ -228,6 +237,12 @@ class DetectFeatTxtTokDataset(Dataset):
         # print('[Info] img_feat shape {}'.format(img_feat.shape))
         return img_feat, num_bb
 
+    def _get_speech_feat(self, fname):
+        # Jinimng: add this for speech 
+        speech_feat = self.speech_db[fname]
+        num_bb = speech_feat.size(0)
+        return speech_feat, num_bb
+
 
 def pad_tensors(tensors, lens=None, pad=0):
     """B x [T, ...]"""
@@ -244,15 +259,24 @@ def pad_tensors(tensors, lens=None, pad=0):
         output.data[i, :l, ...] = t.data
     return output
 
-
-def get_gather_index(txt_lens, num_bbs, batch_size, max_len, out_size):
-    assert len(txt_lens) == len(num_bbs) == batch_size
-    gather_index = torch.arange(0, out_size, dtype=torch.long,
-                                ).unsqueeze(0).repeat(batch_size, 1)
-
-    for i, (tl, nbb) in enumerate(zip(txt_lens, num_bbs)):
-        gather_index.data[i, tl:tl+nbb] = torch.arange(max_len, max_len+nbb,
-                                                       dtype=torch.long).data
+def get_gather_index(txt_lens, num_bbs, num_frames, batch_size, max_len, out_size):
+    '''
+    Jinming modify this for multimodalies.
+    '''
+    assert len(txt_lens) == batch_size
+    gather_index = torch.arange(0, out_size, dtype=torch.long).unsqueeze(0).repeat(batch_size, 1)
+    if num_bbs is not None and num_frames is None:
+        for i, (tl, nbb) in enumerate(zip(txt_lens, num_bbs)):
+            gather_index.data[i, tl:tl+nbb] = torch.arange(max_len, max_len+nbb,
+                                                        dtype=torch.long).data
+    elif num_bbs is None and num_frames is not None:
+        for i, (tl, nbb) in enumerate(zip(txt_lens, num_frames)):
+            gather_index.data[i, tl:tl+nbb] = torch.arange(max_len, max_len+nbb,
+                                                        dtype=torch.long).data
+    elif num_bbs is not None and num_frames is not  None:
+        for i, (tl, nbb, nframe) in enumerate(zip(txt_lens, num_bbs, num_frames)):
+            gather_index.data[i, tl:tl+nbb+nframe] = torch.arange(max_len, max_len+nbb+nframe,
+                                                        dtype=torch.long).data
     return gather_index
 
 class ConcatDatasetWithLens(ConcatDataset):
@@ -285,4 +309,19 @@ class ImageLmdbGroup(object):
         if img_db is None:
             img_db = DetectFeatLmdb(path, self.conf_th, self.max_bb,
                                     self.min_bb, self.num_bb, self.compress)
+        return img_db
+
+class SpeechLmdbGroup(object):
+    def __init__(self, speech_conf_th, max_frames, min_frames, compress):
+        self.path2imgdb = {}
+        self.conf_th = speech_conf_th
+        self.max_bb = max_frames
+        self.min_bb = min_frames
+        self.compress = compress
+
+    def __getitem__(self, path):
+        img_db = self.path2imgdb.get(path, None)
+        if img_db is None:
+            img_db = DetectFeatLmdb(path, self.conf_th, self.max_bb,
+                                    self.min_bb, self.compress)
         return img_db

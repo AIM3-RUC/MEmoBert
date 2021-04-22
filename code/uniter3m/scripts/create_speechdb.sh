@@ -3,8 +3,8 @@
 
 # 语音的处理保持跟
 set -e
-img_dir=/data7/emobert/norm_comparE_npzs/movies_v2_5mean
-output_dir=/data7/emobert/norm_comparE_db/movies_v2_5mean
+img_dir=/data7/emobert/norm_comparE_npzs/movies_v1_5mean
+output_dir=/data7/emobert/norm_comparE_db/movies_v1_5mean
 # img_dir=/data7/emobert/exp/evaluation/IEMOCAP/feature/movies_norm_comparE_npzs/
 # output_dir=/data7/emobert/exp/evaluation/IEMOCAP/feature/movies_norm_comparE_db/
 # img_dir=/data7/emobert/exp/evaluation/MSP/feature/movies_norm_comparE_npzs/
