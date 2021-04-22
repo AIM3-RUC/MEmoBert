@@ -16,7 +16,7 @@ import torch
 from torch._C import device
 import torch.nn as nn
 import torch.nn.functional as F
-from code.uniter3flow.model.model_base import BertConfig, BertPreTrainedModel, BertEncoder
+from code.uniter3flowFOM.model.model_base import BertConfig, BertPreTrainedModel, BertEncoder
 
 class EncCNN1d(nn.Module):
     def __init__(self, input_dim=130, channel=256, dropout=0.1):
