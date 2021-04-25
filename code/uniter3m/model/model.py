@@ -280,30 +280,35 @@ class UniterImageEmbeddings(nn.Module):
 class UniterSpeechEmbeddings(nn.Module):
     def __init__(self, config, speech_dim):
         super().__init__()
+        '''
+        # Jinming: 因为prtrained的bert只有两个token-type, 
+        # 因此当不采用visual信息的时候,可以采用共享文本的token-type.
+        '''
         self.speech_linear = nn.Linear(speech_dim, config.hidden_size)
         self.speech_layer_norm = FusedLayerNorm(config.hidden_size, eps=1e-12)
         self.position_embeddings = nn.Embedding(config.speech_max_position_embeddings,
                                                 config.hidden_size)
         self.mask_embedding = nn.Embedding(2, speech_dim, padding_idx=0)
-        # for speech type
-        self.token_type_embeddings = nn.Embedding(1, config.hidden_size)
 
+        self.token_type_embeddings = nn.Embedding(1, config.hidden_size)
         # tf naming convention for layer norm
         self.LayerNorm = FusedLayerNorm(config.hidden_size, eps=1e-12)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
-    def forward(self, speech_feat, speech_position_ids, speech_masks=None):
+    def forward(self, speech_feat, speech_position_ids, speech_type_embeddings, speech_masks=None):
         if speech_masks is not None:
             self.mask_embedding.weight.data[0, :].fill_(0)
             mask = self.mask_embedding(speech_masks.long())
             speech_feat = speech_feat + mask
 
+        if speech_type_embeddings is None:
+            speech_type_ids = torch.zeros_like(speech_feat[:, :, 0].long())
+            speech_type_embeddings = self.token_type_embeddings(speech_type_ids)
+
         transformed_speech = self.speech_layer_norm(self.speech_linear(speech_feat))
         position_embeddings = self.position_embeddings(speech_position_ids)
-        speech_type_ids = torch.zeros_like(speech_feat[:, :, 0].long())
-
-        token_type_embeddings = self.token_type_embeddings(speech_type_ids)
-        embeddings = transformed_speech + position_embeddings + token_type_embeddings
+       
+        embeddings = transformed_speech + position_embeddings + speech_type_embeddings
         embeddings = self.LayerNorm(embeddings)
         embeddings = self.dropout(embeddings)
         return embeddings
@@ -318,7 +323,7 @@ class UniterEncoder(nn.Module):
     def forward(self, input_, attention_mask, frozen_en_layers=0,
                 output_all_encoded_layers=True):
         # zjm 2020/12/15: add parameter: frozen_en_layer for small dataset finetune.
-        # print('[Model]Frozen_en_layer {}'.format(frozen_en_layers))
+        # print('[Model] Frozen_en_layer {}'.format(frozen_en_layers))
         all_encoder_layers = []
         hidden_states = input_
         for i, layer_module in enumerate(self.layer):
@@ -372,8 +377,18 @@ class UniterModel(UniterPreTrainedModel):
                                      img_type_embeddings, img_masks)
         return output
     
-    def _compute_speech_embeddings(self, speech_feat, speech_position_ids, speech_masks=None):
-        output = self.speech_embeddings(speech_feat, speech_position_ids, speech_masks)
+    def _compute_speech_embeddings(self, speech_feat, speech_position_ids, speech_masks=None,
+                                            speech_type_ids=None):
+        if not self.use_visual:
+            # logger.info('[Debug] no visual so use bert-type-token embedding for speech')
+            speech_type_ids = torch.ones_like(speech_feat[:, :, 0].long())
+            # share the embedding defined in txtEmbedding
+            speech_type_embeddings = self.embeddings.token_type_embeddings(
+                speech_type_ids)
+        else:
+            speech_type_embeddings = None
+        output = self.speech_embeddings(speech_feat, speech_position_ids, \
+                                        speech_type_embeddings, speech_masks)
         return output
 
 
@@ -403,8 +418,10 @@ class UniterModel(UniterPreTrainedModel):
         # align back to most compact input
         gather_index = gather_index.unsqueeze(-1).expand(
             -1, -1, self.config.hidden_size)
+        # print('[Debug] before gather embedding input {}'.format(torch.cat([txt_emb, speech_emb], dim=1).shape))
         embedding_output = torch.gather(torch.cat([txt_emb, speech_emb], dim=1),
                                         dim=1, index=gather_index)
+        # print('[Debug] after gather embedding_output {}'.format(embedding_output.shape))
         return embedding_output
     
     def _compute_speech_img_txt_embeddings(self, input_ids, position_ids,
@@ -445,36 +462,53 @@ class UniterModel(UniterPreTrainedModel):
         extended_attention_mask = (1.0 - extended_attention_mask) * -10000.0
 
         # 当只 finetune top layers的时候, embeddings 也都要 fixed.
-        # embedding layer
-        if self.use_visual and not self.use_speech:
-            assert img_feat is not None
-            assert speech_feat is None
-            embedding_output = self._compute_img_txt_embeddings(
-                input_ids, position_ids,
-                img_feat, img_position_ids,
-                gather_index, img_masks, txt_type_ids, 
-                img_type_ids)
-        elif self.use_speech and not self.use_visual:
-            assert img_feat is None
-            assert speech_feat is not None
-            embedding_output = self._compute_speech_txt_embeddings(
-                input_ids, position_ids,
-                speech_feat, speech_position_ids,
-                gather_index, speech_masks, txt_type_ids)
-        elif self.use_speech and self.use_visual:
-            assert img_feat is not None
-            assert speech_feat is not None
-            embedding_output = self._compute_speech_img_txt_embeddings(
-                    input_ids, position_ids,
-                    img_feat, img_position_ids,
-                    speech_feat, speech_position_ids,
-                    gather_index,
-                    speech_masks, img_masks, 
-                    img_type_ids, txt_type_ids)
+        if frozen_en_layers > 0:
+            with torch.no_grad():
+                if self.use_visual and not self.use_speech:
+                    embedding_output = self._compute_img_txt_embeddings(
+                        input_ids, position_ids,
+                        img_feat, img_position_ids,
+                        gather_index, img_masks, txt_type_ids, 
+                        img_type_ids)
+                elif self.use_speech and not self.use_visual:
+                    embedding_output = self._compute_speech_txt_embeddings(
+                        input_ids, position_ids,
+                        speech_feat, speech_position_ids,
+                        gather_index, speech_masks, txt_type_ids)
+                elif self.use_speech and self.use_visual:
+                    embedding_output = self._compute_speech_img_txt_embeddings(
+                            input_ids, position_ids,
+                            img_feat, img_position_ids,
+                            speech_feat, speech_position_ids,
+                            gather_index,
+                            speech_masks, img_masks, 
+                            img_type_ids, txt_type_ids)
+                else:
+                    logger.info('[Error] some error in UniterModel')
+                    exit(0)
         else:
-            logger.info('[Error] some error in UniterModel')
-            exit(0)
-        
+            if self.use_visual and not self.use_speech:
+                    embedding_output = self._compute_img_txt_embeddings(
+                        input_ids, position_ids,
+                        img_feat, img_position_ids,
+                        gather_index, img_masks, txt_type_ids, 
+                        img_type_ids)
+            elif self.use_speech and not self.use_visual:
+                embedding_output = self._compute_speech_txt_embeddings(
+                    input_ids, position_ids,
+                    speech_feat, speech_position_ids,
+                    gather_index, speech_masks, txt_type_ids)
+            elif self.use_speech and self.use_visual:
+                embedding_output = self._compute_speech_img_txt_embeddings(
+                        input_ids, position_ids,
+                        img_feat, img_position_ids,
+                        speech_feat, speech_position_ids,
+                        gather_index,
+                        speech_masks, img_masks, 
+                        img_type_ids, txt_type_ids)
+            else:
+                logger.info('[Error] some error in UniterModel')
+                exit(0)
         encoded_layers = self.encoder(
             embedding_output, extended_attention_mask,
             frozen_en_layers=frozen_en_layers,

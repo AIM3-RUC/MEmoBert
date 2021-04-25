@@ -66,31 +66,31 @@ class MlmDataset(DetectFeatTxtTokDataset):
         0's padded so that (L + num_bb) % 8 == 0
         """
         example = super().__getitem__(i)
-
         # text input
         input_ids, txt_labels = self.create_mlm_io(example['input_ids'])
-
-        # img input Jinming remove the norm-bbx fts
-        img_feat, num_bb = self._get_img_feat(example['img_fname'], self.img_shape)
-        self.img_shape = img_feat.shape[1:]
         attn_masks = torch.ones(len(input_ids), dtype=torch.long)
+        # print('[Debug] item {} text attn mask {} {}'.format(i, attn_masks, attn_masks.shape))
 
         if self.img_db:
+            # print(f'[Debug] item {i} img is not None')
             img_feat, num_bb = self._get_img_feat(example['img_fname'], self.img_shape)
             img_attn_masks = torch.ones(num_bb, dtype=torch.long)
             self.img_shape = img_feat.shape[1:]
             attn_masks = torch.cat((attn_masks, img_attn_masks))
         else:
+            # print(f'[Debug] item img {i} is None')
             img_feat = None
         
         if self.speech_db:
+            # print(f'[Debug] item {i} speech is not None')
             speech_feat, num_frame = self._get_speech_feat(example['img_fname'])
             speech_attn_masks = torch.ones(num_frame, dtype=torch.long)
             attn_masks = torch.cat((attn_masks, speech_attn_masks))
+            # print('[Debug] item {} speech attn mask {} and final attn mask {}'.format(i, speech_attn_masks.shape, attn_masks.shape))
         else:
             speech_feat = None
 
-        return input_ids, img_feat, speech_feat, attn_masks, txt_labels
+        return input_ids, img_feat, speech_feat, attn_masks, txt_labels, i
         
     def create_mlm_io(self, input_ids):
         # print('[Debug] In MLM, the original input ids: {}'.format(input_ids))
@@ -107,7 +107,10 @@ class MlmDataset(DetectFeatTxtTokDataset):
 
 def mlm_collate(inputs):
     """
-    Jinming: modify to img_position_ids
+    Jinming: 关于 attn_masks 和 gather-index.
+    attn_masks 是所有 a+b 的最大长度, 而 input-ids 是所有text的最大长度pad而成,  speech-feat 是所有speech的最大长度pad而成.
+    所以attn-mask 不等于 cat([pad-input-ids, pad-speech-feat]). 
+    因此需要 gather-index 在模型 forward 的时候挑选有用的索引. 因此 gather-index 跟 attn-mask 保持一致.
     Return:
     :input_ids    (n, max_L) padded with 0
     :position_ids (n, max_L) padded with 0
@@ -118,8 +121,8 @@ def mlm_collate(inputs):
     :attn_masks   (n, max_{L + num_bb}) padded with 0
     :txt_labels   (n, max_L) padded with -1
     """
-    (input_ids, img_feats, speech_feats, attn_masks, txt_labels) = map(list, unzip(inputs))
-
+    (input_ids, img_feats, speech_feats, attn_masks, txt_labels, example_idxs) = map(list, unzip(inputs))
+    # print(f'[Debug] batch indexs {example_idxs}')
     # text batches
     txt_lens = [i.size(0) for i in input_ids]
     input_ids = pad_sequence(input_ids, batch_first=True, padding_value=0)
@@ -127,14 +130,14 @@ def mlm_collate(inputs):
     position_ids = torch.arange(0, input_ids.size(1), dtype=torch.long).unsqueeze(0)
     # multimodality atten mask
     attn_masks = pad_sequence(attn_masks, batch_first=True, padding_value=0)
+    # print('[Debug] batch attn_masks {} {}'.format(attn_masks, attn_masks.shape))
+    # print('[Debug] batch padding input_ids {} {}'.format(input_ids, input_ids.shape))
 
     if img_feats[0] is not None:
         ## image batches
         num_bbs = [f.size(0) for f in img_feats]
-        # Jinming: just for debug will restore above line for just text input.
-        # num_bbs = [0 for f in img_feats]
         img_feat = pad_tensors(img_feats, num_bbs)
-        # print('[Debug] the batch input {}'.format(img_feat.shape)) # (n, max_num_nbb, dim)
+        # print('[Debug] batch padding img input {}'.format(img_feat.shape)) # (n, max_num_nbb, dim)
         img_position_ids = torch.arange(0, max(num_bbs), dtype=torch.long).unsqueeze(0)      
     else:
         img_feat, num_bbs, img_position_ids = None, None, None
@@ -143,15 +146,16 @@ def mlm_collate(inputs):
         ## speech batches
         num_frames = [f.size(0) for f in speech_feats]
         speech_feat = pad_tensors(speech_feats, num_frames)
-        # print('[Debug] the batch input {}'.format(img_feat.shape)) # (n, max_num_nbb, dim)
+        # print('[Debug] batch padding speech input {}'.format(speech_feat.shape)) # (n, max_num_frame, dim)
         speech_position_ids = torch.arange(0, max(num_frames), dtype=torch.long).unsqueeze(0)    
     else:
         speech_feat, num_frames, speech_position_ids = None, None, None
 
     bs, max_tl = input_ids.size()
     out_size = attn_masks.size(1)
-    # multimodality atten mask
+    # multi-modality atten mask
     gather_index = get_gather_index(txt_lens, num_bbs, num_frames, bs, max_tl, out_size)
+    # print('[Debug] batch gather_index {} {}'.format(gather_index, gather_index.shape))
 
     batch = {'input_ids': input_ids,
              'position_ids': position_ids,

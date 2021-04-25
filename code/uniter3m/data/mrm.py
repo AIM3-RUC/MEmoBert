@@ -170,6 +170,8 @@ class MrcDataset(DetectFeatTxtTokDataset):
         img_feat = torch.tensor(img_dump['features'])
         img_soft_label = torch.tensor(img_dump['soft_labels'])
         if num_bb == 0:
+            if img_shape is None:
+                img_shape = torch.zeros(342)
             img_feat = torch.zeros(img_shape).unsqueeze(0)
             img_soft_label = torch.zeros(8).unsqueeze(0)
             num_bb = 1

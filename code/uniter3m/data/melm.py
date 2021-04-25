@@ -77,20 +77,16 @@ class MelmDataset(DetectFeatTxtTokDataset):
         # text input
         input_ids, txt_labels = self.create_melm_io(example['input_ids'], example['emo_input_ids'])
 
-        # Jinming: add for emo_type_ids (0~4), 
-        # 0 is the no-emotion-words
+        # Jinming: add for emo_type_ids (0~4), 0 is the no-emotion-words
         if example.get('emo_type_ids') is not None:
-            # for emotion type embedding
             emo_type_ids = torch.tensor([0] + example['emo_type_ids'] + [0])
             # generate the labels for multitask emotion, 保持跟 txt_labels 一致，txt_labels 中为 -1 的位置同样置为-1.
             txt_emo_labels = torch.where(txt_labels<0, txt_labels, emo_type_ids)
             # print("[Debug] txt_labels {}".format(txt_labels))
-            # print("[Debug] emo_type_ids {}".format(emo_type_ids))
             # print("[Debug] txt_emo_labels {}".format(txt_emo_labels))
         else:
             txt_emo_labels = None
 
-        # img input Jinming remove the norm-bbx fts
         img_feat, num_bb = self._get_img_feat(example['img_fname'], self.img_shape)
         self.img_shape = img_feat.shape[1:]
 

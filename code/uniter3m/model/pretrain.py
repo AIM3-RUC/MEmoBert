@@ -61,20 +61,24 @@ class EmoMelmClassification(nn.Module):
 
 class UniterForPretraining(UniterPreTrainedModel):
     """ UNITER pretraining """
-    def __init__(self, config, img_dim, speech_dim, img_label_dim, use_speech, use_visual):
+    def __init__(self, config, img_dim, speech_dim, img_label_dim, use_visual, use_speech):
         super().__init__(config)
         self.config = config
         self.use_speech = use_speech
         self.use_visual = use_visual
-        self.uniter = UniterModel(config, img_dim, speech_dim, use_speech, use_visual)
+        self.uniter = UniterModel(config, img_dim, speech_dim, use_visual=self.use_visual, 
+                                    use_speech=self.use_speech)
         self.cls = BertOnlyMLMHead(
             config, self.uniter.embeddings.word_embeddings.weight)
-        self.feat_regress = RegionFeatureRegression(
-            config.hidden_size, img_dim,
-            self.uniter.img_embeddings.img_linear.weight)
-        self.region_classifier = RegionClassification(
-            config.hidden_size, img_label_dim)
-        
+            
+        if self.use_visual:
+            print('[Debug] use visual feature regression and region classification')
+            self.feat_regress = RegionFeatureRegression(
+                config.hidden_size, img_dim,
+                self.uniter.img_embeddings.img_linear.weight)
+            self.region_classifier = RegionClassification(
+                config.hidden_size, img_label_dim)
+            
         # Jinming: add for melm multi-task
         if config.melm_multitask is True:
             print("Use the melm multitask")
@@ -113,6 +117,12 @@ class UniterForPretraining(UniterPreTrainedModel):
             mrfr_feat_target = batch['feat_targets']
             return self.forward_mrfr(batch, img_masks, img_mask_tgt,
                                      mrfr_feat_target, compute_loss)
+        elif task == 'msrfr':
+            speech_mask_tgt = batch['speech_mask_tgt']
+            speech_masks = batch['speech_masks']
+            msrfr_feat_target = batch['feat_targets']
+            return self.forward_msrfr(batch, speech_masks, speech_mask_tgt,
+                                     msrfr_feat_target, compute_loss)
         elif task == 'itm':
             targets = batch['targets']
             ot_inputs = batch['ot_inputs']
@@ -208,6 +218,24 @@ class UniterForPretraining(UniterPreTrainedModel):
             return mrfr_loss
         else:
             return prediction_feat
+    
+    def forward_msrfr(self, batch, speech_masks, speech_mask_tgt,
+                     feat_targets, compute_loss=True):
+
+        sequence_output = self.uniter(batch, output_all_encoded_layers=False,
+                                      speech_masks=speech_masks)
+        # only compute masked tokens for better efficiency
+        masked_output = self._compute_masked_hidden(sequence_output,
+                                                    speech_mask_tgt)
+        prediction_feat = self.feat_regress(masked_output)
+
+        if compute_loss:
+            msrfr_loss = F.mse_loss(prediction_feat, feat_targets,
+                                   reduction='none')
+            return msrfr_loss
+        else:
+            return prediction_feat
+
 
     def forward_itm(self, batch, targets, ot_inputs,
                     compute_loss=True):

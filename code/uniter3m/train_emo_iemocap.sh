@@ -29,14 +29,41 @@ corpus_name='iemocap'
 #                 done
 #         done
 # done
-for norm_type in selfnorm movienorm; 
+# for norm_type in selfnorm movienorm; 
+# do
+#         for lr in 5e-5;
+#         do
+#                 for cvNo in `seq 1 10`;
+#                 do
+#                 num_train_steps=3000
+#                 valid_steps=300
+#                 train_batch_size=32
+#                 inf_batch_size=32
+#                 frozens=0
+#                 CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
+#                         --cvNo ${cvNo} --model_config config/uniter-base-emoword_nomultitask.json \
+#                         --cls_num 4 --use_visual --use_speech \
+#                         --config config/train-emo-${corpus_name}-openface_${norm_type}-base-2gpu.json \
+#                         --checkpoint /data7/emobert/resources/pretrained/uniter-base-uncased-init.pt \
+#                         --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
+#                         --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps ${valid_steps} \
+#                         --conf_th 0.0 --max_bb 36 --min_bb 10 \
+#                         --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
+#                         --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
+#                         --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
+#                         --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-direct_bert_base-lr${lr}_train${num_train_steps}_${norm_type}_trnval
+#                 done
+#         done
+# done
+
+for norm_type in selfnorm; 
 do
-        for lr in 5e-5;
+        for lr in 1e-5;
         do
                 for cvNo in `seq 1 10`;
                 do
-                num_train_steps=3000
-                valid_steps=300
+                num_train_steps=1500
+                valid_steps=150
                 train_batch_size=32
                 inf_batch_size=32
                 frozens=0
@@ -44,14 +71,14 @@ do
                         --cvNo ${cvNo} --model_config config/uniter-base-emoword_nomultitask.json \
                         --cls_num 4 --use_visual --use_speech \
                         --config config/train-emo-${corpus_name}-openface_${norm_type}-base-2gpu.json \
-                        --checkpoint /data7/emobert/resources/pretrained/uniter-base-uncased-init.pt \
+                        --checkpoint  /data7/emobert/exp/task_pretrain/${corpus_name}_basedon-nomask_movies_v1v2v3_uniter3m_4tasks_lr5e5_bs1024-4tasks_maxbb36_faceth0.0_trnval/${cvNo}/ckpt/model_step_1500.pt \
                         --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
-                        --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps ${valid_steps} \
+                        --learning_rate ${lr} --lr_sched_type 'linear' \
                         --conf_th 0.0 --max_bb 36 --min_bb 10 \
                         --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
                         --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
                         --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-                        --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-direct_bert_base-lr${lr}_train${num_train_steps}_${norm_type}_trnval
+                        --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-taskpretrain-movies_v1v2v3_uniter3m_4tasks_lr5e5_bs1024-4tasks_maxbb36_faceth0.0_trnval-lr${lr}_train${num_train_steps}_${norm_type}_trnval
                 done
         done
 done

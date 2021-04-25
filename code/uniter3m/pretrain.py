@@ -28,7 +28,7 @@ from code.uniter3m.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   TxtTokLmdb, ImageLmdbGroup, SpeechLmdbGroup, ConcatDatasetWithLens,
                   MlmDataset, MelmDataset, MrfrDataset, MrcDataset,
                   mlm_collate, melm_collate, mrfr_collate, mrc_collate,
-                  ItmDataset, itm_collate)
+                  ItmDataset, itm_collate, MsrfrDataset, msrm)
 
 from code.uniter3m.model.pretrain import UniterForPretraining
 from code.uniter3m.optim import get_lr_sched
@@ -47,7 +47,8 @@ def build_dataloader(dataset, collate_fn, is_train, opts):
     else:
         batch_size = opts.val_batch_size
     sampler = TokenBucketSampler(dataset.lens, bucket_size=BUCKET_SIZE,
-                                 batch_size=batch_size, droplast=is_train)
+                                 batch_size=batch_size, droplast=is_train,
+                                 size_multiple=4)
     loader = DataLoader(dataset, batch_sampler=sampler,
                         num_workers=opts.n_workers, pin_memory=opts.pin_mem,
                         collate_fn=collate_fn)
@@ -70,7 +71,14 @@ def build_dataloader_itm(dataset, collate_fn, is_train, opts):
 
 def build_mlm_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:
-        datasets = [MlmDataset(t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+        if opts.use_speech and opts.use_visual:
+            datasets = [MlmDataset(t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif opts.use_speech and not opts.use_visual:
+            datasets = [MlmDataset(t, None, s) for t, s in zip(txt_db, speech_db)]
+        elif not opts.use_speech and opts.use_visual:
+            datasets = [MlmDataset(t, i, None) for t, i in zip(txt_db, img_db)]
+        else:
+            LOGGER.info('[Error] Error mlm datasets')
         dataset = ConcatDatasetWithLens(datasets)
     else:
         dataset = MlmDataset(txt_db, img_db, speech_db)
@@ -79,7 +87,14 @@ def build_mlm_dataset(txt_db, img_db, speech_db, is_train, opts):
 
 def build_melm_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:
-        datasets = [MelmDataset(opts.melm_prob, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+        if opts.use_speech and opts.use_visual:
+            datasets = [MelmDataset(opts.melm_prob, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif opts.use_speech and not opts.use_visual:
+            datasets = [MelmDataset(opts.melm_prob, t, None, s) for t, s in zip(txt_db, speech_db)]
+        elif not opts.use_speech and opts.use_visual:
+            datasets = [MelmDataset(opts.melm_prob, t, i, None) for t, i in zip(txt_db, img_db)]
+        else:
+            LOGGER.info('[Error] Error melm datasets')
         dataset = ConcatDatasetWithLens(datasets)
     else:
         dataset = MelmDataset(opts.melm_prob, txt_db, img_db, speech_db)
@@ -88,12 +103,14 @@ def build_melm_dataset(txt_db, img_db, speech_db, is_train, opts):
 
 def build_mrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:
-        if speech_db is not None:
-            datasets = [MrfrDataset(opts.mrm_prob, t, i, s)
-                        for t, i, s in zip(txt_db, img_db, speech_db)]
+        if opts.use_speech and opts.use_visual:
+            datasets = [MrfrDataset(opts.mrm_prob, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif opts.use_speech and not opts.use_visual:
+            datasets = [MrfrDataset(opts.mrm_prob, t, None, s) for t, s in zip(txt_db, speech_db)]
+        elif not opts.use_speech and opts.use_visual:
+            datasets = [MrfrDataset(opts.mrm_prob, t, i, None) for t, i in zip(txt_db, img_db)]
         else:
-            datasets = [MrfrDataset(opts.mrm_prob, t, i)
-                        for t, i in zip(txt_db, img_db)]
+            LOGGER.info('[Error] Error mrfr datasets')
         dataset = ConcatDatasetWithLens(datasets)
     else:
         dataset = MrfrDataset(opts.mrm_prob, txt_db, img_db, speech_db)
@@ -103,12 +120,14 @@ def build_mrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
 
 def build_mrc_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:
-        if speech_db is not None:
-            datasets = [MrcDataset(opts.mrm_prob, t, i, s)
-                        for t, i, s in zip(txt_db, img_db, speech_db)]
+        if opts.use_speech and opts.use_visual:
+            datasets = [MrcDataset(opts.mrm_prob, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif opts.use_speech and not opts.use_visual:
+            datasets = [MrcDataset(opts.mrm_prob, t, None, s) for t, s in zip(txt_db, speech_db)]
+        elif not opts.use_speech and opts.use_visual:
+            datasets = [MrcDataset(opts.mrm_prob, t, i, None) for t, i in zip(txt_db, img_db)]
         else:
-            datasets = [MrcDataset(opts.mrm_prob, t, i)
-                        for t, i, s in zip(txt_db, img_db)]
+            LOGGER.info('[Error] Error mrc datasets')
         dataset = ConcatDatasetWithLens(datasets)
     else:
         dataset = MrcDataset(opts.mrm_prob, txt_db, img_db, speech_db)
@@ -118,8 +137,14 @@ def build_mrc_dataset(txt_db, img_db, speech_db, is_train, opts):
 
 def build_itm_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:
-        datasets = [ItmDataset(t, i, s, opts.itm_neg_prob)
-                    for t, i, s in zip(txt_db, img_db, speech_db)]
+        if opts.use_speech and opts.use_visual:
+            datasets = [ItmDataset(t, i, s, opts.itm_neg_prob) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif opts.use_speech and not opts.use_visual:
+            datasets = [ItmDataset(t, None, s, opts.itm_neg_prob) for t, s in zip(txt_db, speech_db)]
+        elif not opts.use_speech and opts.use_visual:
+            datasets = [ItmDataset(t, i, None, opts.itm_neg_prob) for t, i in zip(txt_db, img_db)]
+        else:
+            LOGGER.info('[Error] Error itm datasets')
         dataset = ConcatDatasetWithLens(datasets)
     else:
         dataset = ItmDataset(txt_db, img_db, speech_db, opts.itm_neg_prob)
@@ -128,37 +153,35 @@ def build_itm_dataset(txt_db, img_db, speech_db, is_train, opts):
 
 
 def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_dbs=None):
-    if all_img_dbs is None:
+    if all_img_dbs is None and opts.use_visual:
+        LOGGER.info('[Debug] Use ImageLmdbGroup')
         all_img_dbs = ImageLmdbGroup(opts.conf_th, opts.max_bb, opts.min_bb, opts.compressed_db)
     
-    if all_speech_dbs is None:
+    if all_speech_dbs is None and opts.use_speech:
+        LOGGER.info('[Debug] Use SpeechLmdbGroup')
         all_speech_dbs = SpeechLmdbGroup(opts.speech_conf_th, opts.max_frames, opts.min_frames,
                                        opts.compressed_db)
     dataloaders = {}
     for dset in datasets:
         if is_train:
             assert len(dset['tasks']) == len(dset['mix_ratio'])
-            if  dset.get('img') is not None:
-                LOGGER.info('[Info] Using img modality')
+            if  dset.get('img') is not None and opts.use_visual:
                 assert len(dset['db']) == len(dset['img'])
                 img_db = [all_img_dbs[path] for path in dset['img']]
             else:
                 img_db = None
-            if dset.get('speech') is not None:
-                LOGGER.info('[Info] Using speech modality')
+            if dset.get('speech') is not None and opts.use_speech:
                 assert len(dset['db']) == len(dset['speech'])
                 speech_db = [all_speech_dbs[path] for path in dset['speech']]
             else:
                 speech_db = None
         else:
-            if dset.get('img') is not None:
-                LOGGER.info('[Info] Using Img modality')
+            if dset.get('img') is not None and opts.use_visual:
                 assert len(dset['db']) == len(dset['img']) == 1
                 img_db = all_img_dbs[dset['img'][0]]
             else:
                 img_db = None
-            if dset.get('speech') is not None:
-                LOGGER.info('[Info] Using Speech modality')
+            if dset.get('speech') is not None and opts.use_speech:
                 speech_db = all_speech_dbs[dset['speech'][0]]
             else:
                 speech_db = None
@@ -166,13 +189,11 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
         for i, t in enumerate(dset['tasks']):
             task = f'{t}_{dset["name"]}'
             if is_train:
-                LOGGER.info(f"Loading {task} train dataset "
-                            f"{dset['db']}, {[img.img_dir for img in img_db]}")
+                LOGGER.info(f"Loading {task} train dataset {dset['db']}")
                 txt_db = [TxtTokLmdb(path, opts.max_txt_len)
                           for path in dset['db']]
             else:
-                LOGGER.info(f"Loading {task} validation dataset, "
-                            f"{dset['db']}, {img_db.img_dir}")
+                LOGGER.info(f"Loading {task} train dataset {dset['db']}")
                 txt_db = TxtTokLmdb(dset['db'][0], -1)
 
             if task.startswith('mlm'):
@@ -260,8 +281,8 @@ def main(opts):
         checkpoint = {}
     model = UniterForPretraining.from_pretrained(
         opts.model_config, checkpoint, img_dim=opts.IMG_DIM, speech_dim=opts.Speech_DIM, 
-        img_label_dim=IMG_LABEL_DIM,
-        use_speech=opts.use_speech, use_visual=opts.use_visual)
+        img_label_dim=IMG_LABEL_DIM, use_visual=opts.use_visual, use_speech=opts.use_speech)
+        
     model.to(device)
     model.train()
     # make sure every process has same model parameters in the beginning
@@ -708,7 +729,7 @@ if __name__ == "__main__":
     if not exists(args.output_dir):
         print('[Info] the output dir {}'.format(args.output_dir))
         os.makedirs(args.output_dir)
-
+    print('[Debug] number works {}'.format(args.n_workers))
     IMG_DIM = args.IMG_DIM
     Speech_DIM = args.Speech_DIM
     # options safe guard
