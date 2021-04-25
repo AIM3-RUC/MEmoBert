@@ -72,12 +72,18 @@ class UniterForPretraining(UniterPreTrainedModel):
             config, self.uniter.embeddings.word_embeddings.weight)
             
         if self.use_visual:
-            print('[Debug] use visual feature regression and region classification')
+            print('[Debug] use visual feature regression and region classification!!!')
             self.feat_regress = RegionFeatureRegression(
                 config.hidden_size, img_dim,
                 self.uniter.img_embeddings.img_linear.weight)
             self.region_classifier = RegionClassification(
                 config.hidden_size, img_label_dim)
+        
+        if self.use_speech:
+            print('[Debug] use speech feature regression!!!')
+            self.speech_feat_regress = RegionFeatureRegression(
+                config.hidden_size, speech_dim,
+                self.uniter.speech_embeddings.speech_linear.weight)
             
         # Jinming: add for melm multi-task
         if config.melm_multitask is True:
@@ -227,7 +233,7 @@ class UniterForPretraining(UniterPreTrainedModel):
         # only compute masked tokens for better efficiency
         masked_output = self._compute_masked_hidden(sequence_output,
                                                     speech_mask_tgt)
-        prediction_feat = self.feat_regress(masked_output)
+        prediction_feat = self.speech_feat_regress(masked_output)
 
         if compute_loss:
             msrfr_loss = F.mse_loss(prediction_feat, feat_targets,

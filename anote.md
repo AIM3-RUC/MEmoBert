@@ -63,11 +63,14 @@ MELD EmoList = {0: 'neutral', 1:'surprise', 2: 'fear', 3: 'sadness', 4: 'joy', 5
     /data7/emobert/exp/evaluation/MELD/txt_db/train_emowords_emotype.db
     /data7/emobert/exp/evaluation/MELD/txt_db/val_emowords_emotype.db
     /data7/emobert/exp/evaluation/MELD/txt_db/test_emowords_emotype.db
-    MELD 语音特征数据: --pending
+    MELD 语音特征数据: --down
 
-IEMOCAP EmoList = []: 
+## 升级torch版本
+$ mkdir horovod-docker-gpu
+$ wget -O horovod-docker-gpu/Dockerfile https://raw.githubusercontent.com/horovod/horovod/master/Dockerfile.gpu
+$ docker build -t horovod:latest horovod-docker-gpu
+以上的方式太慢了，还是从百度服务器上直接进行下载.
 
-MSP EmoList = []: 
 
 ## 下游任务的原始图片数据的预处理
 if dataset_name == 'iemocap':
@@ -137,7 +140,6 @@ https://github.com/NVIDIA/apex/issues/318
 [1,0]<stdout>:[Debug empty] txt 9 img 0 的时候会报错，添加异常处理机制～
 /data4/MEmoBert/code/uniter/data/emocls.py
 
-
 ## 修改记录
 1. 由于Faces之间也是有顺序的，所以需要进行 name2nbb 简单的取多少个，而是应该根据阈值过滤相应位置的数据, 重写数据获取的代码,
 不用，因为构建img-db的时候已经过滤了，所有 img2nbb的个数跟保存的特征是一致的.
@@ -203,7 +205,6 @@ Transformer: AdamW + 5e−5 + weight decay 0.01
 学习视觉任务有三种方式，分别是 MRCKL，MRFR，NCE-Loss. 
 由于联合训练之后 MRCKL，MRFR，NCE-LOSS 就都无法使用。
 目前考虑的是去掉 ITM 任务，那么就只剩 MLM 和 MELM 任务了。
-Frame Order method.
 
 ## Uniter3Flow 的联合训练
 这种训练方式相比之前UNiter的训练需要更多的训练时间。
@@ -238,6 +239,7 @@ https://github.com/linjieli222/HERO/blob/f938515424b5f3249fc1d2e7f0373f64112a652
 https://github.com/lucidrains/vit-pytorch/blob/main/vit_pytorch/vit.py#L88
 
 FOM 任务是如何做的？？--Going
+
 
 '''
 

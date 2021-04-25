@@ -5,10 +5,12 @@
 set -e
 # img_dir=/data7/emobert/norm_comparE_npzs/movies_v2_5mean
 # output_dir=/data7/emobert/norm_comparE_db/movies_v2_5mean
+img_dir=/data7/emobert/wav2vec_feature_npzs/movies_v2_asr_3mean
+output_dir=/data7/emobert/wav2vec_db/movies_v2_asr_3mean
 # img_dir=/data7/emobert/exp/evaluation/IEMOCAP/feature/norm_comparE_npzs_5mean/
 # output_dir=/data7/emobert/exp/evaluation/IEMOCAP/feature/norm_comparE_db_5mean/
-img_dir=/data7/emobert/exp/evaluation/MSP/feature/norm_comparE_npzs_5mean/
-output_dir=/data7/emobert/exp/evaluation/MSP/feature/norm_comparE_db_5mean/
+# img_dir=/data7/emobert/exp/evaluation/MSP/feature/norm_comparE_npzs_5mean/
+# output_dir=/data7/emobert/exp/evaluation/MSP/feature/norm_comparE_db_5mean/
 # img_dir=/data7/emobert/exp/evaluation/MELD/feature/norm_comparE_npzs_5mean/
 # output_dir=/data7/emobert/exp/evaluation/MELD/feature/norm_comparE_db_5mean/
 echo "convrting image features ..."

@@ -28,7 +28,7 @@ from code.uniter3m.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   TxtTokLmdb, ImageLmdbGroup, SpeechLmdbGroup, ConcatDatasetWithLens,
                   MlmDataset, MelmDataset, MrfrDataset, MrcDataset,
                   mlm_collate, melm_collate, mrfr_collate, mrc_collate,
-                  ItmDataset, itm_collate, MsrfrDataset, msrm)
+                  ItmDataset, itm_collate, MsrfrDataset, msrfr_collate)
 
 from code.uniter3m.model.pretrain import UniterForPretraining
 from code.uniter3m.optim import get_lr_sched
@@ -105,8 +105,6 @@ def build_mrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:
         if opts.use_speech and opts.use_visual:
             datasets = [MrfrDataset(opts.mrm_prob, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
-        elif opts.use_speech and not opts.use_visual:
-            datasets = [MrfrDataset(opts.mrm_prob, t, None, s) for t, s in zip(txt_db, speech_db)]
         elif not opts.use_speech and opts.use_visual:
             datasets = [MrfrDataset(opts.mrm_prob, t, i, None) for t, i in zip(txt_db, img_db)]
         else:
@@ -117,6 +115,19 @@ def build_mrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
 
     return dataset, mrfr_collate
 
+def build_msrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
+    if is_train:
+        if opts.use_speech and opts.use_visual:
+            datasets = [MsrfrDataset(opts.msrm_prob, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif opts.use_speech and not opts.use_visual:
+            datasets = [MsrfrDataset(opts.msrm_prob, t, None, s) for t, s in zip(txt_db, speech_db)]
+        else:
+            LOGGER.info('[Error] Error mrfr datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = MsrfrDataset(opts.msrm_prob, txt_db, img_db, speech_db)
+
+    return dataset, msrfr_collate
 
 def build_mrc_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:
@@ -202,6 +213,8 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
                 dataset = build_melm_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('mrfr'):
                 dataset = build_mrfr_dataset(txt_db, img_db, speech_db, is_train, opts)
+            elif task.startswith('msrfr'):
+                dataset = build_msrfr_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('mrc'):
                 dataset = build_mrc_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('itm'):
@@ -420,6 +433,8 @@ def validate(model, val_dataloaders):
             val_log = validate_melm(model, loader)
         elif task.startswith('mrfr') and args.use_visual:
             val_log = validate_mrfr(model, loader)
+        elif task.startswith('msrfr'):
+            val_log = validate_msrfr(model, loader)
         elif task.startswith('mrc') and args.use_visual:
             val_log = validate_mrc(model, loader, task)
         elif task.startswith('itm'):
@@ -543,6 +558,25 @@ def validate_mrfr(model, val_loader):
                 f"loss: {val_loss:.2f}")
     return val_log
 
+@torch.no_grad()
+def validate_msrfr(model, val_loader):
+    LOGGER.info("start running MSRFR validation...")
+    val_loss = 0
+    n_feat = 0
+    st = time()
+    for i, batch in enumerate(val_loader):
+        loss = model(batch, task='msrfr', compute_loss=True)
+        val_loss += loss.sum().item() / IMG_DIM
+        n_feat += batch['speech_mask_tgt'].sum().item()
+    val_loss = sum(all_gather_list(val_loss))
+    n_feat = sum(all_gather_list(n_feat))
+    tot_time = time()-st
+    val_loss /= n_feat
+    val_log = {'loss': val_loss,
+               'feat_per_s': n_feat/tot_time}
+    LOGGER.info(f"validation finished in {int(tot_time)} seconds, "
+                f"loss: {val_loss:.2f}")
+    return val_log
 
 @torch.no_grad()
 def validate_mrc(model, val_loader, task):
@@ -649,6 +683,8 @@ if __name__ == "__main__":
                              'in ITM training')
     parser.add_argument('--itm_ot_lambda', default=0.0, type=float,
                         help='weight of OT (optimal transport) loss (WRA)')
+    parser.add_argument('--msrm_prob', default=0.15, type=float,
+                        help='probability to mask in MSRM training(for speech)')
 
     # Prepro parameters
     parser.add_argument('--max_txt_len', type=int, default=60,

@@ -1,4 +1,5 @@
 import os, glob
+import shutil
 import numpy as np
 import h5py
 from copy import deepcopy
@@ -10,6 +11,8 @@ from toolz.sandbox import unzip
 import torch.nn.functional as F
 from preprocess.tasks.vision import DensefaceExtractor, FaceSelector
 from preprocess.extract_features import extract_denseface_trans_dir
+from preprocess.tasks.audio import ComParEExtractor, Wav2VecExtractor
+from preprocess.MELD.extract_denseface_comparE import extract_comparE_file, extract_features_h5, extract_wav2vec_file
 
 def extract_features_h5(extract_func, get_input_func, utt_ids, save_path):
     if os.path.exists(save_path):
@@ -155,15 +158,14 @@ def split_by_utt_id(in_h5f, utt_ids, save_path):
     
     out_h5f.close()
 
-def get_all_utt_ids():
-    target_root = '/data7/emobert/exp/evaluation/IEMOCAP/target/1'
+def get_all_utt_ids(target_root):
     ans = []
     for set_name in ['trn', 'val', 'tst']:
         utt_ids = np.load(os.path.join(target_root, f'{set_name}_int2name.npy')).tolist()
         utt_ids = list(map(lambda x: x[0].decode('utf8'), utt_ids))
         ans += utt_ids
     return ans
-    
+
 if __name__ == '__main__':
     
     # for face
@@ -196,10 +198,40 @@ if __name__ == '__main__':
         save_path = os.path.join(output_dir, name, 'all.h5')
         split_h5(save_path, save_root=os.path.join(output_dir, name))
 
-    if True:
+    if False:
         # for speech
         print('Start to split')
         output_dir = '/data7/emobert/exp/evaluation/IEMOCAP/feature/comparE_raw'
         save_path = os.path.join(output_dir, 'all.h5')
         split_h5(save_path, save_root=output_dir)
+
+    if False:
+        wavscp_path = '/data2/zjm/speech_emotion/IEMOCAP/data/wav.scp'
+        audio_dir = '/data7/emobert/exp/evaluation/IEMOCAP/audio/'
+        with open(wavscp_path) as f:
+            lines = f.readlines()
+        for line in lines:
+            path = line.strip('\n').split(' ')[1]
+            shutil.copy(path, audio_dir)
+
+    if True:
+        output_dir = '/data7/emobert/exp/evaluation/IEMOCAP/feature'
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        # for speech wav2vec2.0
+        use_asr_based_model = True
+        if use_asr_based_model:
+            audio_feature_dir = os.path.join(output_dir, 'wav2vec_raw_asr')
+        else:
+            audio_feature_dir = os.path.join(output_dir, 'wav2vec_raw')
+        if not os.path.exists(audio_feature_dir):
+            os.mkdir(audio_feature_dir)
+        wav2vec_model = Wav2VecExtractor(downsample=-1, gpu=0, use_asr_based_model=use_asr_based_model)
+        extract_wav2vec = partial(extract_wav2vec_file, extractor_model=wav2vec_model)
+        save_path = os.path.join(audio_feature_dir, 'all.h5')
+        audio_dir = '/data7/emobert/exp/evaluation/IEMOCAP/audio'
+        utt_ids = get_all_utt_ids(target_root='/data7/emobert/exp/evaluation/IEMOCAP/target/1')
+        print('total {} uttids'.format(len(utt_ids)))
+        extract_features_h5(extract_wav2vec, lambda x: os.path.join(audio_dir, x),  utt_ids, save_path)
+
     # PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=7 python extract_denseface.py openface/seetaface

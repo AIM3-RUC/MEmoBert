@@ -3,7 +3,6 @@
     "model_config": "config/uniter-base.json",
     "checkpoint": "/data7/emobert/resources/pretrained/uniter-base-uncased-init.pt",
     "mrm_prob": 0.15,
-    "msrm_prob": 0.15,
     "itm_neg_prob": 0.5,
     "itm_ot_lambda": 0.1,
     "max_txt_len": 30,
@@ -46,9 +45,10 @@
             "tasks": [
                 "itm",
                 "mlm",
-                "msrm"
+                "msrfr"
             ],
             "mix_ratio": [
+                1,
                 1,
                 1
             ]
@@ -66,9 +66,11 @@
             ],
             "tasks": [
                 "itm",
-                "mlm"
+                "mlm",
+                "msrfr"
             ],
             "mix_ratio": [
+                1,
                 1,
                 1
             ]
@@ -86,9 +88,11 @@
             ],
             "tasks": [
                 "itm",
-                "mlm"
+                "mlm",
+                "msrfr"
             ],
             "mix_ratio": [
+                1,
                 1,
                 1
             ]
@@ -108,7 +112,8 @@
             ],
             "tasks": [
                 "itm",
-                "mlm"         
+                "mlm",
+                "msrfr"         
             ]
         },
         {
@@ -124,7 +129,8 @@
             ],
             "tasks": [
                 "itm",
-                "mlm"          
+                "mlm",
+                "msrfr"          
             ]
         },
         {
@@ -140,7 +146,8 @@
             ],
             "tasks": [
                 "itm",
-                "mlm"         
+                "mlm",
+                "msrfr"         
             ]
         },
         {
@@ -156,7 +163,8 @@
             ],
             "tasks": [
                 "itm",
-                "mlm"          
+                "mlm",
+                "msrfr"          
             ]
         },
         {
@@ -172,7 +180,8 @@
             ],
             "tasks": [
                 "itm",
-                "mlm"          
+                "mlm",
+                "msrfr"          
             ]
         },
         {
@@ -188,7 +197,8 @@
             ],
             "tasks": [
                 "itm",
-                "mlm"           
+                "mlm",
+                "msrfr"           
             ]
         }
     ]

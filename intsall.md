@@ -19,8 +19,8 @@
         - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/
         - https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge/
     ssl_verify: true
-
     https://github.com/ChenRocks/UNITER/blob/master/Dockerfile
+
     + Bug4: ModuleNotFoundError: No module named 'fused_layer_norm_cuda' 
     https://github.com/NVIDIA/apex/issues/156#issuecomment-465301976
     Apex 的错误，重新安装CUDA版本的
@@ -34,7 +34,12 @@
     拉一个 horovod 镜像下来
     https://hub.docker.com/r/horovod/horovod/tags
     docker pull horovod/horovod:0.19.3-tf2.1.0-torch-mxnet1.6.0-py3.6-gpu
------
+
++ 方案4: 更新版本
+https://raw.githubusercontent.com/horovod/horovod/master/Dockerfile.gpu
+gpt-key error 问题
+https://blog.csdn.net/zhuiqiuzhuoyue583/article/details/90597499
+
 
 ## 数据准备
 由于训练集合的image太大，无法下载，所以自己抽取fastrcnn特征自己构建。

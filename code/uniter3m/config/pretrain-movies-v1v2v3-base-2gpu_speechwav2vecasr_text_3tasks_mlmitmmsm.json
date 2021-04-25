@@ -3,7 +3,6 @@
     "model_config": "config/uniter-base.json",
     "checkpoint": "/data7/emobert/resources/pretrained/uniter-base-uncased-init.pt",
     "mrm_prob": 0.15,
-    "msrm_prob": 0.15,
     "itm_neg_prob": 0.5,
     "itm_ot_lambda": 0.1,
     "max_txt_len": 30,
@@ -41,15 +40,16 @@
                 "/data7/emobert/img_db_nomask/movies_v1/fc"
             ],
             "speech": [
-                "/data7/emobert/wav2vec_db/movies_v1_3mean/"
+                "/data7/emobert/wav2vec_db/movies_v1_asr_3mean/"
             ],
             "tasks": [
                 "itm",
                 "mlm",
-                "msrm"
+                "msrfr"
             ],
             "mix_ratio": [
                 1,
+                2,
                 1
             ]
         },
@@ -62,14 +62,16 @@
                 "/data7/emobert/img_db_nomask/movies_v2/fc"
             ],
             "speech": [
-                "/data7/emobert/wav2vec_db/movies_v2_3mean/"
+                "/data7/emobert/wav2vec_db/movies_v2_asr_3mean/"
             ],
             "tasks": [
                 "itm",
-                "mlm"
+                "mlm",
+                "msrfr"
             ],
             "mix_ratio": [
                 1,
+                2,
                 1
             ]
         },
@@ -82,14 +84,16 @@
                 "/data7/emobert/img_db_nomask/movies_v3/fc"
             ],
             "speech": [
-                "/data7/emobert/wav2vec_db/movies_v3_3mean/"
+                "/data7/emobert/wav2vec_db/movies_v3_asr_3mean/"
             ],
             "tasks": [
                 "itm",
-                "mlm"
+                "mlm",
+                "msrfr"
             ],
             "mix_ratio": [
                 1,
+                2,
                 1
             ]
         }
@@ -104,11 +108,12 @@
                 "/data7/emobert/img_db_nomask/movies_v1/fc"
             ],
             "speech": [
-                "/data7/emobert/wav2vec_db/movies_v1_3mean/"
+                "/data7/emobert/wav2vec_db/movies_v1_asr_3mean/"
             ],
             "tasks": [
                 "itm",
-                "mlm"         
+                "mlm",
+                "msrfr"         
             ]
         },
         {
@@ -120,11 +125,12 @@
                 "/data7/emobert/img_db_nomask/movies_v1/fc"
             ],
             "speech": [
-                "/data7/emobert/wav2vec_db/movies_v1_3mean/"
+                "/data7/emobert/wav2vec_db/movies_v1_asr_3mean/"
             ],
             "tasks": [
                 "itm",
-                "mlm"          
+                "mlm",
+                "msrfr"          
             ]
         },
         {
@@ -136,11 +142,12 @@
                 "/data7/emobert/img_db_nomask/movies_v2/fc"
             ],
             "speech": [
-                "/data7/emobert/wav2vec_db/movies_v2_3mean/"
+                "/data7/emobert/wav2vec_db/movies_v2_asr_3mean/"
             ],
             "tasks": [
                 "itm",
-                "mlm"         
+                "mlm",
+                "msrfr"         
             ]
         },
         {
@@ -152,11 +159,12 @@
                 "/data7/emobert/img_db_nomask/movies_v2/fc"
             ],
             "speech": [
-                "/data7/emobert/wav2vec_db/movies_v2_3mean/"
+                "/data7/emobert/wav2vec_db/movies_v2_asr_3mean/"
             ],
             "tasks": [
                 "itm",
-                "mlm"          
+                "mlm",
+                "msrfr"          
             ]
         },
         {
@@ -168,11 +176,12 @@
                 "/data7/emobert/img_db_nomask/movies_v3/fc"
             ],
             "speech": [
-                "/data7/emobert/wav2vec_db/movies_v3_3mean/"
+                "/data7/emobert/wav2vec_db/movies_v3_asr_3mean/"
             ],
             "tasks": [
                 "itm",
-                "mlm"          
+                "mlm",
+                "msrfr"          
             ]
         },
         {
@@ -184,11 +193,12 @@
                 "/data7/emobert/img_db_nomask/movies_v3/fc"
             ],
             "speech": [
-                "/data7/emobert/wav2vec_db/movies_v3_3mean/"
+                "/data7/emobert/wav2vec_db/movies_v3_asr_3mean/"
             ],
             "tasks": [
                 "itm",
-                "mlm"           
+                "mlm",
+                "msrfr"           
             ]
         }
     ]

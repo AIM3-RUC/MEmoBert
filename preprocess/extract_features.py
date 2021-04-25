@@ -8,7 +8,7 @@ from tqdm import tqdm
 from functools import partial
 from toolz.sandbox import unzip
 from preprocess.utils import get_basename, mkdir
-from preprocess.tasks.audio import ComParEExtractor
+from preprocess.tasks.audio import ComParEExtractor, Wav2VecExtractor
 from preprocess.tasks.vision import DensefaceExtractor, FaceSelector
 from preprocess.tasks.text import *
 from preprocess.tools.get_emo_words import EmoLexicon
@@ -112,7 +112,15 @@ def extract_denseface_trans_dir(dir_path, denseface_model, face_selector):
 def extract_comparE_file(audio_path, extractor_model):
     # for one audio clip, audio_path = audio_dir + "No0079.The.Kings.Speech/2" 
     audio_path = audio_path + '.wav'
-    print(audio_path)
+    # print(audio_path)
+    feat = extractor_model(audio_path)
+    frame_nums = np.array(len(feat))
+    return {'feat': feat, 'frame_idx': frame_nums}
+
+def extract_wav2vec_file(audio_path, extractor_model):
+    # for one audio clip, audio_path = audio_dir + "No0079.The.Kings.Speech/2" 
+    audio_path = audio_path + '.wav'
+    # print(audio_path)
     feat = extractor_model(audio_path)
     frame_nums = np.array(len(feat))
     return {'feat': feat, 'frame_idx': frame_nums}
@@ -124,6 +132,9 @@ if __name__ == '__main__':
 
     extact_face_features = False
     extact_audio_features = True
+    audio_features_type = 'wav2vec'
+    use_asr_based_model=True
+    feature_audio_root = path_config.feature_audio_wav2vec_dir
 
     transcripts_dir = path_config.transcript_json_dir
     video_clip_dir = path_config.video_clip_dir
@@ -133,7 +144,6 @@ if __name__ == '__main__':
     meta_dir = path_config.meta_root
     moive_names_path = path_config.moive_names_path
     feature_face_root = path_config.feature_face_dir
-    feature_audio_root = path_config.feature_audio_dir
     tmp_dir = path_config.tmp_dir
 
     ## for extracting face features
@@ -149,15 +159,19 @@ if __name__ == '__main__':
     all_utt_files, movie_names = get_utt_id_files(meta_dir, utt_file_name, moive_names_path)
 
     ## for extracting audio features
-    comparE_model = ComParEExtractor()
-    # 偏函数: 主要目的是冻结固定参数？将所作用的函数作为 partial() 函数的第一个参数，原函数的各个参数依次作为 partial（）函数的后续参数，
+    # 偏函数: 主要目的是冻结固定参数？将所作用的函数作为 partial() 函数的第一个参数，原函数的各个参数依次作为 partial()函数的后续参数，
     # 原函数有关键字参数的一定要带上关键字，没有的话，按原有参数顺序进行补充.
-    extract_comparE = partial(extract_comparE_file, extractor_model=comparE_model)
+    if audio_features_type == 'comparE':
+        comparE_model = ComParEExtractor()
+        extract_comparE = partial(extract_comparE_file, extractor_model=comparE_model)
+    elif audio_features_type == 'wav2vec':
+        wav2vec_model = Wav2VecExtractor(downsample=-1, gpu=0, use_asr_based_model=use_asr_based_model)
+        extract_wav2vec = partial(extract_wav2vec_file, extractor_model=wav2vec_model)
 
     length = len(all_utt_files)
     start = int(part_no * length / total)
     end = int((part_no + 1) * length / total)
-    
+    all_utt_files = all_utt_files[start: end]
     print('[Main]: all utt_id files found:', len(all_utt_files))
     print('-------------------------------------------------')
     for i, movie_name in enumerate(movie_names):
@@ -165,7 +179,7 @@ if __name__ == '__main__':
     print('-------------------------------------------------')
     print('[Main]: movies to be processed:')
     print('-------------------------------------------------')
-    all_utt_files = all_utt_files[start: end]
+    
     movie_names = movie_names[start: end]
     for i, movie_name in zip(range(start, end), movie_names):
         print(f'[{i}]\t{movie_name}')
@@ -189,11 +203,22 @@ if __name__ == '__main__':
             extract_features_h5(extract_denseface, lambda x: os.path.join(face_dir, x), 
                         utt_ids, save_path)
 
-        ## for extracting ComparE feature 
-        if extact_audio_features:
+        if extact_audio_features and audio_features_type=='comparE':
             print("[INFO] Extracing ComparE Audio features!")
             audio_feature_dir = os.path.join(feature_audio_root, movie_name)
             mkdir(audio_feature_dir)
             save_path = os.path.join(audio_feature_dir, f'{utt_file_name}_comparE.h5')
             print(save_path)
             extract_features_h5(extract_comparE, lambda x: os.path.join(audio_dir, x),  utt_ids, save_path)
+
+        ## for extracting ComparE feature 
+        if extact_audio_features and audio_features_type=='wav2vec':
+            print("[INFO] Extracing Wav2vec Audio features!")
+            audio_feature_dir = os.path.join(feature_audio_root, movie_name)
+            mkdir(audio_feature_dir)
+            if use_asr_based_model:
+                save_path = os.path.join(audio_feature_dir, f'{utt_file_name}_wav2vec_asr.h5')
+            else:
+                save_path = os.path.join(audio_feature_dir, f'{utt_file_name}_wav2vec.h5')
+            print(save_path)
+            extract_features_h5(extract_wav2vec, lambda x: os.path.join(audio_dir, x),  utt_ids, save_path)

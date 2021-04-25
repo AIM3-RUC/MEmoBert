@@ -7,8 +7,8 @@ sys.path.append('/data7/MEmoBert/preprocess/tasks')
 import pandas as pd
 from functools import partial
 from tqdm import tqdm
-from preprocess.tasks.audio import ComParEExtractor
-from preprocess.MELD.extract_denseface_comparE import extract_comparE_file, extract_features_h5
+from preprocess.tasks.audio import ComParEExtractor, Wav2VecExtractor
+from preprocess.MELD.extract_denseface_comparE import extract_comparE_file, extract_features_h5, extract_wav2vec_file
 
 def get_all_utt_ids(target_root='/data7/emobert/exp/evaluation/MSP/target'):
     utt_ids = np.load(os.path.join(target_root, f'all_int2name.npy'))
@@ -20,21 +20,20 @@ if __name__ == '__main__':
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    if True:
+    if False:
         # for speech comparE
         audio_feature_dir = os.path.join(output_dir, 'comparE_raw')
         if not os.path.exists(audio_feature_dir):
             os.mkdir(audio_feature_dir)
-        # comparE_model = ComParEExtractor(tmp_dir=f'{output_dir}/raw_fts')
+        comparE_model = ComParEExtractor(tmp_dir=f'{output_dir}/raw_fts')
         # # 偏函数: 主要目的是冻结固定参数？将所作用的函数作为 partial() 函数的第一个参数，原函数的各个参数依次作为 partial（）函数的后续参数，
         # # 原函数有关键字参数的一定要带上关键字，没有的话，按原有参数顺序进行补充.
-        # extract_comparE = partial(extract_comparE_file, extractor_model=comparE_model)
-        # save_path = os.path.join(audio_feature_dir, 'all_set.h5')
-        # audio_dir = '/data7/MEmoBert/emobert/exp/evaluation/MSP/audio'
-        # utt_ids = get_all_utt_ids(target_root='/data7/MEmoBert/emobert/exp/evaluation/MSP/target')
-        # print('total {} uttids'.format(len(utt_ids)))
-        # extract_features_h5(extract_comparE, lambda x: os.path.join(audio_dir, x),  utt_ids, save_path)
-
+        extract_comparE = partial(extract_comparE_file, extractor_model=comparE_model)
+        save_path = os.path.join(audio_feature_dir, 'all_set.h5')
+        audio_dir = '/data7/MEmoBert/emobert/exp/evaluation/MSP/audio'
+        utt_ids = get_all_utt_ids(target_root='/data7/MEmoBert/emobert/exp/evaluation/MSP/target')
+        print('total {} uttids'.format(len(utt_ids)))
+        extract_features_h5(extract_comparE, lambda x: os.path.join(audio_dir, x),  utt_ids, save_path)
         save_path = os.path.join(audio_feature_dir, 'all_set.h5')
         new_save_path = os.path.join(audio_feature_dir, 'all.h5')
         data = h5py.File(save_path)
@@ -49,3 +48,20 @@ if __name__ == '__main__':
                 for key in tgt.keys():
                     _group[key] = deepcopy(tgt[key][()])
         out_h5f.close()
+    
+    if True:
+        # for speech wav2vec2.0 
+        use_asr_based_model = True
+        if use_asr_based_model:
+            audio_feature_dir = os.path.join(output_dir, 'wav2vec_raw_asr')
+        else:
+            audio_feature_dir = os.path.join(output_dir, 'wav2vec_raw')
+        if not os.path.exists(audio_feature_dir):
+            os.mkdir(audio_feature_dir)
+        wav2vec_model = Wav2VecExtractor(downsample=-1, gpu=0, use_asr_based_model=use_asr_based_model)
+        extract_wav2vec = partial(extract_wav2vec_file, extractor_model=wav2vec_model)
+        save_path = os.path.join(audio_feature_dir, 'all.h5')
+        audio_dir = '/data7/emobert/exp/evaluation/MSP/audio'
+        utt_ids = get_all_utt_ids(target_root='/data7/MEmoBert/emobert/exp/evaluation/MSP/target')
+        print('total {} uttids'.format(len(utt_ids)))
+        extract_features_h5(extract_wav2vec, lambda x: os.path.join(audio_dir, x),  utt_ids, save_path)

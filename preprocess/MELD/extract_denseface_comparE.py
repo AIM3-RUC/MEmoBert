@@ -11,7 +11,7 @@ from toolz.sandbox import unzip
 import torch.nn.functional as F
 from preprocess.tasks.vision import DensefaceExtractor, FaceSelector
 from preprocess.extract_features import extract_denseface_trans_dir
-from preprocess.tasks.audio import ComParEExtractor
+from preprocess.tasks.audio import ComParEExtractor, Wav2VecExtractor
 import cv2
 
 '''
@@ -222,6 +222,36 @@ def extract_comparE_file(audio_path, extractor_model):
         frame_nums = np.array(len(feat))
     return {'feat': feat, 'frame_idx': frame_nums}
 
+def extract_wav2vec_file(audio_path, extractor_model):
+    # for one audio clip, audio_path = audio_dir + {set_name}/dia{dia_num}_utt{utt_num}
+    audio_path = audio_path + '.wav'
+    if not os.path.exists(audio_path):
+        print(f'[Not exist] {audio_path}')
+        feat = np.zeros([1, 768])
+        frame_nums =np.array(1)
+    else:
+        feat = extractor_model(audio_path)
+        frame_nums = np.array(len(feat))
+        if len(feat.shape) == 3:
+            # batchsize=1
+            feat = feat[0]
+    return {'feat': feat, 'frame_idx': frame_nums}
+
+def transh5_format(save_path, new_save_path):
+    data = h5py.File(save_path)
+    out_h5f = h5py.File(new_save_path, 'w')
+    for setname in data.keys():
+        for uttid in data[setname].keys():
+            new_uttid = setname + '-' + uttid
+            tgt = data[setname][uttid]['feat']
+            if isinstance(tgt, h5py._hl.dataset.Dataset):
+                out_h5f[new_uttid] = deepcopy(tgt[()])
+            elif isinstance(tgt, h5py._hl.group.Group):
+                _group = out_h5f.create_group(new_uttid)
+                for key in tgt.keys():
+                    _group[key] = deepcopy(tgt[key][()])
+    out_h5f.close()
+
 if __name__ == '__main__':
     
     output_dir = '/data7/emobert/exp/evaluation/MELD/feature'
@@ -258,36 +288,46 @@ if __name__ == '__main__':
             extract_features_h5(extract_func, get_face_dir_openface, utt_ids, save_path)
         split_h5(save_path, save_root=os.path.join(output_dir, name))
     
-    if True:
+     # # 偏函数: 主要目的是冻结固定参数？将所作用的函数作为 partial() 函数的第一个参数，原函数的各个参数依次作为 partial（）函数的后续参数，
+    # # 原函数有关键字参数的一定要带上关键字，没有的话，按原有参数顺序进行补充.
+
+    if False:
         # for speech comparE
         audio_feature_dir = os.path.join(output_dir, 'comparE_raw')
-        # if not os.path.exists(audio_feature_dir):
-        #     os.mkdir(audio_feature_dir)
-        # comparE_model = ComParEExtractor(tmp_dir=f'{output_dir}/raw_fts')
-        # # 偏函数: 主要目的是冻结固定参数？将所作用的函数作为 partial() 函数的第一个参数，原函数的各个参数依次作为 partial（）函数的后续参数，
-        # # 原函数有关键字参数的一定要带上关键字，没有的话，按原有参数顺序进行补充.
-        # extract_comparE = partial(extract_comparE_file, extractor_model=comparE_model)
-        # save_path = os.path.join(audio_feature_dir, 'all_set.h5')
-        # audio_dir = '/data7/MEmoBert/emobert/exp/evaluation/MELD/audio'
-        # utt_ids = get_all_utt_ids()
-        # print('total {} uttids'.format(len(utt_ids)))
-        # extract_features_h5(extract_comparE, lambda x: os.path.join(audio_dir, x),  utt_ids, save_path)
+        if not os.path.exists(audio_feature_dir):
+            os.mkdir(audio_feature_dir)
+        comparE_model = ComParEExtractor(tmp_dir=f'{output_dir}/raw_fts')
+        extract_comparE = partial(extract_comparE_file, extractor_model=comparE_model)
+        save_path = os.path.join(audio_feature_dir, 'all_set.h5')
+        audio_dir = '/data7/MEmoBert/emobert/exp/evaluation/MELD/audio'
+        utt_ids = get_all_utt_ids()
+        print('total {} uttids'.format(len(utt_ids)))
+        extract_features_h5(extract_comparE, lambda x: os.path.join(audio_dir, x),  utt_ids, save_path)
         # trans h5 format, val-dia0_utt0.npz
         save_path = os.path.join(audio_feature_dir, 'all_set.h5')
         new_save_path = os.path.join(audio_feature_dir, 'all.h5')
-        data = h5py.File(save_path)
-        out_h5f = h5py.File(new_save_path, 'w')
-        for setname in data.keys():
-            for uttid in data[setname].keys():
-                new_uttid = setname + '-' + uttid
-                tgt = data[setname][uttid]['feat']
-                if isinstance(tgt, h5py._hl.dataset.Dataset):
-                    out_h5f[new_uttid] = deepcopy(tgt[()])
-                elif isinstance(tgt, h5py._hl.group.Group):
-                    _group = out_h5f.create_group(new_uttid)
-                    for key in tgt.keys():
-                        _group[key] = deepcopy(tgt[key][()])
-        out_h5f.close()
+        transh5_format(save_path, new_save_path)
+
+    if True:
+        # for speech wav2vec2.0 
+        use_asr_based_model = True
+        if use_asr_based_model:
+            audio_feature_dir = os.path.join(output_dir, 'wav2vec_raw_asr')
+        else:
+            audio_feature_dir = os.path.join(output_dir, 'wav2vec_raw')
+        if not os.path.exists(audio_feature_dir):
+            os.mkdir(audio_feature_dir)
+        wav2vec_model = Wav2VecExtractor(downsample=-1, gpu=0, use_asr_based_model=use_asr_based_model)
+        extract_wav2vec = partial(extract_wav2vec_file, extractor_model=wav2vec_model)
+        save_path = os.path.join(audio_feature_dir, 'all_set.h5')
+        audio_dir = '/data7/MEmoBert/emobert/exp/evaluation/MELD/audio'
+        utt_ids = get_all_utt_ids()
+        print('total {} uttids'.format(len(utt_ids)))
+        extract_features_h5(extract_wav2vec, lambda x: os.path.join(audio_dir, x),  utt_ids, save_path)
+        # trans h5 format, val-dia0_utt0.npz
+        save_path = os.path.join(audio_feature_dir, 'all_set.h5')
+        new_save_path = os.path.join(audio_feature_dir, 'all.h5')
+        transh5_format(save_path, new_save_path)
 
 # PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=0 python extract_denseface.py openface
 # PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=0 python extract_denseface.py seetaface

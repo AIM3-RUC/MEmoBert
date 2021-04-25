@@ -5,10 +5,11 @@ import soundfile as sf
 import numpy as np
 import subprocess
 from preprocess.utils import get_basename, mkdir
+import librosa
 import scipy.signal as spsig
-# from fairseq.models.wav2vec import Wav2VecModel
+from transformers import Wav2Vec2Processor, Wav2Vec2Model
 
-from .base_worker import BaseWorker
+from preprocess.tasks.base_worker import BaseWorker
 
 class AudioSplitor(BaseWorker):
     ''' 把语音从视频中抽出来存在文件夹中
@@ -86,6 +87,7 @@ class ComParEExtractor(BaseWorker):
                 raise ValueError('Error in {wav}, signal length must be longer than downsample parameter')
         return wav_ft_data
         
+
 class VggishExtractor(BaseWorker):
     ''' 抽取vggish特征, 输入音频路径, 输出npy数组, 每帧128d
     '''
@@ -145,36 +147,56 @@ class VggishExtractor(BaseWorker):
 
         return vggish_feature
 
-class Wav2vecExtractor(BaseWorker):
-    # 暂时先不用这个了
-    ''' Wav2vec feature extractor
-        downsample: downsample rate. Raw feature has 10ms step 
+class Wav2VecExtractor(object):
+    ''' 抽取comparE特征, 输入音频路径, 输出npy数组, 每帧768d
     '''
-    def __init__(self, pretrained_path, device=0, downsample=10, seg_len=0.25, step_size=0.1):
-        super().__init__()
+    def __init__(self, downsample=4, gpu=0, use_asr_based_model=False):
         self.downsample = downsample
-        self.pretrained_path = pretrained_path
-        self.device = torch.device(f'cuda:{device}')
-        self.model = self.get_pretrained_model()
-    
-    def get_pretrained_model(self,):
-        cp = torch.load(self.pretrained_path)
-        model = Wav2VecModel.build_model(cp['args'], task=None)
-        model.load_state_dict(cp['model'])
-        model.eval()
-        model.to(self.device)
-        return model
-    
-    def __call__(self, wav_path):
-        pass
+        self.device = torch.device('cuda:{}'.format(gpu))
+        if use_asr_based_model:
+            print('[INFO] use asr based model')
+            self.processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
+            self.model = Wav2Vec2Model.from_pretrained("facebook/wav2vec2-base-960h").to(self.device)
+        else:
+            print('[INFO] use vanilla based model')
+            self.processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base")
+            self.model = Wav2Vec2Model.from_pretrained("facebook/wav2vec2-base").to(self.device)
+        
+    @staticmethod
+    def read_audio(wav_path):
+        speech, sr = sf.read(wav_path)
+        if sr != 16000:
+            speech = librosa.resample(speech, sr, 16000)
+            sr = 16000
+        if sr * 10 < len(speech):
+            print(f'{wav_path} long than 10 seconds and clip {speech.shape}')
+            speech = speech[:int(sr * 10)]
+        return speech, sr
+
+    def __call__(self, wav):
+        input_values, sr = Wav2VecExtractor.read_audio(wav)
+        input_values = self.processor(input_values, return_tensors="pt", sampling_rate=sr).input_values.to(self.device)
+        with torch.no_grad():
+            ft = self.model(input_values).last_hidden_state
+
+        if self.downsample > 0:
+            ft = torch.cat([
+                torch.mean(ft[:, i:i+self.downsample], dim=1) for i in range(0, ft.shape[1], self.downsample)
+            ], dim=0)
+        return ft.cpu().numpy()
 
 
 if __name__ == '__main__':
-    get_audio = AudioSplitor('./test_audio')
-    extract_comparE = ComParEExtractor()
-    vggish_extract = VggishExtractor()
-    audio_path = get_audio("../resources/output1.mkv")
-    comparE = extract_comparE(audio_path)
-    vggish = vggish_extract(audio_path)
-    print('comparE:', comparE.shape)
-    print('vggish:', vggish.shape)
+    # get_audio = AudioSplitor('./test_audio')
+    # extract_comparE = ComParEExtractor()
+    # vggish_extract = VggishExtractor()
+    # audio_path = get_audio("../resources/output1.mkv")
+    # comparE = extract_comparE(audio_path)
+    # vggish = vggish_extract(audio_path)
+    # print('comparE:', comparE.shape)
+    # print('vggish:', vggish.shape)
+
+    audio_path = "preprocess/data/audio_clips/No0001.The.Shawshank.Redemption/9.wav"
+    extract_wav2vec = Wav2VecExtractor(downsample=-1, gpu=7)
+    ft = extract_wav2vec(audio_path)
+    print(ft.shape)

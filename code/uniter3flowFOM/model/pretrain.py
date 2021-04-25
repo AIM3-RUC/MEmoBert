@@ -30,6 +30,21 @@ class RegionClassification(nn.Module):
         output = self.net(input_)
         return output
 
+class FomClassification(nn.Module):
+    # for the FOM frame order modeling
+    def __init__(self, hidden_size, max_clip_len):
+        super().__init__()
+        self.net = nn.Sequential(nn.Linear(hidden_size, hidden_size*2),
+                                 GELU(),
+                                 LayerNorm(hidden_size*2, eps=1e-12),
+                                 nn.Linear(hidden_size*2, max_clip_len))
+
+    def forward(self, input_):
+        output = self.net(input_)
+        # print('[Debug] in FomClassification input {}'.format(input_.shape))
+        # print('[Debug] in FomClassification output {}'.format(output.shape))
+        return output
+
 class EmoMelmClassification(nn.Module):
     " for the multitask of MELM"
     def __init__(self, hidden_size, label_dim):
@@ -190,3 +205,35 @@ class MEmoBertForPretraining(nn.Module):
             return itm_loss
         else:
             return itm_scores
+    
+    def forward_fom(self, batch, compute_loss=True):
+        shuffled_orders = batch['shuffled_orders']
+        # 
+        transformed_c_v_feats = self.forward_repr(batch)
+        # Reshuffle c_v_feats according to targets
+        shuffled_orders_expanded = shuffled_orders.unsqueeze(-1).expand_as(
+            transformed_c_v_feats)
+        c_v_feats_shuffled = torch.zeros_like(
+            transformed_c_v_feats, dtype=transformed_c_v_feats.dtype,
+            device=transformed_c_v_feats.device)
+        c_v_feats_shuffled = c_v_feats_shuffled.scatter_(
+            1, shuffled_orders_expanded, transformed_c_v_feats)
+
+        # compute pos_ids in embedding layer
+        encoded_clip = self.c_encoder(
+            clip_level_pos_ids=None,
+            clip_level_frame_feat=c_v_feats_shuffled,
+            attention_mask=batch["c_attn_masks"])
+
+        bs, seq_len, hid_size = encoded_clip.size()
+        encoded_clip = encoded_clip.view(bs * seq_len, hid_size)
+
+        frame_reorder_outputs = self.fom_output(encoded_clip)
+
+        if compute_loss:
+            targets = batch['targets'].view(frame_reorder_outputs.shape[0])
+            loss = F.cross_entropy(
+                frame_reorder_outputs, targets, ignore_index=-1,
+                reduction='mean')
+            return loss
+        return frame_reorder_outputs

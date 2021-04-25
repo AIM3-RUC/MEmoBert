@@ -36,9 +36,6 @@ class FOMDataset(DetectFeatTxtTokDataset):
         self.img_db = img_db
         self.speech_db = speech_db
 
-    def __len__(self):
-        return len(self.ids)
-
     def __getitem__(self, i, add_cls_token=True):
         '''
         :add_cls_token, add cls token or not
