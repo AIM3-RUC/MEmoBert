@@ -13,10 +13,10 @@ from code.uniter3m.data.mrm import _get_img_mask, _get_feat_target, _mask_img_fe
 
 
 def _get_speech_tgt_mask(speech_mask, txt_len, img_len):
-    # text, img, speech 的组合顺序
-    z = torch.zeros(txt_len, dtype=torch.uint8)
+    # 如果三个模态都有，那么保持text, img, speech 的组合顺序
+    z = torch.zeros(txt_len, dtype=torch.bool)
     if img_len > 0:
-        zi = torch.zeros(img_len, dtype=torch.uint8)
+        zi = torch.zeros(img_len, dtype=torch.bool)
         speech_mask_tgt = torch.cat([z, zi, speech_mask], dim=0)
     else:
         speech_mask_tgt = torch.cat([z, speech_mask], dim=0)
@@ -103,7 +103,7 @@ def msrfr_collate(inputs):
 
     if img_feats[0] is not None:
         ## images batches
-        num_bbs = [f.size(0) for f in speech_feats]
+        num_bbs = [f.size(0) for f in img_feats]
         img_feat = pad_tensors(img_feats, num_bbs)
         img_position_ids = torch.arange(0, max(num_bbs), dtype=torch.long).unsqueeze(0)    
     else:

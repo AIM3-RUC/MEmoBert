@@ -86,7 +86,7 @@ class DetectFeatLmdb(object):
                 img_dump = {'features': img_dump['features']}
         else:
             img_dump = msgpack.loads(dump, raw=False)
-        img_feat = torch.tensor(img_dump['features'][:nbb, :]).float()
+        img_feat = torch.tensor(img_dump['features'][:nbb, :].copy()).float()
         return img_feat
 
 

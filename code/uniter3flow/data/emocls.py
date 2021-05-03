@@ -44,11 +44,10 @@ class EmoCLsDataset(DetectFeatTxtTokDataset):
 
         if self.speech_db:
             speech_feat, num_frame = self._get_speech_feat(example['img_fname'])
-            speech_attn_masks = torch.ones(num_frame, dtype=torch.long)
         else:
-            speech_feat, speech_attn_masks = None, None
+            speech_feat = None
 
-        return input_ids, img_feat, speech_feat, text_attn_masks, img_attn_masks, speech_attn_masks, target
+        return input_ids, img_feat, speech_feat, text_attn_masks, img_attn_masks, target
 
 def emocls_collate(inputs, add_cls_token=True):
     """

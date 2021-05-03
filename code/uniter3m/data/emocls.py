@@ -13,7 +13,7 @@ from code.uniter3m.data.data import (DetectFeatTxtTokDataset, DetectFeatLmdb, Tx
                    pad_tensors, get_gather_index)
                    
 class EmoCLsDataset(DetectFeatTxtTokDataset):
-    def __init__(self, txt_db, img_db, speech_db=None):
+    def __init__(self, txt_db, img_db=None, speech_db=None):
         assert isinstance(txt_db, TxtTokLmdb)
         super().__init__(txt_db, img_db, speech_db)
         self.img_shape = None
@@ -34,16 +34,27 @@ class EmoCLsDataset(DetectFeatTxtTokDataset):
         # text input
         input_ids = example['input_ids']
         input_ids = torch.tensor([self.txt_db.cls_] + input_ids + [self.txt_db.sep])
-        img_feat, num_bb = self._get_img_feat(example['img_fname'], self.img_shape)
-        self.img_shape = img_feat.shape[1:]
-        attn_masks = torch.ones(len(input_ids) + num_bb, dtype=torch.long)
+        attn_masks = torch.ones(len(input_ids), dtype=torch.long)
 
+        if self.img_db:
+            # print(f'[Debug] item {i} img is not None')
+            img_feat, num_bb = self._get_img_feat(example['img_fname'], self.img_shape)
+            img_attn_masks = torch.ones(num_bb, dtype=torch.long)
+            self.img_shape = img_feat.shape[1:]
+            attn_masks = torch.cat((attn_masks, img_attn_masks))
+        else:
+            # print(f'[Debug] item img {i} is None')
+            img_feat = None
+        
         if self.speech_db:
+            # print(f'[Debug] item {i} speech is not None')
             speech_feat, num_frame = self._get_speech_feat(example['img_fname'])
             speech_attn_masks = torch.ones(num_frame, dtype=torch.long)
             attn_masks = torch.cat((attn_masks, speech_attn_masks))
+            # print('[Debug] item {} speech attn mask {} and final attn mask {}'.format(i, speech_attn_masks.shape, attn_masks.shape))
         else:
-            speech_feat  = None
+            speech_feat = None
+
         # for visualization
         img_frame_name = example['img_fname']
         # print("[Debug empty] txt {} img {}".format(len(input_ids), num_bb))
@@ -67,16 +78,13 @@ def emocls_collate(inputs):
     input_ids = pad_sequence(input_ids, batch_first=True, padding_value=0)
     position_ids = torch.arange(0, input_ids.size(1), dtype=torch.long
                                 ).unsqueeze(0)
-    # image batches
-    num_bbs = [f.size(0) for f in img_feats]
-    img_feat = pad_tensors(img_feats, num_bbs) # (n, max_num_nbb, dim)
-    img_position_ids = torch.arange(0, img_feat.size(1), dtype=torch.long).unsqueeze(0)
     attn_masks = pad_sequence(attn_masks, batch_first=True, padding_value=0)
 
     if img_feats[0] is not None:
         ## image batches
         num_bbs = [f.size(0) for f in img_feats]
         img_feat = pad_tensors(img_feats, num_bbs)
+        # print('[Debug] batch padding img input {}'.format(img_feat.shape)) # (n, max_num_nbb, dim)
         img_position_ids = torch.arange(0, max(num_bbs), dtype=torch.long).unsqueeze(0)      
     else:
         img_feat, num_bbs, img_position_ids = None, None, None
@@ -85,7 +93,7 @@ def emocls_collate(inputs):
         ## speech batches
         num_frames = [f.size(0) for f in speech_feats]
         speech_feat = pad_tensors(speech_feats, num_frames)
-        # print('[Debug] the batch input {}'.format(img_feat.shape)) # (n, max_num_nbb, dim)
+        # print('[Debug] batch padding speech input {}'.format(speech_feat.shape)) # (n, max_num_frame, dim)
         speech_position_ids = torch.arange(0, max(num_frames), dtype=torch.long).unsqueeze(0)    
     else:
         speech_feat, num_frames, speech_position_ids = None, None, None

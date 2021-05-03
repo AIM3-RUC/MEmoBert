@@ -68,7 +68,6 @@ def build_dataloader_itm(dataset, collate_fn, is_train, opts):
                         collate_fn=collate_fn)
     return loader
 
-
 def build_mlm_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:
         if opts.use_speech and opts.use_visual:
@@ -322,7 +321,7 @@ def main(opts):
     # to compute training statistics
     task2loss = {task: RunningMeter(f'loss/{task}')
                  for task in train_dataloaders.keys()}
-
+    LOGGER.info(f'[Debug] {task2loss}')
     n_examples = defaultdict(int)
     n_in_units = defaultdict(int)
     n_loss_units = defaultdict(int)
@@ -333,6 +332,7 @@ def main(opts):
     optimizer.zero_grad()
     optimizer.step()
     for step, (name, batch) in enumerate(meta_loader):
+        # LOGGER.info(f'[Debug] train on step: {step}')
         n_examples[name] += batch['input_ids'].size(0)
         n_in_units[name] += (batch['attn_masks'] == 1).sum().item()
         task = name.split('_')[0]

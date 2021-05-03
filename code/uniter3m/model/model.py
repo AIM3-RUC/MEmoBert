@@ -379,8 +379,8 @@ class UniterModel(UniterPreTrainedModel):
     
     def _compute_speech_embeddings(self, speech_feat, speech_position_ids, speech_masks=None,
                                             speech_type_ids=None):
-        if not self.use_visual:
-            # logger.info('[Debug] no visual so use bert-type-token embedding for speech')
+        if not self.use_visual or self.config.speech_visual_use_same_type:
+            # logger.info('[Debug] use visual bert-type-token embedding for speech')
             speech_type_ids = torch.ones_like(speech_feat[:, :, 0].long())
             # share the embedding defined in txtEmbedding
             speech_type_embeddings = self.embeddings.token_type_embeddings(
@@ -499,6 +499,7 @@ class UniterModel(UniterPreTrainedModel):
                     speech_feat, speech_position_ids,
                     gather_index, speech_masks, txt_type_ids)
             elif self.use_speech and self.use_visual:
+                # logger.info('[Debug] use both visual and speech!!!')
                 embedding_output = self._compute_speech_img_txt_embeddings(
                         input_ids, position_ids,
                         img_feat, img_position_ids,

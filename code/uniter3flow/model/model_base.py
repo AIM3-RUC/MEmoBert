@@ -126,20 +126,19 @@ class BertPreTrainedModel(nn.Module):
                     self.__class__.__name__, self.__class__.__name__
                 ))
         self.config = config
-
+    
     def init_weights(self, module):
-        """ Initialize the weights.
-        """
-        if isinstance(module, (nn.Linear, nn.Embedding)):
-            # Slightly different from the TF version which uses
-            # truncated_normal for initialization
+        """ Initialize the weights """
+        if isinstance(module, nn.Linear):
+            # Slightly different from the TF version which uses truncated_normal for initialization
             # cf https://github.com/pytorch/pytorch/pull/5617
-            module.weight.data.normal_(mean=0.0,
-                                       std=self.config.initializer_range)
-        elif isinstance(module, FusedLayerNorm):
+            module.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
+        elif isinstance(module, (FusedLayerNorm, nn.GroupNorm)):
             module.bias.data.zero_()
             module.weight.data.fill_(1.0)
-        if isinstance(module, nn.Linear) and module.bias is not None:
+        elif isinstance(module, nn.Conv1d):
+            torch.nn.init.kaiming_normal_(module.weight.data)
+        if isinstance(module, (nn.Linear, nn.Conv1d)) and module.bias is not None:
             module.bias.data.zero_()
 
     @classmethod

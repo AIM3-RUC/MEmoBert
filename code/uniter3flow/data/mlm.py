@@ -10,6 +10,7 @@ import torch
 from torch.nn.utils.rnn import pad_sequence
 from toolz.sandbox import unzip
 from code.uniter3flow.data.data import (DetectFeatTxtTokDataset, TxtTokLmdb, pad_tensors)
+from code.uniter3m.data.data import get_gather_index
 
 def random_word(tokens, vocab_range, mask):
     """
@@ -79,7 +80,9 @@ class MlmDataset(DetectFeatTxtTokDataset):
         
         if self.speech_db:
             speech_feat, num_frame = self._get_speech_feat(example['img_fname'])
-            speech_attn_masks = torch.ones(num_frame, dtype=torch.long)
+            # for the output of speech encoder 
+            num_segment = int(num_frame/(0.02 * 16000) - 1)
+            speech_attn_masks = torch.ones(num_segment, dtype=torch.long)
         else:
             speech_feat, speech_attn_masks = None, None
 
@@ -90,11 +93,11 @@ class MlmDataset(DetectFeatTxtTokDataset):
                                             self.txt_db.v_range,
                                             self.txt_db.mask)
         # remove the sep token
-        input_ids = torch.tensor([self.txt_db.cls_] + input_ids)
-        txt_labels = torch.tensor([-1] + txt_labels)
+        input_ids = torch.tensor([self.txt_db.cls_] + input_ids + [self.txt_db.sep])
+        txt_labels = torch.tensor([-1] + txt_labels + [-1])
         return input_ids, txt_labels
 
-def mlm_collate(inputs, add_cls_token=True):
+def mlm_collate(inputs):
     """
     Jinming: modify to img_position_ids
     Return:
@@ -106,7 +109,6 @@ def mlm_collate(inputs, add_cls_token=True):
     :num_bbs      list of [num_bb]
     :text_att_masks   (n, max_{L}) padded with 0
     :img_att_masks   (n, max_{num_bb}) padded with 0
-    :speech_att_masks   (n, max_{num_bb}) padded with 0
     :txt_labels   (n, max_L) padded with -1
     """
     (input_ids, img_feats, speech_feats, text_attn_masks, img_attn_masks, speech_attn_masks, txt_labels
@@ -119,30 +121,35 @@ def mlm_collate(inputs, add_cls_token=True):
     position_ids = torch.arange(0, input_ids.size(1), dtype=torch.long).unsqueeze(0)
     text_attn_masks = pad_sequence(text_attn_masks, batch_first=True, padding_value=0)
 
+    # for gather index
+    out_size = text_attn_masks.size(1)
     # list of None
     if img_feats[0] is not None:
         img_attn_masks = pad_sequence(img_attn_masks, batch_first=True, padding_value=0)
         num_bbs = [f.size(0) for f in img_feats]
         img_feat = pad_tensors(img_feats, num_bbs) # (n, max_num_nbb, dim)
-        if add_cls_token:
-            # add cls token to the start of img branch
-            # print('[Debug] img_attn_masks {}'.format(img_attn_masks.shape, img_attn_masks.dtype))
-            cls_token_attn_masks = torch.ones((img_attn_masks.size(0), 1), dtype=img_attn_masks.dtype)
-            # print('[Debug] cls_token_attn_masks {}'.format(cls_token_attn_masks.shape, type(cls_token_attn_masks)))
-            img_attn_masks = torch.cat((cls_token_attn_masks, img_attn_masks), dim=1)
-            # print('[Debug] img_attn_masks {}'.format(img_attn_masks.shape))
-            img_position_ids = torch.arange(0, img_feat.size(1)+1, dtype=torch.long).unsqueeze(0)
-        else:
-            img_position_ids = torch.arange(0, img_feat.size(1), dtype=torch.long).unsqueeze(0)
+        img_position_ids = torch.arange(0, img_feat.size(1), dtype=torch.long).unsqueeze(0)
+        out_size += img_attn_masks.size(1)
     else:
         num_bbs, img_position_ids, img_feat = None, None, None
 
     if speech_feats[0] is not None:
-        # 对于speech来说由于
+        # raw wav and attn degign in model
         num_frames = [f.size(0) for f in speech_feats]
         speech_feat = pad_tensors(speech_feats, num_frames) # (n, max_num_nbb, dim)
+        # 关于speech的mask, 采用向下取整的策略, drop last
+        speech_attn_masks = pad_sequence(speech_attn_masks, batch_first=True, padding_value=0)
+        num_segments = [int(num_frame/(0.02 * 16000) - 1) for num_frame in num_frames]
+        out_size += speech_attn_masks.size(1)
+        speech_position_ids = torch.arange(0, speech_attn_masks.size(1), dtype=torch.long).unsqueeze(0)
+        # 这里需要注意的是，speech-feat 经过 speech encoder的长度可能大于speech_attn_masks，
+        # 需要在模型部分做一个截断的后处理.
     else:
-        num_frames, speech_feat = None, None
+        num_segments, speech_position_ids, speech_feat, speech_attn_masks = None, None, None, None
+
+    bs, max_tl = input_ids.size()
+    # multi-modality atten mask
+    gather_index = get_gather_index(txt_lens, num_bbs, num_segments, bs, max_tl, out_size)
 
     batch = {'input_ids': input_ids,
              'position_ids': position_ids,
@@ -151,8 +158,11 @@ def mlm_collate(inputs, add_cls_token=True):
              'img_feat': img_feat,
              'img_position_ids': img_position_ids,
              'num_bbs': num_bbs,
-            'img_attn_masks': img_attn_masks,
+             'img_attn_masks': img_attn_masks,
              'speech_feat': speech_feat,
-             'num_frames': num_frames,
+             'num_segments': num_segments,
+             'speech_attn_masks': speech_attn_masks,
+             'speech_position_ids': speech_position_ids,       
+             'gather_index': gather_index,      
              'txt_labels': txt_labels}
     return batch

@@ -116,6 +116,7 @@ class UniterForPretraining(UniterPreTrainedModel):
                 txt_emo_labels = batch['txt_emo_labels']
             else:
                 txt_emo_labels = None
+            # print('[Debug in MELM forward] the txt_emo_labels {}'.format(txt_emo_labels))
             return self.forward_melm(batch, txt_labels, txt_emo_labels, compute_loss)
         elif task == 'mrfr':
             img_mask_tgt = batch['img_mask_tgt']
@@ -184,19 +185,18 @@ class UniterForPretraining(UniterPreTrainedModel):
                                              txt_labels[txt_labels != -1],
                                              reduction='none')
             # jinming: add multitask emo classification
-            if txt_emo_labels is not None:
+            if self.config.melm_multitask and txt_emo_labels is not None:
                 prediction_emo_scores = self.emomelm_classifier(masked_output)
                 masked_emo_loss = F.cross_entropy(prediction_emo_scores, 
                                                     txt_emo_labels[txt_emo_labels != -1],
                                                     reduction='none')
                 # print('[Debug] in MELM emoloss {}'.format(masked_emo_loss))
                 # print('[Debug] in MELM lmloss {}'.format(masked_lm_loss))
-                # 两个loss处于相同的量级，所以设置 melm_multitask_rate=1.0
                 masked_lm_loss += self.config.melm_multitask_rate * masked_emo_loss
             return masked_lm_loss
         else:
             # jinming: add multitask emo classification
-            if txt_emo_labels is not None:
+            if self.config.melm_multitask and txt_emo_labels is not None:
                 prediction_emo_scores = self.emomelm_classifier(masked_output)
                 return (prediction_scores, prediction_emo_scores)
             else:

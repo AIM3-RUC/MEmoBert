@@ -49,11 +49,25 @@ class MEmoBertForPretraining(nn.Module):
     """ MEmoBert pretraining 
     classifier的初始化部分采用 cross-encoder 部分的参数, self.emoBert.c_config
     """
-    def __init__(self, config_file, use_speech, use_visual, pretrained_text_checkpoint=None):
+    def __init__(self, config_file, use_speech, use_visual, 
+                                            pretrained_text_checkpoint=None, 
+                                            pretrained_audio_checkpoint=None,
+                                            fix_text_encoder=False,
+                                            fix_visual_encoder=False,
+                                            fix_speech_encoder=False,
+                                            fix_cross_encoder=False,
+                                            use_type_embedding=False):
         super(MEmoBertForPretraining, self).__init__()
         config = BertConfig.from_json_file(config_file)
         # logger.info('[Debug] Config {}'.format(type(config))) # BertConfig
-        self.emoBert = MEmoBertModel(config, use_speech, use_visual, pretrained_text_checkpoint)
+        self.emoBert = MEmoBertModel(config, use_speech, use_visual, 
+                                            pretrained_text_checkpoint=pretrained_text_checkpoint,
+                                            pretrained_audio_checkpoint=pretrained_audio_checkpoint,
+                                            fix_text_encoder=fix_text_encoder,
+                                            fix_visual_encoder=fix_visual_encoder,
+                                            fix_speech_encoder=fix_speech_encoder,
+                                            fix_cross_encoder=fix_cross_encoder,
+                                            use_type_embedding=use_type_embedding)
         logger.info('[Debug] MEmoBertModel Success!!!')
         self.cls = BertOnlyMLMHead(
             self.emoBert.c_config, self.emoBert.text_encoder.embeddings.word_embeddings.weight)

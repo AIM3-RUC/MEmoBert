@@ -12,45 +12,8 @@ import torch
 from torch.nn.utils.rnn import pad_sequence
 from toolz.sandbox import unzip
 from code.uniter3flow.data.data import (DetectFeatTxtTokDataset, TxtTokLmdb, pad_tensors)
-
-def random_emo_word(melm_prob, tokens, vocab_range, emo_tokens, mask):
-    """
-    Masking some emotion tokens for 
-    :param melm_prob: prob of masked emotional words
-    :param tokens: list of int, tokenized sentence.
-    :param vocab_range: for choosing a random word
-    :param emo_tokens: emotional tokens in tokens and the token's emotion
-    :return: (list of int, list of int), masked tokens and related labels for
-        LM prediction
-    """
-    output_label = []
-    for i, token in enumerate(tokens):
-        prob = random.random()
-        if token in emo_tokens:
-            # 80% randomly change token to mask token
-            if prob < melm_prob:
-                prob /= melm_prob
-                # 80% randomly change token to mask token
-                if prob < 0.8:
-                    tokens[i] = mask
-                # 10% randomly change token to random token
-                elif prob < 0.9:
-                    tokens[i] = random.choice(list(range(*vocab_range)))
-                # -> rest 10% randomly keep current token
-                # append current token to output (we will predict these later)
-                output_label.append(token)
-            else:
-                # no masking token (will be ignored by loss function later)
-                output_label.append(-1)
-        else:
-            # no masking token (will be ignored by loss function later)
-            output_label.append(-1)
-    if all(o == -1 for o in output_label):
-        # at least mask 1
-        output_label[0] = tokens[0]
-        tokens[0] = mask
-
-    return tokens, output_label
+from code.uniter3m.data.melm import random_emo_word
+from code.uniter3m.data.data import get_gather_index
 
 class MelmDataset(DetectFeatTxtTokDataset):
     '''
@@ -77,11 +40,11 @@ class MelmDataset(DetectFeatTxtTokDataset):
 
         # text input
         input_ids, txt_labels = self.create_melm_io(example['input_ids'], example['emo_input_ids'])
+        text_attn_masks = torch.ones(len(input_ids), dtype=torch.long)
 
-        # Jinming: add for emo_type_ids (0~4), 
         # 0 is the no-emotion-words
         if example.get('emo_type_ids') is not None:
-            emo_type_ids = torch.tensor([0] + example['emo_type_ids'])
+            emo_type_ids = torch.tensor([0] + example['emo_type_ids'] + [0])
             # generate the labels for multitask emotion, 保持跟 txt_labels 一致，txt_labels 中为 -1 的位置同样置为-1.
             txt_emo_labels = torch.where(txt_labels<0, txt_labels, emo_type_ids)
             # print("[Debug] txt_labels {}".format(txt_labels))
@@ -90,19 +53,30 @@ class MelmDataset(DetectFeatTxtTokDataset):
         else:
             txt_emo_labels = None
 
-        # img input Jinming remove the norm-bbx fts
-        img_feat, num_bb = self._get_img_feat(example['img_fname'])
-
-        text_attn_masks = torch.ones(len(input_ids), dtype=torch.long)
-        img_attn_masks = torch.ones(num_bb, dtype=torch.long)
-
-        return input_ids, img_feat, text_attn_masks, img_attn_masks, txt_labels, txt_emo_labels
+        if self.img_db:
+            # print(f'[Debug] item {i} img is not None')
+            img_feat, num_bb = self._get_img_feat(example['img_fname'], self.img_shape)
+            img_attn_masks = torch.ones(num_bb, dtype=torch.long)
+            self.img_shape = img_feat.shape[1:]
+        else:
+            # print(f'[Debug] item img {i} is None')
+            img_feat = None
+        
+        if self.speech_db:
+            # print(f'[Debug] item {i} speech is not None')
+            speech_feat, num_frame = self._get_speech_feat(example['img_fname'])
+            # for the output of speech encoder 
+            num_segment = int(num_frame/(0.02 * 16000) - 1)
+            speech_attn_masks = torch.ones(num_segment, dtype=torch.long)
+        else:
+            speech_feat = None
+        return input_ids, img_feat, speech_feat, text_attn_masks, img_attn_masks, speech_attn_masks, txt_labels, txt_emo_labels
 
     def create_melm_io(self, input_ids, emo_input_ids):
         input_ids, txt_labels = random_emo_word(self.melm_prob, input_ids, 
                                                     self.txt_db.v_range, emo_input_ids, self.txt_db.mask)
-        input_ids = torch.tensor([self.txt_db.cls_] + input_ids)
-        txt_labels = torch.tensor([-1] + txt_labels)
+        input_ids = torch.tensor([self.txt_db.cls_] + input_ids + [self.txt_db.sep])
+        txt_labels = torch.tensor([-1] + txt_labels + [-1])
         return input_ids, txt_labels
 
 
@@ -121,11 +95,17 @@ def melm_collate(inputs):
     :emo_type_ids (n, max_L) padded with 0
     :txt_emo_labels (n, max_L) padded with -1, similar with the emo_type_ids
     """
-    (input_ids, img_feats, text_attn_masks, img_attn_masks, txt_labels, \
+    (input_ids, img_feats, speech_feats, text_attn_masks, img_attn_masks, speech_attn_masks, txt_labels, \
              batch_txt_emo_labels) = map(list, unzip(inputs))
 
-    # text batches
-    txt_lens = [i.size(0) for i in input_ids]
+    input_ids = pad_sequence(input_ids, batch_first=True, padding_value=0)
+    txt_labels = pad_sequence(txt_labels, batch_first=True, padding_value=-1)
+    position_ids = torch.arange(0, input_ids.size(1), dtype=torch.long
+                                ).unsqueeze(0)
+    text_attn_masks = pad_sequence(text_attn_masks, batch_first=True, padding_value=0)
+
+    # for gather index
+    out_size = text_attn_masks.size(1)
 
     # Jinming: here emo_type_ids is batch, so judge the element is none or not 
     # batch_emo_type_ids is also can used for 
@@ -134,22 +114,48 @@ def melm_collate(inputs):
     else:
         batch_txt_emo_labels = None
     
-    input_ids = pad_sequence(input_ids, batch_first=True, padding_value=0)
-    txt_labels = pad_sequence(txt_labels, batch_first=True, padding_value=-1)
+    if img_feats[0] is not None:
+        ## image batches
+        num_bbs = [f.size(0) for f in img_feats]
+        img_feat = pad_tensors(img_feats, num_bbs)
+        # print('[Debug] batch padding img input {}'.format(img_feat.shape)) # (n, max_num_nbb, dim)
+        img_position_ids = torch.arange(0, max(num_bbs), dtype=torch.long).unsqueeze(0)      
+        img_attn_masks = pad_sequence(img_attn_masks, batch_first=True, padding_value=0)
+        out_size += img_attn_masks.size(1)
+    else:
+        img_feat, num_bbs, img_position_ids, img_attn_masks = None, None, None, None
+    
+    if speech_feats[0] is not None:
+        # raw wav and attn degign in model
+        num_frames = [f.size(0) for f in speech_feats]
+        speech_feat = pad_tensors(speech_feats, num_frames) # (n, max_num_nbb, dim)
+        # 关于speech的mask, 采用向下取整的策略, drop last
+        speech_attn_masks = pad_sequence(speech_attn_masks, batch_first=True, padding_value=0)
+        num_segments = [int(num_frame/(0.02 * 16000) - 1) for num_frame in num_frames]
+        out_size += speech_attn_masks.size(1)
+        speech_position_ids = torch.arange(0, speech_attn_masks.size(1), dtype=torch.long).unsqueeze(0)
+        # 这里需要注意的是，speech-feat 经过 speech encoder的长度可能大于speech_attn_masks，
+        # 需要在模型部分做一个截断的后处理.
+    else:
+        num_segments, speech_position_ids, speech_feat, speech_attn_masks = None, None, None
 
-    # image batches
-    num_bbs = [f.size(0) for f in img_feats]
-    img_feat = pad_tensors(img_feats, num_bbs) # img_feat = (n, max_num_nbb, dim*dim)
-
-    text_attn_masks = pad_sequence(text_attn_masks, batch_first=True, padding_value=0)
-    img_attn_masks = pad_sequence(img_attn_masks, batch_first=True, padding_value=0)
+    bs, max_tl = input_ids.size()
+    # multi-modality atten mask
+    gather_index = get_gather_index(txt_lens, num_bbs, num_segments, bs, max_tl, out_size)
 
     batch = {'input_ids': input_ids,
              'txt_lens': txt_lens,
-             'img_feat': img_feat,
-             'num_bbs': num_bbs,
              'text_attn_masks': text_attn_masks,
+             'position_ids': position_ids,
+             'img_feat': img_feat,
+             'img_position_ids': img_position_ids,
+             'num_bbs': num_bbs,
              'img_attn_masks': img_attn_masks,
+             'speech_feat': speech_feat,
+             'num_segments': num_segments,
+             'speech_attn_masks': speech_attn_masks,
+             'speech_position_ids': speech_position_ids,
+             'gather_index': gather_index,
              'txt_labels': txt_labels, 
              'txt_emo_labels': batch_txt_emo_labels
              }

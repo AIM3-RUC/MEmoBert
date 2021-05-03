@@ -18,5 +18,5 @@ set -e
 img_dir=/data7/emobert/exp/evaluation/MSP/feature/openface_iemocap_raw_img/raw_img_npzs
 output_dir=/data7/emobert/exp/evaluation/MSP/feature/openface_iemocap_raw_img/raw_img_db
 echo "convrting image features ..."
-python convert_imgdir.py --img_dir $img_dir --output $output_dir --conf_th 0.0 --max_bb 64 --nproc 16
+python convert_imgdir.py --img_dir $img_dir --output $output_dir --conf_th 0.0 --max_bb 128000 --nproc 16
 echo "done"

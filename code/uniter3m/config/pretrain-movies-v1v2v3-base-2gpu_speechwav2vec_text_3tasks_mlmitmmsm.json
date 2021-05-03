@@ -2,6 +2,7 @@
     "output_dir": "/data7/emobert/exp/pretrain/nomask_movies_v1v2_4tasks_lr5e5_bs1024_faceth0.5",
     "model_config": "config/uniter-base.json",
     "checkpoint": "/data7/emobert/resources/pretrained/uniter-base-uncased-init.pt",
+    "msrm_prob": 0.15,
     "mrm_prob": 0.15,
     "itm_neg_prob": 0.5,
     "itm_ot_lambda": 0.1,

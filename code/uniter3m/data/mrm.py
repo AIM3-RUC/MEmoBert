@@ -22,9 +22,9 @@ def _get_img_mask(mask_prob, num_bb):
 
 
 def _get_img_tgt_mask(img_mask, txt_len, speech_len):
-    z = torch.zeros(txt_len, dtype=torch.uint8)
+    z = torch.zeros(txt_len, dtype=torch.bool)
     if speech_len > 0:
-        zs = torch.zeros(speech_len, dtype=torch.uint8)
+        zs = torch.zeros(speech_len, dtype=torch.bool)
         img_mask_tgt = torch.cat([z, img_mask, zs], dim=0)
     else:
         img_mask_tgt = torch.cat([z, img_mask], dim=0)
@@ -171,7 +171,8 @@ class MrcDataset(DetectFeatTxtTokDataset):
         img_soft_label = torch.tensor(img_dump['soft_labels'])
         if num_bb == 0:
             if img_shape is None:
-                img_shape = torch.zeros(342)
+                print("[Warning] Set the img_shape to 342!!!")
+                img_shape = 342   
             img_feat = torch.zeros(img_shape).unsqueeze(0)
             img_soft_label = torch.zeros(8).unsqueeze(0)
             num_bb = 1

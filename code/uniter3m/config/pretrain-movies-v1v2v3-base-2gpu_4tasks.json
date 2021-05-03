@@ -40,7 +40,7 @@
                 "/data7/emobert/img_db_nomask/movies_v1/fc"
             ],
             "speech": [
-                "/data7/emobert/norm_comparE_db/movies_v1_5mean/"
+                "/data7/emobert/wav2vec_db/movies_v1_3mean/"
             ],
             "tasks": [
                 "itm",
@@ -64,7 +64,7 @@
                 "/data7/emobert/img_db_nomask/movies_v2/fc"
             ],
             "speech": [
-                "/data7/emobert/norm_comparE_db/movies_v2_5mean/"
+                "/data7/emobert/wav2vec_db/movies_v2_3mean/"
             ],
             "tasks": [
                 "itm",
@@ -88,7 +88,7 @@
                 "/data7/emobert/img_db_nomask/movies_v3/fc"
             ],
             "speech": [
-                "/data7/emobert/norm_comparE_db/movies_v3_5mean/"
+                "/data7/emobert/wav2vec_db/movies_v3_3mean/"
             ],
             "tasks": [
                 "itm",
@@ -114,7 +114,7 @@
                 "/data7/emobert/img_db_nomask/movies_v1/fc"
             ],
             "speech": [
-                "/data7/emobert/norm_comparE_db/movies_v1_5mean/"
+                "/data7/emobert/wav2vec_db/movies_v1_3mean/"
             ],
             "tasks": [
                 "itm",
@@ -132,7 +132,7 @@
                 "/data7/emobert/img_db_nomask/movies_v1/fc"
             ],
             "speech": [
-                "/data7/emobert/norm_comparE_db/movies_v1_5mean/"
+                "/data7/emobert/wav2vec_db/movies_v1_3mean/"
             ],
             "tasks": [
                 "itm",
@@ -150,7 +150,7 @@
                 "/data7/emobert/img_db_nomask/movies_v2/fc"
             ],
             "speech": [
-                "/data7/emobert/norm_comparE_db/movies_v2_5mean/"
+                "/data7/emobert/wav2vec_db/movies_v2_3mean/"
             ],
             "tasks": [
                 "itm",
@@ -168,7 +168,7 @@
                 "/data7/emobert/img_db_nomask/movies_v2/fc"
             ],
             "speech": [
-                "/data7/emobert/norm_comparE_db/movies_v2_5mean/"
+                "/data7/emobert/wav2vec_db/movies_v2_3mean/"
             ],
             "tasks": [
                 "itm",
@@ -186,7 +186,7 @@
                 "/data7/emobert/img_db_nomask/movies_v3/fc"
             ],
             "speech": [
-                "/data7/emobert/norm_comparE_db/movies_v3_5mean/"
+                "/data7/emobert/wav2vec_db/movies_v3_3mean/"
             ],
             "tasks": [
                 "itm",
@@ -204,7 +204,7 @@
                 "/data7/emobert/img_db_nomask/movies_v3/fc"
             ],
             "speech": [
-                "/data7/emobert/norm_comparE_db/movies_v3_5mean/"
+                "/data7/emobert/wav2vec_db/movies_v3_3mean/"
             ],
             "tasks": [
                 "itm",

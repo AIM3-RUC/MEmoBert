@@ -156,7 +156,7 @@ def mlm_collate(inputs):
     # multi-modality atten mask
     gather_index = get_gather_index(txt_lens, num_bbs, num_frames, bs, max_tl, out_size)
     # print('[Debug] batch gather_index {} {}'.format(gather_index, gather_index.shape))
-
+    
     batch = {'input_ids': input_ids,
              'position_ids': position_ids,
              'img_feat': img_feat,

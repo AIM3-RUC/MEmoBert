@@ -68,7 +68,7 @@ do
                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter_4tasks_lr5e5_bs1024_faceth0.5/ckpt/model_step_6000.pt \
                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
                 --learning_rate ${lr} --lr_sched_type 'linear' --conf_th 0.5 \
-                --train_batch_size 32 --inf_batch_size 32 --num_train_steps 2000 --valid_steps 200  \
+                --train_batch_size 2 --inf_batch_size 2 --num_train_steps 2000 --valid_steps 200  \
                 --output_dir /data7/emobert/exp/evaluation/MELD/finetune/baseon-movies_v1v2v3_uniter_4tasks-lr${lr}_infbs32_th0.5_train2000_trnval_hq
         done
 done

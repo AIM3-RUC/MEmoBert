@@ -101,13 +101,12 @@ class ItmDataset(DetectFeatTxtTokDataset):
         example = super().__getitem__(i)
         # labels and negative images should be sampled every epoch
         ground_truth_label = self.labels[i]
-        img_fname = self.train_imgs[i]
+        img_fname = example['img_fname']
         # text input
         input_ids = example['input_ids']
         input_ids = self.txt_db.combine_inputs(input_ids)
         attn_masks = torch.ones(len(input_ids), dtype=torch.long)
 
-        img_fname = self.train_imgs[i]
         if self.img_db:
             img_feat, num_bb = self._get_img_feat(img_fname, self.img_shape)
             self.img_shape = img_feat.shape[1:]
@@ -117,7 +116,7 @@ class ItmDataset(DetectFeatTxtTokDataset):
             img_feat = None
 
         if self.speech_db:
-            speech_feat, num_frame = self._get_speech_feat(example['img_fname'])
+            speech_feat, num_frame = self._get_speech_feat(img_fname)
             speech_attn_masks = torch.ones(num_frame, dtype=torch.long)
             attn_masks = torch.cat((attn_masks, speech_attn_masks))
         else:
@@ -159,6 +158,9 @@ def itm_collate(inputs):
     out_size = attn_masks.size(1)
     gather_index = get_gather_index(txt_lens, num_bbs, num_frames, bs, max_tl, out_size)
 
+    # for new version torch 
+    attn_masks = attn_masks.bool()
+    
     batch = {'input_ids': input_ids,
              'position_ids': position_ids,
              'img_feat': img_feat,
