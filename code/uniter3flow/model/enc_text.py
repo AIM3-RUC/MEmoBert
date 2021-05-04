@@ -33,7 +33,7 @@ class BertTextEmbeddings(nn.Module):
         self.LayerNorm = FusedLayerNorm(config.hidden_size, eps=1e-12)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
-    def forward(self, input_ids, position_ids, token_type_ids=None, use_token_type=False):
+    def forward(self, input_ids, position_ids, token_type_ids=None):
         '''
         donot use the token type.
         '''
@@ -41,12 +41,11 @@ class BertTextEmbeddings(nn.Module):
         position_embeddings = self.position_embeddings(position_ids)
         embeddings = words_embeddings + position_embeddings
         
-        if use_token_type:
-            logger.info('[Info] Use the token type embeddings')
-            if token_type_ids is None:
-                token_type_ids = torch.zeros_like(input_ids)
-            token_type_embeddings = self.token_type_embeddings(token_type_ids)
-            embeddings += token_type_embeddings
+        logger.info('[Info] Use the default token type embeddings')
+        if token_type_ids is None:
+            token_type_ids = torch.zeros_like(input_ids)
+        token_type_embeddings = self.token_type_embeddings(token_type_ids)
+        embeddings += token_type_embeddings
   
         embeddings = self.LayerNorm(embeddings)
         embeddings = self.dropout(embeddings)
