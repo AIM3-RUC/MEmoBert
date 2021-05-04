@@ -56,6 +56,7 @@ class MEmoBertModel(BertPreTrainedModel):
         self.text_encoder = TextEncoderBertModel(self.t_config)
         # text encoder need pretraind model
         if pretrained_text_checkpoint is None:
+            logger.info('[INFO] Scratch the text encoder')
             checkpoint = {}
         else:
             logger.info('[INFO] Loading the text pretrained model {}'.format(pretrained_text_checkpoint))
@@ -69,6 +70,8 @@ class MEmoBertModel(BertPreTrainedModel):
             if pretrained_audio_checkpoint:
                 logger.info('[INFO] Loading the wav2vec pretrained model {}'.format(pretrained_audio_checkpoint))
                 self.speech_encoder.encoder.load_state_dict(torch.load(pretrained_audio_checkpoint))
+            else:
+                logger.info('[INFO] Scratch the speech wav2vec2 encoder')
 
         if use_visual:
             logger.info('[Info] use the visual branch')
@@ -133,6 +136,16 @@ class MEmoBertModel(BertPreTrainedModel):
             else:
                 speech_encoder_output = self.speech_encoder(batch)
             
+            speech_attn_mask = batch['speech_attn_masks']
+            # compute self-attention mask.
+            speech_extended_attn_mask = speech_attn_mask.unsqueeze(1).unsqueeze(2)
+            speech_extended_attn_mask = speech_extended_attn_mask.to(
+                                        dtype=next(self.parameters()).dtype)  # fp16 compatibility
+            speech_extended_attn_mask = (1.0 - speech_extended_attn_mask) * -10000.0  ## torch.Size([16, 1, 1, 297])
+            ## for postprocessing
+            if speech_encoder_output.size(1) > speech_extended_attn_mask.size(3):
+                speech_encoder_output = speech_encoder_output[:, :speech_extended_attn_mask.size(3), :] 
+            
             if self.use_type_embedding:
                 # add speech type embeddings, also use index 1
                 speech_token_type_ids = torch.ones_like(speech_encoder_output[:, :, 0].long()) + \
@@ -140,15 +153,6 @@ class MEmoBertModel(BertPreTrainedModel):
                 speech_token_type_embeddings = self.token_type_embeddings(speech_token_type_ids)
                 speech_encoder_output = speech_encoder_output + speech_token_type_embeddings
 
-            speech_attn_mask = batch['speech_attn_masks']
-            # compute self-attention mask.
-            speech_extended_attn_mask = speech_attn_mask.unsqueeze(1).unsqueeze(2)
-            speech_extended_attn_mask = speech_extended_attn_mask.to(
-                                        dtype=next(self.parameters()).dtype)  # fp16 compatibility
-            speech_extended_attn_mask = (1.0 - speech_extended_attn_mask) * -10000.0  ## torch.Size([16, 1, 1, 297])
-
-            if speech_encoder_output.size(1) > speech_extended_attn_mask.size(3):
-                speech_encoder_output = speech_encoder_output[:, :speech_extended_attn_mask.size(3), :] 
             # combine modality info
             combine_modality_outputs.append(speech_encoder_output)
             combine_modality_att_masks.append(speech_extended_attn_mask)

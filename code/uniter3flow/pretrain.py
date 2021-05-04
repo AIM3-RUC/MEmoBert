@@ -257,8 +257,10 @@ def main(opts):
                                         fix_cross_encoder=opts.fix_cross_encoder,
                                         use_type_embedding=opts.use_type_embedding)
     if opts.checkpoint:
-        LOGGER.info('[Info] Loading from pretrained model {}'.format(opts.checkpoint))
-        model.load_state_dict(torch.load(opts.checkpoint))
+        LOGGER.info('[Info] Loading the whole model from pretrained model {}'.format(opts.checkpoint))
+        missing_keys, unexpected_keys = model.load_state_dict(torch.load(opts.checkpoint))
+        LOGGER.info('[Debug] the missing keys {}'.format(missing_keys))
+        LOGGER.info('[Debug] the unexpected keys {}'.format(unexpected_keys))
     # print('[Debug] model info {}'.format(model.state_dict().keys()))
     model.to(device)
     model.train()

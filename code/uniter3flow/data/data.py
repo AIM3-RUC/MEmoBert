@@ -109,10 +109,10 @@ class DetectFeatLmdb(object):
                 # print('[Debug] after augment {}'.format(img_feat.shape))
             img_feat = torch.tensor(img_feat).float()
         elif len(img_dump['features'].shape) == 2:
-            img_feat = torch.tensor(img_dump['features'][:nbb, :]).float()
+            img_feat = torch.tensor(img_dump['features'][:nbb, :].copy()).float()
         elif len(img_dump['features'].shape) == 1:
             # for raw speech signals
-            img_feat = torch.tensor(img_dump['features'][:nbb]).float()
+            img_feat = torch.tensor(img_dump['features'][:nbb].copy()).float()
         else:
             print("[Error] of img feature dimension {}".format(img_dump['features'].shape))
         return img_feat
