@@ -76,7 +76,7 @@ class TextEncoderBertModel(BertPreTrainedModel):
             dtype=next(self.parameters()).dtype)  # fp16 compatibility
         extended_attention_mask = (1.0 - extended_attention_mask) * -10000.0
         # compute token embeddings
-        embedding_output = self.embeddings(input_ids, position_ids, use_token_type=False)
+        embedding_output = self.embeddings(input_ids, position_ids)
         # compute bert output embeddings
         encoded_layers = self.encoder(
             embedding_output, extended_attention_mask,
