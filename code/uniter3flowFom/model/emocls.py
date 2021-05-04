@@ -14,9 +14,9 @@ from torch import nn
 from torch.nn import CrossEntropyLoss
 from apex.normalization.fused_layer_norm import FusedLayerNorm as LayerNorm
 from sklearn.metrics import accuracy_score, recall_score, f1_score, confusion_matrix
-from code.uniter3flowFOM.model.model import MEmoBertModel
-from code.uniter3flowFOM.model.model_base import BertConfig
-from code.uniter3flowFOM.model.layer import GELU
+from code.uniter3flow.model.model import MEmoBertModel
+from code.uniter3flow.model.model_base import BertConfig
+from code.uniter3flow.model.layer import GELU
 
 class MEmoBertForEmoTraining(nn.Module):
     """ Finetune UNITER for Emotion Recognition

@@ -9,7 +9,7 @@ import torch
 import numpy as np
 from torch.nn.utils.rnn import pad_sequence
 from toolz.sandbox import unzip
-from code.uniter3flowFOM.data.data import (DetectFeatTxtTokDataset, DetectFeatLmdb, TxtTokLmdb, pad_tensors)
+from code.uniter3flow.data.data import (DetectFeatTxtTokDataset, DetectFeatLmdb, TxtTokLmdb, pad_tensors)
                    
 class EmoCLsDataset(DetectFeatTxtTokDataset):
     def __init__(self, txt_db, img_db, speech_db=None):
@@ -44,11 +44,10 @@ class EmoCLsDataset(DetectFeatTxtTokDataset):
 
         if self.speech_db:
             speech_feat, num_frame = self._get_speech_feat(example['img_fname'])
-            speech_attn_masks = torch.ones(num_frame, dtype=torch.long)
         else:
-            speech_feat, speech_attn_masks = None, None
+            speech_feat = None
 
-        return input_ids, img_feat, speech_feat, text_attn_masks, img_attn_masks, speech_attn_masks, target
+        return input_ids, img_feat, speech_feat, text_attn_masks, img_attn_masks, target
 
 def emocls_collate(inputs, add_cls_token=True):
     """

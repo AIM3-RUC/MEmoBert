@@ -20,6 +20,10 @@ import lmdb
 from lz4.frame import compress, decompress
 from code.denseface.data.fer import augment_batch_images
 
+import soundfile as sf
+import librosa
+from transformers import Wav2Vec2Processor
+
 import msgpack
 import msgpack_numpy
 msgpack_numpy.patch()
@@ -41,7 +45,10 @@ def _check_distributed():
 
 class DetectFeatLmdb(object):
     def __init__(self, img_dir, conf_th=0.2, max_bb=100, min_bb=10,
-                 compress=True, data_augmentation=True):
+                 compress=True, data_augmentation=False):
+        '''
+        For both img and speech modalities
+        '''
         # Jinming add: data_augmentation for raw image.
         self.data_augmentation = data_augmentation
         
@@ -102,9 +109,10 @@ class DetectFeatLmdb(object):
                 # print('[Debug] after augment {}'.format(img_feat.shape))
             img_feat = torch.tensor(img_feat).float()
         elif len(img_dump['features'].shape) == 2:
-            img_feat = torch.tensor(img_dump['features'][:nbb, :]).float()
+            img_feat = torch.tensor(img_dump['features'][:nbb, :].copy()).float()
         elif len(img_dump['features'].shape) == 1:
-            img_feat = torch.tensor(img_dump['features'][:nbb]).float()
+            # for raw speech signals
+            img_feat = torch.tensor(img_dump['features'][:nbb].copy()).float()
         else:
             print("[Error] of img feature dimension {}".format(img_dump['features'].shape))
         return img_feat
@@ -145,7 +153,6 @@ class TxtLmdb(object):
                              raw=False)
 
     def __setitem__(self, key, value):
-        # NOTE: not thread safe
         if self.readonly:
             raise ValueError('readonly text DB')
         ret = self.txn.put(key.encode('utf-8'),
@@ -181,13 +188,6 @@ class TxtTokLmdb(object):
     def __getitem__(self, id_):
         txt_dump = self.db[id_]
         return txt_dump
-
-    def combine_inputs(self, *inputs):
-        input_ids = [self.cls_]
-        for ids in inputs:
-            # remove the [sep]
-            input_ids.extend(ids)
-        return torch.tensor(input_ids)
 
     @property
     def txt2img(self):
@@ -259,6 +259,27 @@ class DetectFeatTxtTokDataset(Dataset):
         speech_feat = self.speech_db[fname]
         num_bb = speech_feat.size(0)
         return speech_feat, num_bb
+    
+    def _get_raw_speech_feat(self, fname):
+        # Jinimng: audio speech features
+        # https://github.com/huggingface/transformers/blob/b24ead87e1be6bce17e4ec5c953b6d028e4b3af7/src/transformers/models/wav2vec2/processing_wav2vec2.py#L77
+        audio_path = self.speech_db[fname]
+        speech = self.read_audio(audio_path)
+        processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base")
+        speech_feat = processor(speech, return_tensors="pt", sampling_rate=sr).input_values
+        num_lens = speech_feat.size(0)
+        return speech_feat, num_len
+    
+    def read_audio(wav_path):
+        speech, sr = sf.read(wav_path)
+        if sr != 16000:
+            speech = librosa.resample(speech, sr, 16000)
+            sr = 16000
+        if sr * 10 < len(speech):
+            # print(f'{wav_path} long than 10 seconds and clip {speech.shape}')
+            speech = speech[:int(sr * 10)]
+        return speech, sr
+
 
 def pad_tensors(tensors, lens=None, pad=0):
     """B x [T, ...], for 2d (batchsize, T, dim)
@@ -274,6 +295,8 @@ def pad_tensors(tensors, lens=None, pad=0):
         output = torch.zeros(bs, max_len, hid, hid, dtype=dtype)
     elif len(tensors[0].shape) == 2:
         output = torch.zeros(bs, max_len, hid, dtype=dtype)
+    elif len(tensors[0].shape) == 1:
+        output = torch.zeros(bs, max_len, dtype=dtype)
     else:
         print('[Error] In pad_tensors is {}'.format(tensors.size))
     if pad:
@@ -299,7 +322,7 @@ class ConcatDatasetWithLens(ConcatDataset):
         return run_all
 
 class ImageLmdbGroup(object):
-    def __init__(self, conf_th, max_bb, min_bb, compress, data_augmentation=False):
+    def __init__(self, conf_th, max_bb, min_bb, compress, data_augmentation=True):
         self.path2imgdb = {}
         self.conf_th = conf_th
         self.max_bb = max_bb

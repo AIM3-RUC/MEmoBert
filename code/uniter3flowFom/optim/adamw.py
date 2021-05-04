@@ -74,9 +74,9 @@ class AdamW(Optimizer):
 
                 # Decay the first and second moment running average coefficient
                 # In-place operations to update the averages at the same time
-                exp_avg.mul_(beta1).add_(1.0 - beta1, grad)
+                exp_avg.mul_(beta1).add(1.0 - beta1, grad)
                 exp_avg_sq.mul_(beta2).addcmul_(1.0 - beta2, grad, grad)
-                denom = exp_avg_sq.sqrt().add_(group['eps'])
+                denom = exp_avg_sq.sqrt().add(group['eps'])
 
                 step_size = group['lr']
                 if group['correct_bias']:  # No bias correction for Bert

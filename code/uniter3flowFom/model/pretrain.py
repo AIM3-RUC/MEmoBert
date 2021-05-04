@@ -11,9 +11,9 @@ from torch import nn
 from torch.nn import functional as F
 from apex.normalization.fused_layer_norm import FusedLayerNorm as LayerNorm
 
-from code.uniter3flowFOM.model.layer import GELU, BertOnlyMLMHead
-from code.uniter3flowFOM.model.model_base import BertConfig
-from code.uniter3flowFOM.model.model import MEmoBertModel
+from code.uniter3flow.model.layer import GELU, BertOnlyMLMHead
+from code.uniter3flow.model.model_base import BertConfig
+from code.uniter3flow.model.model import MEmoBertModel
 
 logger = logging.getLogger(__name__)
 
@@ -28,21 +28,6 @@ class RegionClassification(nn.Module):
 
     def forward(self, input_):
         output = self.net(input_)
-        return output
-
-class FomClassification(nn.Module):
-    # for the FOM frame order modeling
-    def __init__(self, hidden_size, max_clip_len):
-        super().__init__()
-        self.net = nn.Sequential(nn.Linear(hidden_size, hidden_size*2),
-                                 GELU(),
-                                 LayerNorm(hidden_size*2, eps=1e-12),
-                                 nn.Linear(hidden_size*2, max_clip_len))
-
-    def forward(self, input_):
-        output = self.net(input_)
-        # print('[Debug] in FomClassification input {}'.format(input_.shape))
-        # print('[Debug] in FomClassification output {}'.format(output.shape))
         return output
 
 class EmoMelmClassification(nn.Module):
@@ -60,15 +45,44 @@ class EmoMelmClassification(nn.Module):
         # print('[Debug] in EmoMelmClassification output {}'.format(output.shape))
         return output
 
+class FomClassification(nn.Module):
+    # for the FOM frame order modeling
+    def __init__(self, hidden_size, max_clip_len):
+        super().__init__()
+        self.net = nn.Sequential(nn.Linear(hidden_size, hidden_size*2),
+                                 GELU(),
+                                 LayerNorm(hidden_size*2, eps=1e-12),
+                                 nn.Linear(hidden_size*2, max_clip_len))
+
+    def forward(self, input_):
+        output = self.net(input_)
+        # print('[Debug] in FomClassification input {}'.format(input_.shape))
+        # print('[Debug] in FomClassification output {}'.format(output.shape))
+        return output
+
 class MEmoBertForPretraining(nn.Module):
     """ MEmoBert pretraining 
     classifier的初始化部分采用 cross-encoder 部分的参数, self.emoBert.c_config
     """
-    def __init__(self, config_file, use_speech, use_visual, pretrained_text_checkpoint=None):
+    def __init__(self, config_file, use_speech, use_visual, 
+                                            pretrained_text_checkpoint=None, 
+                                            pretrained_audio_checkpoint=None,
+                                            fix_text_encoder=False,
+                                            fix_visual_encoder=False,
+                                            fix_speech_encoder=False,
+                                            fix_cross_encoder=False,
+                                            use_type_embedding=False):
         super(MEmoBertForPretraining, self).__init__()
         config = BertConfig.from_json_file(config_file)
         # logger.info('[Debug] Config {}'.format(type(config))) # BertConfig
-        self.emoBert = MEmoBertModel(config, use_speech, use_visual, pretrained_text_checkpoint)
+        self.emoBert = MEmoBertModel(config, use_speech, use_visual, 
+                                            pretrained_text_checkpoint=pretrained_text_checkpoint,
+                                            pretrained_audio_checkpoint=pretrained_audio_checkpoint,
+                                            fix_text_encoder=fix_text_encoder,
+                                            fix_visual_encoder=fix_visual_encoder,
+                                            fix_speech_encoder=fix_speech_encoder,
+                                            fix_cross_encoder=fix_cross_encoder,
+                                            use_type_embedding=use_type_embedding)
         logger.info('[Debug] MEmoBertModel Success!!!')
         self.cls = BertOnlyMLMHead(
             self.emoBert.c_config, self.emoBert.text_encoder.embeddings.word_embeddings.weight)

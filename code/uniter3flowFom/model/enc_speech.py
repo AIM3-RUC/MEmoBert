@@ -16,7 +16,7 @@ import torch
 from torch._C import device
 import torch.nn as nn
 import torch.nn.functional as F
-from code.uniter3flowFOM.model.model_base import BertConfig, BertPreTrainedModel, BertEncoder
+from code.uniter3flow.model.model_base import BertConfig, BertPreTrainedModel, BertEncoder
 
 class EncCNN1d(nn.Module):
     def __init__(self, input_dim=130, channel=256, dropout=0.1):
@@ -43,49 +43,6 @@ class EncCNN1d(nn.Module):
     def forward(self, input_batch):
         # input_batch of shape [bs, seq_len, input_dim]
         out = self.feat_extractor(input_batch.transpose(1, 2))
-        out = out.transpose(1, 2)  # to (batch x seq x dim)
-        out = self.dropout(out)
-        return out
-
-class EncCNN3DCNN1d(nn.Module):
-    def __init__(self, input_dim=130, init_channel=256, dropout=0.1):
-        super(EncCNN3DCNN1d, self).__init__()
-        '''
-        input shape: (bs, input_dim, seq_len)
-        return con1d_output_dim=init_channel*2, and the time-step will / 8
-        '''
-        # conv3d-input, (batch-size, channle, timesteps, 130)
-        self.frontend3D = nn.Sequential(
-                            nn.Conv2d(1, init_channel, kernel_size=(15, 5), stride=(1, 2), padding=(2, 4), bias=False),
-                            nn.BatchNorm2d(init_channel, momentum=0.01, eps=0.001),
-                            nn.ReLU(),
-                            nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2), padding=(0,1))
-                        )
-        self.feat_extractor = nn.Sequential(
-            nn.Conv1d(input_dim, init_channel, 10, stride=2, padding=4),
-            nn.BatchNorm1d(init_channel),
-            nn.LeakyReLU(0.3, inplace=True),
-            nn.Conv1d(init_channel, init_channel*2, 5, stride=2, padding=2),
-            nn.BatchNorm1d(init_channel*2),
-            nn.LeakyReLU(0.3, inplace=True),
-            nn.Conv1d(init_channel*2, init_channel*4, 5, stride=2, padding=2),
-            nn.BatchNorm1d(init_channel*4),
-            nn.LeakyReLU(0.3, inplace=True),
-            nn.Conv1d(init_channel*4, init_channel*2, 3, stride=1, padding=1),
-        )
-        self.dropout = nn.Dropout(dropout)
-        self.con1d_output_dim = 512
-
-    def forward(self, input_batch):
-        print('[Debug] input_batch {}'.format(input_batch.shape))
-        # input of shape [bs, seq_len, input_dim]
-        output = self.frontend3D(input_batch.unsqueeze(1)) # [bs, 1, seq_len, input_dim]
-        print('[Debug] conv3d output {}'.format(output.shape))
-        # input of shape [bs, seq_len, input_dim]
-        output = output.squeeze(1).transpose(1, 2)
-        print('[Debug] conv1d input {}'.format(output.shape))
-        out = self.feat_extractor(output)
-        print('[Debug] conv1d output {}'.format(out.shape))
         out = out.transpose(1, 2)  # to (batch x seq x dim)
         out = self.dropout(out)
         return out

@@ -19,23 +19,22 @@ from torch.nn.utils import clip_grad_norm_
 from apex import amp
 from horovod import torch as hvd
 
-from code.uniter3flowFOM.data import (TokenBucketSampler, TokenBucketSamplerForItm,
+from code.uniter3flow.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   MetaLoader, PrefetchLoader,
                   TxtTokLmdb, ImageLmdbGroup, SpeechLmdbGroup, ConcatDatasetWithLens,
                   MlmDataset, MelmDataset, mlm_collate, melm_collate,
-                  ItmDataset, itm_collate,
-                  FOMDataset, fom_collate)
+                  ItmDataset, itm_collate)
 
-from code.uniter3flowFOM.model.pretrain import MEmoBertForPretraining
-from code.uniter3flowFOM.optim import get_lr_sched, get_backbone_lr_sched
-from code.uniter3flowFOM.optim.misc import build_backbone_optimizer, build_optimizer
+from code.uniter3flow.model.pretrain import MEmoBertForPretraining
+from code.uniter3flow.optim import get_lr_sched, get_backbone_lr_sched
+from code.uniter3flow.optim.misc import build_backbone_optimizer, build_optimizer
 
-from code.uniter3flowFOM.utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
-from code.uniter3flowFOM.utils.distributed import (all_reduce_and_rescale_tensors, all_gather_list,
+from code.uniter3flow.utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
+from code.uniter3flow.utils.distributed import (all_reduce_and_rescale_tensors, all_gather_list,
                                broadcast_tensors)
-from code.uniter3flowFOM.utils.save import ModelSaver, save_training_meta
-from code.uniter3flowFOM.utils.misc import NoOp, parse_with_config, set_dropout, set_random_seed, get_grad_flow
-from code.uniter3flowFOM.utils.const import BUCKET_SIZE
+from code.uniter3flow.utils.save import ModelSaver, save_training_meta
+from code.uniter3flow.utils.misc import NoOp, parse_with_config, set_dropout, set_random_seed, get_grad_flow
+from code.uniter3flow.utils.const import IMG_LABEL_DIM, BUCKET_SIZE
 
 def build_dataloader(dataset, collate_fn, is_train, opts):
     if is_train:
@@ -64,22 +63,53 @@ def build_dataloader_itm(dataset, collate_fn, is_train, opts):
 
 
 def build_mlm_dataset(txt_db, img_db, speech_db, is_train, opts):
+    ''' whether use the img/audio in create_dataloader()
+    '''
     if is_train:
-        datasets = [MlmDataset(t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+        if img_db is not None and speech_db is not None:
+            datasets = [MlmDataset(t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif img_db is None and speech_db is not None:
+            datasets = [MlmDataset(t, None, s) for t, s in zip(txt_db, speech_db)]
+        elif img_db is not None and speech_db is None:
+            datasets = [MlmDataset(t, i, None) for t, i in zip(txt_db, img_db)]
+        else:
+            LOGGER.info('[Error] Error melm datasets')
         dataset = ConcatDatasetWithLens(datasets)
     else:
+        # 在dataset里面会根据db是否为None进行相应的判断
         dataset = MlmDataset(txt_db, img_db, speech_db)
-
     return dataset, mlm_collate
 
 def build_melm_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:
-        datasets = [MelmDataset(opts.melm_prob, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+        if img_db is not None and speech_db is not None:
+            datasets = [MlmDataset(opts.melm_prob, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif img_db is None and speech_db is not None:
+            datasets = [MlmDataset(opts.melm_prob, t, None, s) for t, s in zip(txt_db, speech_db)]
+        elif img_db is not None and speech_db is None:
+            datasets = [MlmDataset(opts.melm_prob, t, i, None) for t, i in zip(txt_db, img_db)]
+        else:
+            LOGGER.info('[Error] Error melm datasets')
         dataset = ConcatDatasetWithLens(datasets)
     else:
         dataset = MelmDataset(opts.melm_prob, txt_db, img_db, speech_db)
-
     return dataset, melm_collate
+
+def build_itm_dataset(txt_db, img_db, speech_db, is_train, opts):
+    if is_train:
+        if img_db is not None and speech_db is not None:
+            datasets = [ItmDataset(t, i, s, opts.itm_neg_prob) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif img_db is None and speech_db is not None:
+            datasets = [ItmDataset(t, None, s, opts.itm_neg_prob) for t, s in zip(txt_db, speech_db)]
+        elif img_db is not None and speech_db is None:
+            datasets = [ItmDataset(t, i, None, opts.itm_neg_prob) for t, i in zip(txt_db, img_db)]
+        else:
+            LOGGER.info('[Error] Error itm datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = ItmDataset(txt_db, img_db, speech_db, opts.itm_neg_prob)
+    collate_fn = itm_collate
+    return dataset, collate_fn
 
 ### for build FOM dataset 
 def build_fom_dataset(txt_db, img_db, speech_db, is_train, opts):
@@ -94,50 +124,36 @@ def build_fom_dataset(txt_db, img_db, speech_db, is_train, opts):
 def build_som_dataset(txt_db, img_db, speech_db, is_train, opts):
     pass
 
-def build_itm_dataset(txt_db, img_db, speech_db, is_train, opts):
-    if is_train:
-        datasets = [ItmDataset(t, i, s, opts.itm_neg_prob)
-                    for t, i, s in zip(txt_db, img_db, speech_db)]
-        dataset = ConcatDatasetWithLens(datasets)
-    else:
-        dataset = ItmDataset(txt_db, img_db, speech_db, opts.itm_neg_prob)
-    collate_fn = itm_collate
-    return dataset, collate_fn
-
-def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_dbs=None):
-    if all_img_dbs is None:
-        if is_train:
-            image_data_augmentation = opts.image_data_augmentation
-        else:
-            image_data_augmentation = False
-        all_img_dbs = ImageLmdbGroup(opts.conf_th, opts.max_bb, opts.min_bb,
-                                    opts.compressed_db, 
-                                     data_augmentation=image_data_augmentation)
-    if all_speech_dbs is None:
-        # No augmentation for speech
+def create_dataloaders(datasets, is_train, opts, data_augmentation):
+    if opts.use_visual:
+        LOGGER.info('[Debug] Use ImageLmdbGroup')
+        all_img_dbs = ImageLmdbGroup(opts.conf_th, opts.max_bb, opts.min_bb, opts.compressed_db,
+                    data_augmentation=data_augmentation)
+    if  opts.use_speech:
+        LOGGER.info('[Debug] Use SpeechLmdbGroup')
         all_speech_dbs = SpeechLmdbGroup(opts.speech_conf_th, opts.max_frames, opts.min_frames,
                                        opts.compressed_db)
     dataloaders = {}
     for dset in datasets:
         if is_train:
             assert len(dset['tasks']) == len(dset['mix_ratio'])
-            if dset.get('img') is not None:
+            if dset.get('img') is not None and opts.use_visual:
                 assert len(dset['db']) == len(dset['img'])
                 img_db = [all_img_dbs[path] for path in dset['img']]
             else:
                 img_db = None
-            if dset.get('speech') is not None:
+            if dset.get('speech') is not None and opts.use_speech:
                 assert len(dset['db']) == len(dset['speech'])
                 speech_db = [all_speech_dbs[path] for path in dset['speech']]
             else:
                 speech_db = None
         else:
-            if dset.get('img') is not None:
+            if dset.get('img') is not None and opts.use_visual:
                 assert len(dset['db']) == len(dset['img']) == 1
                 img_db = all_img_dbs[dset['img'][0]]
             else:
                 img_db = None
-            if dset.get('speech') is not None:
+            if dset.get('speech') is not None and opts.use_speech:
                 speech_db = all_speech_dbs[dset['speech'][0]]
             else:
                 speech_db = None
@@ -175,8 +191,7 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
                 dataloaders[task] = (loader, ratio)
             else:
                 dataloaders[task] = PrefetchLoader(loader)
-    return dataloaders, all_img_dbs, all_speech_dbs
-
+    return dataloaders
 
 def main(opts):
     hvd.init()
@@ -188,6 +203,14 @@ def main(opts):
     LOGGER.info("device: {} n_gpu: {}, rank: {}, "
                 "16-bits training: {}".format(
                     device, n_gpu, hvd.rank(), opts.fp16))
+    LOGGER.info('[Debug] use visual branch {}'.format(opts.use_visual))
+    LOGGER.info('[Debug] use speech branch {}'.format(opts.use_speech))
+    LOGGER.info('[Debug] image_data_augmentation {}'.format(opts.image_data_augmentation))
+    LOGGER.info('[Debug] fix_visual_encoder {}'.format(opts.fix_visual_encoder))
+    LOGGER.info('[Debug] fix_text_encoder {}'.format(opts.fix_text_encoder))
+    LOGGER.info('[Debug] fix_speech_encoder {}'.format(opts.fix_speech_encoder))
+    LOGGER.info('[Debug] fix_cross_encoder {}'.format(opts.fix_cross_encoder))
+    LOGGER.info('[Debug] use_type_embedding {}'.format(opts.use_type_embedding))
 
     if opts.gradient_accumulation_steps < 1:
         raise ValueError("Invalid gradient_accumulation_steps parameter: {}, "
@@ -219,19 +242,12 @@ def main(opts):
         assert all(tokenizer == json.load(open(f'{db}/meta.json'))['bert']
                 for db in all_dbs)
 
-    # build data loaders
-    train_dataloaders, all_img_dbs, all_speech_dbs = create_dataloaders(
-        opts.train_datasets, True, opts)
-    # Jinming: for data-augmentation
-    if opts.image_data_augmentation:
-        LOGGER.info('[INFO] Use the augmentation and validation img is indepently as train set')
-        val_dataloaders, _, _ = create_dataloaders(
-            opts.val_datasets, False, opts)
-    else:
-        # if no augmentation for train, then the vlaidaiton can use same imgdb
-        LOGGER.info('[INFO] Donot use the augmentation and validation img is same as train set')
-        val_dataloaders, _, _ = create_dataloaders(
-            opts.val_datasets, False, opts, all_img_dbs, all_speech_dbs)
+    # build data loaders, default using img-data_augmentation
+    train_dataloaders = create_dataloaders(
+        opts.train_datasets, True, opts, data_augmentation=opts.image_data_augmentation)
+    val_dataloaders = create_dataloaders(opts.val_datasets, False, opts, 
+                                            data_augmentation=False)
+
     meta_loader = MetaLoader(train_dataloaders,
                              accum_steps=opts.gradient_accumulation_steps,
                              distributed=n_gpu > 1)
@@ -239,15 +255,21 @@ def main(opts):
 
     # Prepare model
     model = MEmoBertForPretraining(opts.model_config, use_speech=opts.use_speech, use_visual=opts.use_visual, \
-                                        pretrained_text_checkpoint=opts.pretrained_text_checkpoint)
-    
+                                        pretrained_text_checkpoint=opts.pretrained_text_checkpoint,
+                                        pretrained_audio_checkpoint=opts.pretrained_audio_checkpoint,
+                                        fix_text_encoder=opts.fix_text_encoder,
+                                        fix_visual_encoder=opts.fix_visual_encoder,
+                                        fix_speech_encoder=opts.fix_speech_encoder,
+                                        fix_cross_encoder=opts.fix_cross_encoder,
+                                        use_type_embedding=opts.use_type_embedding)
     if opts.checkpoint:
-        LOGGER.info('[Info] Loading from pretrained model {}'.format(opts.checkpoint))
-        model.load_state_dict(torch.load(opts.checkpoint))
+        LOGGER.info('[Info] Loading the whole model from pretrained model {}'.format(opts.checkpoint))
+        missing_keys, unexpected_keys = model.load_state_dict(torch.load(opts.checkpoint))
+        LOGGER.info('[Debug] the missing keys {}'.format(missing_keys))
+        LOGGER.info('[Debug] the unexpected keys {}'.format(unexpected_keys))
     # print('[Debug] model info {}'.format(model.state_dict().keys()))
     model.to(device)
     model.train()
-
     # make sure every process has same model parameters in the beginning
     broadcast_tensors([p.data for p in model.parameters()], 0)
     set_dropout(model, opts.dropout)
@@ -572,7 +594,6 @@ def validate_itm(model, val_loader):
                 f"score: {val_acc*100:.2f}")
     return val_log
 
-
 @torch.no_grad()
 def validate_fom(model, val_loader):
     LOGGER.info("start running FOM validation...")
@@ -628,10 +649,8 @@ if __name__ == "__main__":
                         help='which cross-valiation folder, \
                         if cvNo=0, then donot use th cross-validation')
 
-    parser.add_argument('--melm_prob', default=0.5, type=float, 
-                help='probability to mask in MELM training')
-    parser.add_argument('--fom_prob', default=0.25, type=float, 
-                help='probability to shuffle number tokens in FOM training')
+    parser.add_argument('--melm_prob', default=0.5, type=float,
+                        help='probability to mask in MELM training')
     # traditional task
     parser.add_argument('--mrm_prob', default=0.15, type=float,
                         help='probability to mask in MRM training')
@@ -640,6 +659,8 @@ if __name__ == "__main__":
                              'in ITM training')
     parser.add_argument('--itm_ot_lambda', default=0.0, type=float,
                         help='weight of OT (optimal transport) loss (WRA)')
+     parser.add_argument('--fom_prob', default=0.20, type=float, 
+                help='probability to shuffle number tokens in FOM training')
     
     # Prepro parameters
     parser.add_argument('--max_txt_len', type=int, default=60,
@@ -664,6 +685,8 @@ if __name__ == "__main__":
     # backbone parameters
     parser.add_argument("--pretrained_text_checkpoint", default=None, type=str,
                                     help='the path of the pretrained text checkpoint')
+    parser.add_argument("--pretrained_audio_checkpoint", default=None, type=str,
+                                    help='the path of the pretrained text checkpoint')
     parser.add_argument("--image_data_augmentation", action='store_true')
     parser.add_argument("--add_cls_token", action='store_true')
     parser.add_argument("--use_backbone_optim", action='store_true',
@@ -674,6 +697,13 @@ if __name__ == "__main__":
     parser.add_argument("--backbone_weight_decay", default=1e-5, type=float)
     parser.add_argument("--backbone_warmup_steps", default=0, type=int)
     parser.add_argument("--backbone_grad_norm", default=5.0, type=float)
+
+    # for fix or update backbone
+    parser.add_argument("--fix_visual_encoder", action='store_true')
+    parser.add_argument("--fix_text_encoder", action='store_true')
+    parser.add_argument("--fix_speech_encoder", action='store_true')
+    parser.add_argument("--fix_cross_encoder", action='store_true')
+    parser.add_argument("--use_type_embedding", action='store_true')
 
     # training parameters
     parser.add_argument("--train_batch_size", default=4096, type=int,
@@ -717,12 +747,8 @@ if __name__ == "__main__":
 
     args = parse_with_config(parser)
 
-    print('[Debug] use visual branch {}'.format(args.use_visual))
-    print('[Debug] use speech branch {}'.format(args.use_speech))
-    print('[Debug] image_data_augmentation {}'.format(args.image_data_augmentation))
-
     if args.cvNo > 0:
-        print('[Info] For Cross-Validation and redefine the train_datasets and val_datasets')
+        LOGGER('[Info] For Cross-Validation and redefine the train_datasets and val_datasets')
         for i in range(len(args.train_datasets)):
             args.train_datasets[i]['db'][0] = args.train_datasets[i]['db'][0].format(args.cvNo)
         for i in range(len(args.val_datasets)):

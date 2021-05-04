@@ -3,8 +3,8 @@ import torch
 import json
 import logging
 from torch import nn
-from code.uniter3flowFOM.model.model_base import BertPreTrainedModel, BertEncoder
-from code.uniter3flowFOM.model.layer import BertPooler
+from code.uniter3flow.model.model_base import BertPreTrainedModel, BertEncoder
+from code.uniter3flow.model.layer import BertPooler
 from apex.normalization.fused_layer_norm import FusedLayerNorm
 
 class CrossEncoderBertModel(BertPreTrainedModel):
