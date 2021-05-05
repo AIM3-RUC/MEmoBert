@@ -23,7 +23,7 @@ msgpack_numpy.patch()
 
 # from uniter 
 from code.uniter.data.data import DetectFeatLmdb, TxtLmdb, TxtTokLmdb, \
-        get_ids_and_lens, pad_tensors, ConcatDatasetWithLens, ImageLmdbGroup
+        get_ids_and_lens, pad_tensors, ConcatDatasetWithLens
 
 @contextmanager
 def open_lmdb(db_dir, readonly=False):
@@ -105,6 +105,21 @@ def get_gather_index(txt_lens, num_bbs, num_frames, batch_size, max_len, out_siz
             gather_index.data[i, tl+nbb:tl+nbb+nframe] = torch.arange(max_len+max_bb, max_len+max_bb+nframe,
                                                         dtype=torch.long).data
     return gather_index
+
+class ImageLmdbGroup(object):
+    def __init__(self, conf_th, max_bb, min_bb, compress):
+        self.path2imgdb = {}
+        self.conf_th = conf_th
+        self.max_bb = max_bb
+        self.min_bb = min_bb
+        self.compress = compress
+
+    def __getitem__(self, path):
+        img_db = self.path2imgdb.get(path, None)
+        if img_db is None:
+            img_db = DetectFeatLmdb(path, self.conf_th, self.max_bb,
+                                    self.min_bb, self.compress)
+        return img_db
 
 class SpeechLmdbGroup(object):
     def __init__(self, speech_conf_th, max_frames, min_frames, compress):
