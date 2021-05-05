@@ -15,7 +15,7 @@ import torch
 from torch import nn
 from apex.normalization.fused_layer_norm import FusedLayerNorm
 from code.uniter.model.layer import BertLayer, BertPooler
-from code.uniter.model.model import UniterTextEmbeddings, UniterImageEmbeddings
+from code.uniter.model.model import UniterImageEmbeddings
 
 logger = logging.getLogger(__name__)
 
@@ -244,7 +244,7 @@ class UniterTextEmbeddings(nn.Module):
         embeddings = (words_embeddings
                       + position_embeddings
                       + token_type_embeddings)
-                          
+
         embeddings = self.LayerNorm(embeddings)
         embeddings = self.dropout(embeddings)
         return embeddings
