@@ -310,7 +310,7 @@ if __name__ == '__main__':
 
     if True:
         # for speech wav2vec2.0 
-        use_asr_based_model = True
+        use_asr_based_model = False
         if use_asr_based_model:
             audio_feature_dir = os.path.join(output_dir, 'wav2vec_raw_asr')
         else:

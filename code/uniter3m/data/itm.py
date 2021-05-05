@@ -87,7 +87,6 @@ class ItmDataset(DetectFeatTxtTokDataset):
             attn_masks = torch.cat((attn_masks, speech_attn_masks))
         else:
             speech_feat = None
-            
         target = torch.Tensor(1).long()
         target.data.fill_(ground_truth_label)
         return input_ids, img_feat, speech_feat, attn_masks, target
@@ -123,7 +122,10 @@ def itm_collate(inputs):
     bs, max_tl = input_ids.size()
     out_size = attn_masks.size(1)
     gather_index = get_gather_index(txt_lens, num_bbs, num_frames, bs, max_tl, out_size)
-    
+
+    # print(f'[Debug in itm data] text {input_ids.shape} img {img_feat.shape} speech {speech_feat}')
+    # print(f'[Debug in itm data] targets {targets.shape} gather_index {gather_index.shape} attn_masks {attn_masks.shape}')
+
     batch = {'input_ids': input_ids,
              'position_ids': position_ids,
              'img_feat': img_feat,

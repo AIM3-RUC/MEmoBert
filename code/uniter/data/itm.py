@@ -104,7 +104,6 @@ class ItmDataset(DetectFeatTxtTokDataset):
         target = torch.Tensor(1).long()
         target.data.fill_(ground_truth_label)
 
-        # 注意, ids[i] 和 i 并不是一致的, 原因是
         # print('[Debug] Index {} {} input_ids {}'.format(i, self.ids[i], input_ids))
         # print('[Debug] Index {} img_fname {}'.format(self.ids[i], img_fname))
         # print('[Debug] Index {} target {}'.format(self.ids[i], target))

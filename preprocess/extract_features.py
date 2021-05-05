@@ -8,7 +8,7 @@ from tqdm import tqdm
 from functools import partial
 from toolz.sandbox import unzip
 from preprocess.utils import get_basename, mkdir
-from preprocess.tasks.audio import ComParEExtractor, Wav2VecExtractor
+from preprocess.tasks.audio import ComParEExtractor, Wav2VecExtractor, RawWavExtractor
 from preprocess.tasks.vision import DensefaceExtractor, FaceSelector
 from preprocess.tasks.text import *
 from preprocess.tools.get_emo_words import EmoLexicon
@@ -125,6 +125,14 @@ def extract_wav2vec_file(audio_path, extractor_model):
     frame_nums = np.array(len(feat))
     return {'feat': feat, 'frame_idx': frame_nums}
 
+def extract_rawwav_file(audio_path, extractor_model):
+    # for one audio clip, audio_path = audio_dir + "No0079.The.Kings.Speech/2" 
+    audio_path = audio_path + '.wav'
+    # print(audio_path)
+    feat = extractor_model(audio_path)
+    frame_nums = len(feat)
+    return {'feat': feat, 'frame_idx': frame_nums}
+
 if __name__ == '__main__':
     import sys
     utt_file_name = sys.argv[1]
@@ -132,7 +140,7 @@ if __name__ == '__main__':
 
     extact_face_features = False
     extact_audio_features = True
-    audio_features_type = 'wav2vec'
+    audio_features_type = 'rawwav'
     use_asr_based_model=True
     feature_audio_root = path_config.feature_audio_wav2vec_dir
 
@@ -167,6 +175,9 @@ if __name__ == '__main__':
     elif audio_features_type == 'wav2vec':
         wav2vec_model = Wav2VecExtractor(downsample=-1, gpu=0, use_asr_based_model=use_asr_based_model)
         extract_wav2vec = partial(extract_wav2vec_file, extractor_model=wav2vec_model)
+    elif audio_features_type == 'rawwav':
+        rawwav_model = RawWavExtractor(model_path='/data7/MEmoBert/emobert/resources/pretrained/wav2vec_base')
+        extract_rawwav = partial(extract_rawwav_file, extractor_model=rawwav_model)
 
     length = len(all_utt_files)
     start = int(part_no * length / total)
@@ -222,3 +233,12 @@ if __name__ == '__main__':
                 save_path = os.path.join(audio_feature_dir, f'{utt_file_name}_wav2vec.h5')
             print(save_path)
             extract_features_h5(extract_wav2vec, lambda x: os.path.join(audio_dir, x),  utt_ids, save_path)
+        
+        ## for extracting ComparE feature 
+        if extact_audio_features and audio_features_type=='rawwav':
+            print("[INFO] Extracing Raw Processed Audio features!")
+            audio_feature_dir = os.path.join(feature_audio_root, movie_name)
+            mkdir(audio_feature_dir)
+            save_path = os.path.join(audio_feature_dir, f'{utt_file_name}_rawwav.h5')
+            print(save_path)
+            extract_features_h5(extract_rawwav, lambda x: os.path.join(audio_dir, x),  utt_ids, save_path)

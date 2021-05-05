@@ -34,6 +34,8 @@ def convert_hdf5_to_npz(hdf5_dir, output_dir, meta_data_dir, movie_names_path, u
     for movie_name in tqdm(valid_movie_names[start:end]):
         if feat_type == 'comparE':
             ft_path = os.path.join(hdf5_dir, movie_name, 'has_active_spk_comparE.h5')
+        elif feat_type == 'rawwav':
+            ft_path = os.path.join(hdf5_dir, movie_name, 'has_active_spk_rawwav.h5')
         else:
             if use_asr_based_model:
                 ft_path = os.path.join(hdf5_dir, movie_name, 'has_active_spk_wav2vec_asr.h5')
@@ -49,6 +51,7 @@ def convert_hdf5_to_npz(hdf5_dir, output_dir, meta_data_dir, movie_names_path, u
             if os.path.exists(outputfile):
                 continue
             feat = np.array(audio_ft[movie_name][segment_index]['feat'])
+
             if feat_type == 'wav2vec':
                 # dim-0 is batchsize=1
                 feat = feat[0]
@@ -78,7 +81,7 @@ def convert_hdf5_to_npz(hdf5_dir, output_dir, meta_data_dir, movie_names_path, u
 if __name__ == "__main__":
     start = int(sys.argv[1])  # 0
     end =  int(sys.argv[2]) # 100
-    feat_type = 'wav2vec'
+    feat_type = 'rawwav'
     if feat_type == 'comaprE':
         # 10ms/frame
         use_mean_pooling = True # 连续的5帧进行平均
@@ -93,7 +96,7 @@ if __name__ == "__main__":
         std = mean_std['std']
         # print(mean_std['mean'].shape)
         # print(mean_std['std'].shape)
-    else:
+    elif feat_type == 'wav2vec':
         # 20ms/frame
         use_mean_pooling = True # 连续的5帧进行平均
         use_asr_based_model = True
@@ -106,6 +109,15 @@ if __name__ == "__main__":
         else:
             npzs_dir = '/data7/emobert/wav2vec_feature_npzs/movies_v1_3mean' 
         mean, std = None, None
+    else:
+        hdf5_dir = '/data7/emobert/wav2vec_feature/movies_v3'
+        meta_data_dir = '/data7/emobert/data_nomask_new/meta'
+        movie_names_path = '/data7/emobert/data_nomask_new/movies_v3/movie_names.npy'
+        npzs_dir = '/data7/emobert/wav2vec_feature_npzs/movies_v3_rawwav' 
+        mean, std = None, None
+        use_mean_pooling = False
+        pooling_num_frames = None
+
     if not os.path.exists(npzs_dir):
         os.makedirs(npzs_dir)
     convert_hdf5_to_npz(hdf5_dir, npzs_dir, meta_data_dir, movie_names_path, use_mean_pooling, pooling_num_frames, start=start, end=end)

@@ -82,5 +82,5 @@ if __name__ == '__main__':
     # print(path)
     # pool = mp.Pool(24)
     # make_openface(pool=pool)
-    # make_audio()
-    make_active_spk()
+    make_audio()
+    # make_active_spk()

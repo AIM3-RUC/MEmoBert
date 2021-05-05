@@ -65,12 +65,6 @@ MELD EmoList = {0: 'neutral', 1:'surprise', 2: 'fear', 3: 'sadness', 4: 'joy', 5
     /data7/emobert/exp/evaluation/MELD/txt_db/test_emowords_emotype.db
     MELD 语音特征数据: --down
 
-## 升级torch版本
-$ mkdir horovod-docker-gpu
-$ wget -O horovod-docker-gpu/Dockerfile https://raw.githubusercontent.com/horovod/horovod/master/Dockerfile.gpu
-$ docker build -t horovod:latest horovod-docker-gpu
-以上的方式太慢了，还是从百度服务器上直接进行下载.
-
 
 ## 下游任务的原始图片数据的预处理
 if dataset_name == 'iemocap':
@@ -208,17 +202,12 @@ Transformer: AdamW + 5e−5 + weight decay 0.01
 
 ## Uniter3Flow 的联合训练
 这种训练方式相比之前UNiter的训练需要更多的训练时间。
-1. 多头结构时的CLS和SEP token 要如何设计？
-目前的方法是CLS和SEP都加在文本上，type-embeeding 去掉了，然后其他的保持不变。
-方案2:做法是去掉文本模态的 [Sep] Token, 每个模态输出之后加上type-embedding, 有type-embedding可以不加[Sep].
-使模型任务尽可能的简单。前面的encoder就好好进行特征学习，后面的 cross-encoder 进行任务学习。
-2. 文本+face 已经跑通了. -- evaluating
-
-3. 文本+speech -- going
-采用抽取好的ComparE的特征，采用的数据处理类型, 跟feature的Img保持一致即可。
-
-4. 文本+speech+face --pending
-
+1. 多流结构的 CLS 和 SEP token 要如何设计？
+每个分支去掉 CLS-token, 语音和视觉分支的输出可以加 type-embeeding 区分不同的模态.
+2. 关于单模态的部分，可以采用第一个位置进行finetune.
+3. 对于每个branch的更新设置单独的参数，多阶段训练.
+4. 先以文本和语音两个模态作为baseline.
+cross-encoder 的层数目前采用 2 / 4 层.
 
 参考HERO的做法:
 Cross-encoder model, may including 2~4 transformer layers.

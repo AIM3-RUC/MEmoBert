@@ -40,7 +40,7 @@ from code.uniter.utils.distributed import (all_reduce_and_rescale_tensors, all_g
                                broadcast_tensors)
 from code.uniter.utils.save import ModelSaver, save_training_meta
 from code.uniter.utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
-from code.uniter.pretrain import build_dataloader, build_dataloader_itm, 
+from code.uniter.pretrain import build_dataloader, build_dataloader_itm
 
 def build_mlm_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:
@@ -71,7 +71,6 @@ def build_melm_dataset(txt_db, img_db, speech_db, is_train, opts):
         dataset = ConcatDatasetWithLens(datasets)
     else:
         dataset = MelmDataset(opts.melm_prob, txt_db, img_db, speech_db)
-
     return dataset, melm_collate
 
 def build_mrfr_dataset(txt_db, img_db, speech_db, is_train, opts):

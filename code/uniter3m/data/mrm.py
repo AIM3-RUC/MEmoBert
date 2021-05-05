@@ -15,13 +15,18 @@ from code.uniter3m.data.data import DetectFeatTxtTokDataset, pad_tensors, get_ga
 from code.uniter.data.mrm import _get_img_mask, _get_feat_target, _mask_img_feat, _get_targets
 
 def _get_img_tgt_mask(img_mask, txt_len, speech_len):
-    z = torch.zeros(txt_len, dtype=torch.bool)
+    if float(torch.__version__[:3]) <= 1.2:
+        bool_type = torch.uint8
+    else:
+        bool_type = torch.bool
+    z = torch.zeros(txt_len, dtype=bool_type)
     if speech_len > 0:
-        zs = torch.zeros(speech_len, dtype=torch.bool)
+        zs = torch.zeros(speech_len, dtype=bool_type)
         img_mask_tgt = torch.cat([z, img_mask, zs], dim=0)
     else:
         img_mask_tgt = torch.cat([z, img_mask], dim=0)
     return img_mask_tgt
+
 class MrfrDataset(DetectFeatTxtTokDataset):
     def __init__(self, mask_prob, *args, **kwargs):
         super().__init__(*args, **kwargs)

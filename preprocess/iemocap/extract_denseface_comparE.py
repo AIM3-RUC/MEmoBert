@@ -219,7 +219,7 @@ if __name__ == '__main__':
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         # for speech wav2vec2.0
-        use_asr_based_model = True
+        use_asr_based_model = False
         if use_asr_based_model:
             audio_feature_dir = os.path.join(output_dir, 'wav2vec_raw_asr')
         else:
@@ -234,4 +234,4 @@ if __name__ == '__main__':
         print('total {} uttids'.format(len(utt_ids)))
         extract_features_h5(extract_wav2vec, lambda x: os.path.join(audio_dir, x),  utt_ids, save_path)
 
-    # PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=7 python extract_denseface.py openface/seetaface
+    # PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=4 python extract_denseface.py openface/seetaface

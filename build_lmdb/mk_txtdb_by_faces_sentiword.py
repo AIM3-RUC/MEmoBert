@@ -32,62 +32,38 @@ def bert_id2token(tokenizer, ids):
     return tokens
 
 def get_emo_words(emol, input_ids, tokens):
-    # jinming modify: 
-    # 每个词可能对应多个情感类别
-    # return emo_input_ids_labels = [[], [], []]
+    '''
+    word2emo: {token:label, token2:label}
+    return: emoword and it's category
+    '''
     assert len(input_ids) == len(tokens)
     emo_input_ids = []
     emo_input_ids_labels = []
-    emo_words, word2affect = emol.get_emo_words_by_tokens(tokens)
+    word2emo = emol.score(tokens)
     for i in range(len(tokens)):
-        if tokens[i] in emo_words:
+        if word2emo[tokens[i]] > 0:
             emo_input_ids.append(input_ids[i])
-            emo_input_ids_labels.append(word2affect[tokens[i]])
+            emo_input_ids_labels.append(word2emo[tokens[i]])
     return emo_input_ids, emo_input_ids_labels
 
-def get_emo_type_ids(emo_category_list, input_ids, emo_input_ids, emo_input_ids_labels):
+def get_emo_type_ids(input_ids, emo_input_ids, emo_input_ids_labels):
     '''
-    得到每个token的情感类别
-    :emo_input_ids_labels [[], [], []]
-    不在emo input ids 里面的为 noemoword = 0
-    在 emo input ids 但是不属于 emo input ids[1:-1] 的为 affect words 中的 others = len(emo_category_list) - 1
-    如果是3分类的话，那么只有 neg pos 和 neutral(others).  即此时如果属于others情感词，那么也标注为0.
+    得到每个token的情感类别, 共三个类别
+    :emo_input_ids_labels [0,1,2,...]
+    不在 emo input ids 里面的为 noemoword = 0
     '''
     emo_type_ids = []
     for input_id in input_ids:
         if input_id in emo_input_ids:
             index = emo_input_ids.index(input_id)
-            # 得到对应的情感词类别, 可能 = [negative, anx], 
-            # 根据具体的 emo_category_list 确实使用哪一个, 
-            emo_labels = emo_input_ids_labels[index]
-            if len(emo_labels) == 1:
-                emo_type = emo_labels[0]
-            else:
-                emo_types = []
-                for e in emo_labels:
-                    if e in emo_category_list:
-                        emo_types.append(e)
-                if len(emo_types) > 1:
-                    print("[Warning] this word have multi-label {}".format(emo_types))
-                emo_type  = emo_types[0]
-            if  len(emo_category_list) == 3:
-                # 三分类
-                if emo_type in emo_category_list[1:]:
-                    emo_type_ids.append(emo_category_list.index(emo_type))
-                else:
-                    emo_type_ids.append(0)
-            else:
-                # 4 分类，others类别
-                if emo_type in emo_category_list[1:-1]:
-                    emo_type_ids.append(emo_category_list.index(emo_type))
-                else:
-                    emo_type_ids.append(len(emo_category_list) - 1)
+            emo_label = emo_input_ids_labels[index]
+            emo_type_ids.append(emo_label)
         else:
             emo_type_ids.append(0)
     return emo_type_ids
 
 def process_jsonl(jsonf, db, toker, max_tokens=100, dataset_name="", filter_path=None, filter_path_val=None, \
-                include_path=None, num_samples=0, use_emo=False, use_emo_type=None):
+                include_path=None, num_samples=0, use_emo=False):
     '''
     {
         "segmentId": [
@@ -97,22 +73,11 @@ def process_jsonl(jsonf, db, toker, max_tokens=100, dataset_name="", filter_path
     '''
     if use_emo == True:
         print("*********** Use Emo Words ************")
-        lexicon_dir = '/data2/zjm/tools/EmoLexicons'
-        lexicon_name = 'LIWC2015Dictionary.dic'
-        emol = EmoLexicon(lexicon_dir, lexicon_name, is_bert_token=False)
+        bert_vocab_filepath = '/data2/zjm/tools/LMs/bert_base_en/vocab.txt'
+        word2score_path = '/data2/zjm/tools/EmoLexicons/sentiword2score.pkl'
+        emol = EmoSentiWordLexicon(word2score_path, bert_vocab_filepath)
     else:
         emol = None
-
-    # add for emo type ids 
-    if use_emo_type == 'emo6':
-        emo_category_list = ['noemoword', 'posemo', 'anx', 'anger', 'sad', 'others']
-    elif use_emo_type == 'emo4':
-        emo_category_list = ['noemoword', 'posemo', 'negemo', 'others']
-    elif use_emo_type == 'emo3':
-        emo_category_list = ['noemoword', 'posemo', 'negemo']
-    else:
-        emo_category_list = None
-    print('**** emo_category_list {}'.format(emo_category_list))
 
     if filter_path is not None:
         filter_dict = json.load(open(filter_path))
@@ -179,13 +144,14 @@ def process_jsonl(jsonf, db, toker, max_tokens=100, dataset_name="", filter_path
                 # print(tokens)
                 # print(input_ids)
                 # print(emo_input_ids, emo_input_ids_labels)
-                emo_type_ids = get_emo_type_ids(emo_category_list, input_ids, emo_input_ids, emo_input_ids_labels)
+                emo_type_ids = get_emo_type_ids(input_ids, emo_input_ids, emo_input_ids_labels)
                 example['emo_type_ids'] = emo_type_ids
                 assert len(emo_type_ids) == len(input_ids)
                 # print(emo_type_ids)  
-            if emo_category_list.index('posemo') in emo_type_ids:
+            # emo_map = {0:neu, 1:pos, 2:neg}
+            if 1 in emo_type_ids:
                 count_posemo_utts += 1
-            if emo_category_list.index('negemo') in emo_type_ids:
+            if 2 in emo_type_ids:
                 count_negemo_utts += 1
             db[str(_id)] = example
             _id += 1
@@ -221,7 +187,7 @@ def main(opts):
         id2lens, txt2img, img2txt = process_jsonl(opts.input, db, toker, dataset_name=opts.dataset_name, \
                                 filter_path=opts.filter_path, filter_path_val=opts.filter_path_val, \
                                 include_path=opts.include_path, num_samples=opts.num_samples, \
-                                use_emo=opts.use_emo, use_emo_type=opts.use_emo_type)
+                                use_emo=opts.use_emo)
     print('generate id2lens {} txt2img {} img2txt {}'.format(len(id2lens), len(txt2img), len(img2txt)))
     with open(f'{opts.output}/id2len.json', 'w') as f:
         json.dump(id2lens, f)
@@ -252,7 +218,5 @@ if __name__ == '__main__':
                         help='which dataset to be processed')
     parser.add_argument('--use_emo',  action='store_true',
                         help='store the emotion words and corresding labels')
-    parser.add_argument('--use_emo_type',  default=None,
-                        help='one of the [None, emo7, emo6, emo4, emo3]')
     args = parser.parse_args()
     main(args)

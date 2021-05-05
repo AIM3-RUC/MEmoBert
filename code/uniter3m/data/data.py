@@ -82,7 +82,7 @@ class DetectFeatLmdb(object):
                 img_dump = {'features': img_dump['features']}
         else:
             img_dump = msgpack.loads(dump, raw=False)
-        img_feat = torch.tensor(img_dump['features'][:nbb, :]).float()
+        img_feat = torch.tensor(np.array(img_dump['features'])[:nbb, :]).float()
         return img_feat
 
 class DetectFeatTxtTokDataset(Dataset):
@@ -99,9 +99,11 @@ class DetectFeatTxtTokDataset(Dataset):
         self.lens = copy.deepcopy(self.txt_lens)
         txt2img = txt_db.txt2img
         if img_db:
+            print('[Debug in data] add the img lens')
             self.lens = [tl + self.img_db.name2nbb[txt2img[id_]]
                      for tl, id_ in zip(self.lens, self.ids)]
         if speech_db:
+            print('[Debug in data] add the speech lens')
             self.lens = [tl + self.speech_db.name2nbb[txt2img[id_]]
                      for tl, id_ in zip(self.lens, self.ids)]
 
@@ -156,6 +158,8 @@ def get_gather_index(txt_lens, num_bbs, num_frames, batch_size, max_len, out_siz
                                                         dtype=torch.long).data
             gather_index.data[i, tl+nbb:tl+nbb+nframe] = torch.arange(max_len+max_bb, max_len+max_bb+nframe,
                                                         dtype=torch.long).data
+    else:
+        print('[Error] Error in gather index')
     return gather_index
 
 class ImageLmdbGroup(object):

@@ -13,7 +13,7 @@ export PYTHONPATH=/data7/MEmoBert
 均值和方差的地址是:
 '''
 
-def convert_hdf5_to_npz(hdf5_dir, output_dir, mean, std, use_mean_pooling):
+def convert_hdf5_to_npz(hdf5_dir, output_dir, mean, std, use_mean_pooling, pooling_num_frames):
     '''
     '''
     ft_path = os.path.join(hdf5_dir, 'all.h5')
@@ -25,26 +25,38 @@ def convert_hdf5_to_npz(hdf5_dir, output_dir, mean, std, use_mean_pooling):
         outputfile = os.path.join(output_dir, outputfilename)
         if os.path.exists(outputfile):
             continue
-        feat = np.array(audio_ft[segment_index])
-        # norm 
-        norm_feat = (feat - mean) / std
-        if len(norm_feat) == 0:
-            print('segment {} norm {}'.format(segment_index, len(norm_feat)))
-        assert len(norm_feat) == len(feat)
+
+        if isinstance(audio_ft[segment_index], h5py._hl.dataset.Dataset):
+            feat = np.array(audio_ft[segment_index])
+        elif isinstance(audio_ft[segment_index], h5py._hl.group.Group):
+            feat = np.array(audio_ft[segment_index]['feat'])
+        else:
+            print('[Error] type error')
+
+        if len(feat.shape) == 3:
+            print('feat shape {}'.format(feat.shape))
+
+        if mean is not None and std is not None: 
+            print('norm')
+            feat = (feat - mean) / std
+
+        if len(feat) == 0:
+            print('segment {}'.format(segment_index))
+
         if use_mean_pooling:
             mean_norm_feat = []
-            for i in range(0, len(norm_feat), 5):
-                if i+5 >= len(norm_feat):
-                    mean_norm_feat.append(np.mean(norm_feat[i:], axis=0))
+            for i in range(0, len(feat), pooling_num_frames):
+                if i+pooling_num_frames >= len(feat):
+                    mean_norm_feat.append(np.mean(feat[i:], axis=0))
                 else:
-                    mean_norm_feat.append(np.mean(norm_feat[i:i+5], axis=0))
+                    mean_norm_feat.append(np.mean(feat[i:i+pooling_num_frames], axis=0))
             if len(mean_norm_feat) == 0:
                 print('[Afer Mean]segment {} meam-norm {}'.format(segment_index, len(mean_norm_feat)))
-            norm_feat = np.array(mean_norm_feat)
-        frame_indexs = np.arange(0, len(norm_feat))
+            feat = np.array(mean_norm_feat)
+        frame_indexs = np.arange(0, len(feat))
         np.savez_compressed(outputfile,
                             frame_idxs=frame_indexs.astype(np.float16),
-                            features=norm_feat.astype(np.float16))
+                            features=feat.astype(np.float16))
 
 def cal_mean_std(hdf5_dir, iemocap_mean_std_path):
     ft_path = os.path.join(hdf5_dir, 'all.h5')
@@ -72,36 +84,50 @@ def cal_mean_std(hdf5_dir, iemocap_mean_std_path):
 
 if __name__ == "__main__":
     corpus_name = 'MELD'
-    use_mean_pooling = True # 连续的5帧进行平均
-    hdf5_dir = '/data7/emobert/exp/evaluation/{}/feature/comparE_raw'.format(corpus_name)
+    use_mean_pooling = True # 连续的xx帧进行平均
+    feat_type = 'wav2vec'
+    pooling_num_frames = 3
+    use_asr_based_model = True
 
     if False:
         # computing the mean and std of all iemocap 
         iemocap_mean_std_path = '/data7/emobert/exp/evaluation/{}/feature/comparE_raw/mean_std.npz'.format(corpus_name)
         cal_mean_std(hdf5_dir, iemocap_mean_std_path)
 
-    if True:
-        mean_std_path = '/data7/MEmoBert/emobert/comparE_feature/mean_std.npz'
-        if use_mean_pooling:
-            npzs_dir = '/data7/emobert/exp/evaluation/{}/feature/movies_norm_comparE_npzs_5mean'.format(corpus_name)
+    if feat_type == 'wav2vec':
+        mean, std = None, None
+        if use_asr_based_model:
+            hdf5_dir = '/data7/emobert/exp/evaluation/{}/feature/wav2vec_raw_asr'.format(corpus_name)
+            npzs_dir = '/data7/emobert/exp/evaluation/{}/feature/wav2vec_asr_npzs_3mean'.format(corpus_name)
         else:
-            npzs_dir = '/data7/emobert/exp/evaluation/{}/feature/movies_norm_comparE_npzs'.format(corpus_name)
-        mean_std = np.load(mean_std_path, allow_pickle=True)
-        mean = mean_std['mean']
-        std = mean_std['std']
-        # print(mean_std['mean'].shape)
-        # print(mean_std['std'].shape)
+            hdf5_dir = '/data7/emobert/exp/evaluation/{}/feature/wav2vec_raw'.format(corpus_name)
+            npzs_dir = '/data7/emobert/exp/evaluation/{}/feature/wav2vec_npzs_3mean'.format(corpus_name)
     else:
-        self_mean_std_path = '/data7/emobert/exp/evaluation/{}/feature/comparE_raw/mean_std.npz'.format(corpus_name)
-        if use_mean_pooling:
-            npzs_dir = '/data7/emobert/exp/evaluation/{}/feature/norm_comparE_npzs_5mean'.format(corpus_name)
+        hdf5_dir = '/data7/emobert/exp/evaluation/{}/feature/comparE_raw'.format(corpus_name)
+        if True:
+            mean_std_path = '/data7/MEmoBert/emobert/comparE_feature/mean_std.npz'
+            if use_mean_pooling:
+                npzs_dir = '/data7/emobert/exp/evaluation/{}/feature/movies_norm_comparE_npzs_5mean'.format(corpus_name)
+            else:
+                npzs_dir = '/data7/emobert/exp/evaluation/{}/feature/movies_norm_comparE_npzs'.format(corpus_name)
+            mean_std = np.load(mean_std_path, allow_pickle=True)
+            mean = mean_std['mean']
+            std = mean_std['std']
+            # print(mean_std['mean'].shape)
+            # print(mean_std['std'].shape)
         else:
-            npzs_dir = '/data7/emobert/exp/evaluation/{}/feature/norm_comparE_npzs'.format(corpus_name)
-        mean_std = np.load(self_mean_std_path, allow_pickle=True)
-        mean = mean_std['mean']
-        std = mean_std['std']
+            self_mean_std_path = '/data7/emobert/exp/evaluation/{}/feature/comparE_raw/mean_std.npz'.format(corpus_name)
+            if use_mean_pooling:
+                npzs_dir = '/data7/emobert/exp/evaluation/{}/feature/norm_comparE_npzs_5mean'.format(corpus_name)
+            else:
+                npzs_dir = '/data7/emobert/exp/evaluation/{}/feature/norm_comparE_npzs'.format(corpus_name)
+            mean_std = np.load(self_mean_std_path, allow_pickle=True)
+            mean = mean_std['mean']
+            std = mean_std['std']
 
     if True:
+        print(hdf5_dir)
+        print(npzs_dir)
         if not os.path.exists(npzs_dir):
             os.makedirs(npzs_dir)
-        convert_hdf5_to_npz(hdf5_dir, npzs_dir, mean, std, use_mean_pooling)
+        convert_hdf5_to_npz(hdf5_dir, npzs_dir, mean, std, use_mean_pooling=use_mean_pooling, pooling_num_frames=pooling_num_frames)

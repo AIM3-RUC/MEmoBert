@@ -185,6 +185,28 @@ class Wav2VecExtractor(object):
             ], dim=0)
         return ft.cpu().numpy()
 
+class RawWavExtractor(object):
+    ''' 抽取comparE特征, 输入音频路径, 输出npy数组, 每帧768d
+    '''
+    def __init__(self, model_path, max_seconds=8):
+        self.sr = 16000
+        self.max_seconds = max_seconds
+        self.processor = Wav2Vec2Processor.from_pretrained(model_path)
+        
+    def read_audio(self, wav_path):
+        speech, sr = sf.read(wav_path)
+        if sr != self.sr:
+            speech = librosa.resample(speech, sr, self.sr)
+            sr = self.sr
+        if sr * self.max_seconds < len(speech):
+            print(f'{wav_path} long than 10 seconds and clip {speech.shape}')
+            speech = speech[:int(sr * self.max_seconds)]
+        return speech, sr
+
+    def __call__(self, wav_path):
+        input_values, sr = self.read_audio(wav_path)
+        input_values = self.processor(input_values, return_tensors="np", sampling_rate=sr).input_values
+        return input_values[0]
 
 if __name__ == '__main__':
     # get_audio = AudioSplitor('./test_audio')
@@ -196,7 +218,11 @@ if __name__ == '__main__':
     # print('comparE:', comparE.shape)
     # print('vggish:', vggish.shape)
 
-    audio_path = "preprocess/data/audio_clips/No0001.The.Shawshank.Redemption/9.wav"
-    extract_wav2vec = Wav2VecExtractor(downsample=-1, gpu=7)
-    ft = extract_wav2vec(audio_path)
-    print(ft.shape)
+    audio_path = "/data7/emobert/data_nomask_new/audio_clips/No0001.The.Shawshank.Redemption/9.wav"
+    # extract_wav2vec = Wav2VecExtractor(downsample=-1, gpu=7)
+    # ft = extract_wav2vec(audio_path)
+    # print(ft.shape)
+    model_path = '/data7/MEmoBert/emobert/resources/pretrained/wav2vec_base'
+    extract_wav = RawWavExtractor(model_path, max_seconds=8)
+    input_values = extract_wav(audio_path)
+    print(input_values.shape)

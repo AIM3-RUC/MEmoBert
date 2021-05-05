@@ -35,11 +35,12 @@
     https://hub.docker.com/r/horovod/horovod/tags
     docker pull horovod/horovod:0.19.3-tf2.1.0-torch-mxnet1.6.0-py3.6-gpu
 
-+ 方案4: 更新版本
-https://raw.githubusercontent.com/horovod/horovod/master/Dockerfile.gpu
-gpt-key error 问题
-https://blog.csdn.net/zhuiqiuzhuoyue583/article/details/90597499
-
+## 升级torch版本
+$ mkdir horovod-docker-gpu
+$ wget -O horovod-docker-gpu/Dockerfile https://raw.githubusercontent.com/horovod/horovod/master/Dockerfile.gpu
+$ docker build -t horovod:latest horovod-docker-gpu
+上面这种方式不work, 还是按照 Dockerfile 中的步骤，手动进行配置.
++ bug1
 
 ## 数据准备
 由于训练集合的image太大，无法下载，所以自己抽取fastrcnn特征自己构建。
