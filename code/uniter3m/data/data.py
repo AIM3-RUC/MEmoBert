@@ -22,8 +22,8 @@ import msgpack_numpy
 msgpack_numpy.patch()
 
 # from uniter 
-from code.uniter.data.data import DetectFeatLmdb, TxtLmdb, TxtTokLmdb, \
-        get_ids_and_lens, pad_tensors, ConcatDatasetWithLens
+from code.uniter.data.data import TxtLmdb, TxtTokLmdb, \
+        get_ids_and_lens, _check_distributed, _fp16_to_fp32, pad_tensors, ConcatDatasetWithLens
 
 @contextmanager
 def open_lmdb(db_dir, readonly=False):
@@ -32,6 +32,58 @@ def open_lmdb(db_dir, readonly=False):
         yield db
     finally:
         del db
+
+class DetectFeatLmdb(object):
+    def __init__(self, img_dir, conf_th=0.2, max_bb=100, min_bb=10, compress=False):
+        self.img_dir = img_dir
+        # read the generated json file
+        db_name = f'feat_th{conf_th}_max{max_bb}_min{min_bb}'
+        nbb = f'nbb_th{conf_th}_max{max_bb}_min{min_bb}.json'
+        print("[Debug] Loading Image db {}".format(db_name))
+        if not exists(f'{img_dir}/{nbb}'):
+            print('[Error]: nbb is not pre-computed and the json-file may be error!')
+            self.name2nbb = None
+        else:
+            self.name2nbb = json.load(open(f'{img_dir}/{nbb}'))
+        self.compress = compress
+        if compress:
+            db_name += '_compressed'
+
+        # only read ahead on single node training
+        self.env = lmdb.open(f'{img_dir}/{db_name}',
+                             readonly=True, create=False,
+                             readahead=not _check_distributed())
+        self.txn = self.env.begin(buffers=True)
+
+    def __del__(self):
+        self.env.close()
+
+    def get_dump(self, file_name):
+        # hack for MRC
+        dump = self.txn.get(file_name.encode('utf-8'))
+        nbb = self.name2nbb[file_name]
+        if self.compress:
+            with io.BytesIO(dump) as reader:
+                img_dump = np.load(reader, allow_pickle=True)
+                img_dump = _fp16_to_fp32(img_dump)
+        else:
+            img_dump = msgpack.loads(dump, raw=False)
+            img_dump = _fp16_to_fp32(img_dump)
+        img_dump = {k: arr[:nbb, ...] for k, arr in img_dump.items()}
+        return img_dump
+
+    def __getitem__(self, file_name):
+        # Jinming, no norm-bbx feature and only position ids is OK.
+        dump = self.txn.get(file_name.encode('utf-8'))
+        nbb = self.name2nbb[file_name]
+        if self.compress:
+            with io.BytesIO(dump) as reader:
+                img_dump = np.load(reader, allow_pickle=True)
+                img_dump = {'features': img_dump['features']}
+        else:
+            img_dump = msgpack.loads(dump, raw=False)
+        img_feat = torch.tensor(img_dump['features'][:nbb, :]).float()
+        return img_feat
 
 class DetectFeatTxtTokDataset(Dataset):
     def __init__(self, txt_db, img_db=None, speech_db=None):
