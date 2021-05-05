@@ -15,8 +15,9 @@ from torch.nn import CrossEntropyLoss
 from apex.normalization.fused_layer_norm import FusedLayerNorm as LayerNorm
 from sklearn.metrics import accuracy_score, recall_score, f1_score, confusion_matrix
 from code.uniter3m.model.model import UniterPreTrainedModel, UniterModel
-from code.uniter3m.model.layer import GELU
-from code.uniter3m.utils.misc import NoOp
+## from uniter
+from code.uniter.model.layer import GELU
+from code.uniter.utils.misc import NoOp
 
 class UniterForEmoRecognition(UniterPreTrainedModel):
     """ Finetune UNITER for Emotion Recognition

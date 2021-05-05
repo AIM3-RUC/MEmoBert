@@ -15,7 +15,7 @@ import numpy as np
 import torch
 from torch import nn
 from apex.normalization.fused_layer_norm import FusedLayerNorm
-from code.uniter3flow.model.layer import BertLayer, BertPooler
+from code.uniter3flowFom.model.layer import BertLayer, BertPooler
 
 logger = logging.getLogger(__name__)
 

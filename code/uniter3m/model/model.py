@@ -14,8 +14,8 @@ from io import open
 import torch
 from torch import nn
 from apex.normalization.fused_layer_norm import FusedLayerNorm
-
-from code.uniter3m.model.layer import BertLayer, BertPooler
+from code.uniter.model.layer import BertLayer, BertPooler
+from code.uniter.model.model import UniterTextEmbeddings, UniterImageEmbeddings
 
 logger = logging.getLogger(__name__)
 
@@ -211,72 +211,6 @@ class UniterPreTrainedModel(nn.Module):
                                    "\n\t".join(error_msgs)))
         return model
 
-
-class UniterTextEmbeddings(nn.Module):
-    def __init__(self, config):
-        super().__init__()
-
-        self.config = config
-
-        self.word_embeddings = nn.Embedding(config.vocab_size,
-                                            config.hidden_size, padding_idx=0)
-        # build position vocab embeddings = 512
-        self.position_embeddings = nn.Embedding(config.max_position_embeddings,
-                                                config.hidden_size)
-        self.token_type_embeddings = nn.Embedding(config.type_vocab_size,
-                                                  config.hidden_size)
-        print("[Warning] Donot use emo type embeddings add to input")
-        # self.LayerNorm is not snake-cased to stick with TensorFlow model
-        # variable name and be able to load any TensorFlow checkpoint file
-        self.LayerNorm = FusedLayerNorm(config.hidden_size, eps=1e-12)
-        self.dropout = nn.Dropout(config.hidden_dropout_prob)
-
-    def forward(self, input_ids, position_ids, token_type_ids=None):
-        '''
-        batch-data
-        '''
-        if token_type_ids is None:
-            token_type_ids = torch.zeros_like(input_ids)
-        words_embeddings = self.word_embeddings(input_ids)
-        position_embeddings = self.position_embeddings(position_ids)
-        token_type_embeddings = self.token_type_embeddings(token_type_ids)
-        embeddings = (words_embeddings
-                      + position_embeddings
-                      + token_type_embeddings)
-                          
-        embeddings = self.LayerNorm(embeddings)
-        embeddings = self.dropout(embeddings)
-        return embeddings
-
-class UniterImageEmbeddings(nn.Module):
-    def __init__(self, config, img_dim):
-        super().__init__()
-        self.img_linear = nn.Linear(img_dim, config.hidden_size)
-        self.img_layer_norm = FusedLayerNorm(config.hidden_size, eps=1e-12)
-        self.position_embeddings = nn.Embedding(config.img_max_position_embeddings,
-                                                config.hidden_size)
-        self.mask_embedding = nn.Embedding(2, img_dim, padding_idx=0)
-
-        # tf naming convention for layer norm
-        self.LayerNorm = FusedLayerNorm(config.hidden_size, eps=1e-12)
-        self.dropout = nn.Dropout(config.hidden_dropout_prob)
-
-    def forward(self, img_feat, img_position_ids, img_type_embeddings, img_masks=None):
-        if img_masks is not None:
-            self.mask_embedding.weight.data[0, :].fill_(0)
-            mask = self.mask_embedding(img_masks.long())
-            img_feat = img_feat + mask
-
-        transformed_im = self.img_layer_norm(self.img_linear(img_feat))
-        position_embeddings = self.position_embeddings(img_position_ids)
-        # print('transformed_im {} position_embeddings {} img_type_embeddings {}'.format(
-        #     transformed_im.size(), position_embeddings.size(), img_type_embeddings.size()
-        # ))
-        embeddings = transformed_im + position_embeddings + img_type_embeddings
-        embeddings = self.LayerNorm(embeddings)
-        embeddings = self.dropout(embeddings)
-        return embeddings
-
 class UniterSpeechEmbeddings(nn.Module):
     def __init__(self, config, speech_dim):
         super().__init__()
@@ -286,7 +220,7 @@ class UniterSpeechEmbeddings(nn.Module):
         '''
         self.speech_linear = nn.Linear(speech_dim, config.hidden_size)
         self.speech_layer_norm = FusedLayerNorm(config.hidden_size, eps=1e-12)
-        self.position_embeddings = nn.Embedding(config.speech_max_position_embeddings,
+        self.position_embeddings = nn.Embedding(config.max_position_embeddings,
                                                 config.hidden_size)
         self.mask_embedding = nn.Embedding(2, speech_dim, padding_idx=0)
 
@@ -410,11 +344,11 @@ class UniterModel(UniterPreTrainedModel):
     def _compute_speech_txt_embeddings(self, input_ids, position_ids,
                                     speech_feat, speech_position_ids,
                                     gather_index, speech_masks=None,
-                                    txt_type_ids=None):
+                                    txt_type_ids=None, speech_type_ids=None):
         txt_emb = self._compute_txt_embeddings(
             input_ids, position_ids, txt_type_ids)
         speech_emb = self._compute_speech_embeddings(
-            speech_feat, speech_position_ids, speech_masks)
+            speech_feat, speech_position_ids, speech_masks, speech_type_ids)
         # align back to most compact input
         gather_index = gather_index.unsqueeze(-1).expand(
             -1, -1, self.config.hidden_size)
@@ -428,14 +362,15 @@ class UniterModel(UniterPreTrainedModel):
                                     img_feat, img_position_ids,
                                     speech_feat, speech_position_ids,
                                     gather_index,
-                                    speech_masks=None, img_masks=None, 
-                                    img_type_ids=None, txt_type_ids=None):
+                                    img_masks=None, speech_masks=None,  
+                                    txt_type_ids=None, img_type_ids=None, 
+                                    speech_type_ids=None):
         txt_emb = self._compute_txt_embeddings(
             input_ids, position_ids, txt_type_ids)
-        speech_emb = self._compute_speech_embeddings(
-            speech_feat, speech_position_ids, speech_masks)
         img_emb = self._compute_img_embeddings(
             img_feat, img_position_ids, img_masks, img_type_ids)
+        speech_emb = self._compute_speech_embeddings(
+            speech_feat, speech_position_ids, speech_masks, speech_type_ids)
         # align back to most compact input
         gather_index = gather_index.unsqueeze(-1).expand(
             -1, -1, self.config.hidden_size)
@@ -444,8 +379,8 @@ class UniterModel(UniterPreTrainedModel):
         return embedding_output
 
     def forward(self, batch, img_masks=None, speech_masks=None,
-                frozen_en_layers=0, output_all_encoded_layers=True,
-                txt_type_ids=None, img_type_ids=None):
+                frozen_en_layers=0, output_all_encoded_layers=False,
+                txt_type_ids=None, img_type_ids=None, speech_type_ids=None):
         input_ids = batch['input_ids']
         position_ids = batch['position_ids']
         img_feat = batch['img_feat']
@@ -474,15 +409,17 @@ class UniterModel(UniterPreTrainedModel):
                     embedding_output = self._compute_speech_txt_embeddings(
                         input_ids, position_ids,
                         speech_feat, speech_position_ids,
-                        gather_index, speech_masks, txt_type_ids)
+                        gather_index, speech_masks, txt_type_ids,
+                        speech_type_ids)
                 elif self.use_speech and self.use_visual:
                     embedding_output = self._compute_speech_img_txt_embeddings(
                             input_ids, position_ids,
                             img_feat, img_position_ids,
                             speech_feat, speech_position_ids,
                             gather_index,
-                            speech_masks, img_masks, 
-                            img_type_ids, txt_type_ids)
+                            img_masks, speech_masks, 
+                            txt_type_ids, img_type_ids,
+                            speech_type_ids)
                 else:
                     logger.info('[Error] some error in UniterModel')
                     exit(0)
@@ -497,7 +434,8 @@ class UniterModel(UniterPreTrainedModel):
                 embedding_output = self._compute_speech_txt_embeddings(
                     input_ids, position_ids,
                     speech_feat, speech_position_ids,
-                    gather_index, speech_masks, txt_type_ids)
+                    gather_index, speech_masks, txt_type_ids, 
+                    speech_type_ids)
             elif self.use_speech and self.use_visual:
                 # logger.info('[Debug] use both visual and speech!!!')
                 embedding_output = self._compute_speech_img_txt_embeddings(
@@ -505,8 +443,9 @@ class UniterModel(UniterPreTrainedModel):
                         img_feat, img_position_ids,
                         speech_feat, speech_position_ids,
                         gather_index,
-                        speech_masks, img_masks, 
-                        img_type_ids, txt_type_ids)
+                        img_masks, speech_masks, 
+                        txt_type_ids, img_type_ids,
+                        speech_type_ids)
             else:
                 logger.info('[Error] some error in UniterModel')
                 exit(0)

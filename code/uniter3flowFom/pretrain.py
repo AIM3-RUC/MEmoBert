@@ -19,22 +19,23 @@ from torch.nn.utils import clip_grad_norm_
 from apex import amp
 from horovod import torch as hvd
 
-from code.uniter3flow.data import (TokenBucketSampler, TokenBucketSamplerForItm,
+from code.uniter3flowFom.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   MetaLoader, PrefetchLoader,
                   TxtTokLmdb, ImageLmdbGroup, SpeechLmdbGroup, ConcatDatasetWithLens,
                   MlmDataset, MelmDataset, mlm_collate, melm_collate,
-                  ItmDataset, itm_collate)
+                  ItmDataset, itm_collate,
+                  FOMDataset, fom_collate)
 
-from code.uniter3flow.model.pretrain import MEmoBertForPretraining
-from code.uniter3flow.optim import get_lr_sched, get_backbone_lr_sched
-from code.uniter3flow.optim.misc import build_backbone_optimizer, build_optimizer
+from code.uniter3flowFom.model.pretrain import MEmoBertForPretraining
+from code.uniter3flowFom.optim import get_lr_sched, get_backbone_lr_sched
+from code.uniter3flowFom.optim.misc import build_backbone_optimizer, build_optimizer
 
-from code.uniter3flow.utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
-from code.uniter3flow.utils.distributed import (all_reduce_and_rescale_tensors, all_gather_list,
+from code.uniter3flowFom.utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
+from code.uniter3flowFom.utils.distributed import (all_reduce_and_rescale_tensors, all_gather_list,
                                broadcast_tensors)
-from code.uniter3flow.utils.save import ModelSaver, save_training_meta
-from code.uniter3flow.utils.misc import NoOp, parse_with_config, set_dropout, set_random_seed, get_grad_flow
-from code.uniter3flow.utils.const import IMG_LABEL_DIM, BUCKET_SIZE
+from code.uniter3flowFom.utils.save import ModelSaver, save_training_meta
+from code.uniter3flowFom.utils.misc import NoOp, parse_with_config, set_dropout, set_random_seed, get_grad_flow
+from code.uniter3flowFom.utils.const import IMG_LABEL_DIM, BUCKET_SIZE
 
 def build_dataloader(dataset, collate_fn, is_train, opts):
     if is_train:

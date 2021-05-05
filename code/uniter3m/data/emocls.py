@@ -9,7 +9,7 @@ import torch
 import numpy as np
 from torch.nn.utils.rnn import pad_sequence
 from toolz.sandbox import unzip
-from code.uniter3m.data.data import (DetectFeatTxtTokDataset, DetectFeatLmdb, TxtTokLmdb, \
+from code.uniter3m.data.data import (DetectFeatTxtTokDataset, TxtTokLmdb, \
                    pad_tensors, get_gather_index)
                    
 class EmoCLsDataset(DetectFeatTxtTokDataset):
@@ -36,7 +36,7 @@ class EmoCLsDataset(DetectFeatTxtTokDataset):
         input_ids = torch.tensor([self.txt_db.cls_] + input_ids + [self.txt_db.sep])
         attn_masks = torch.ones(len(input_ids), dtype=torch.long)
 
-        if self.img_db:
+        if self.img_db is not None:
             # print(f'[Debug] item {i} img is not None')
             img_feat, num_bb = self._get_img_feat(example['img_fname'], self.img_shape)
             img_attn_masks = torch.ones(num_bb, dtype=torch.long)
@@ -46,7 +46,7 @@ class EmoCLsDataset(DetectFeatTxtTokDataset):
             # print(f'[Debug] item img {i} is None')
             img_feat = None
         
-        if self.speech_db:
+        if self.speech_db is not None:
             # print(f'[Debug] item {i} speech is not None')
             speech_feat, num_frame = self._get_speech_feat(example['img_fname'])
             speech_attn_masks = torch.ones(num_frame, dtype=torch.long)
@@ -56,9 +56,9 @@ class EmoCLsDataset(DetectFeatTxtTokDataset):
             speech_feat = None
 
         # for visualization
-        img_frame_name = example['img_fname']
+        frame_name = example['img_fname']
         # print("[Debug empty] txt {} img {}".format(len(input_ids), num_bb))
-        return input_ids, img_feat, speech_feat, attn_masks, target, img_frame_name
+        return input_ids, img_feat, speech_feat, attn_masks, target, frame_name
 
 def emocls_collate(inputs):
     """
@@ -71,7 +71,7 @@ def emocls_collate(inputs):
     :num_bbs      list of [num_bb], real num_bbs
     :attn_masks   (n, max_{L + num_bb}) padded with 0
     """
-    (input_ids, img_feats, speech_feats, attn_masks, targets, batch_img_frame_names) = map(list, unzip(inputs))
+    (input_ids, img_feats, speech_feats, attn_masks, targets, batch_frame_names) = map(list, unzip(inputs))
 
     # text batches
     txt_lens = [i.size(0) for i in input_ids]
@@ -85,7 +85,7 @@ def emocls_collate(inputs):
         num_bbs = [f.size(0) for f in img_feats]
         img_feat = pad_tensors(img_feats, num_bbs)
         # print('[Debug] batch padding img input {}'.format(img_feat.shape)) # (n, max_num_nbb, dim)
-        img_position_ids = torch.arange(0, max(num_bbs), dtype=torch.long).unsqueeze(0)      
+        img_position_ids = torch.arange(0, img_feat.size(1), dtype=torch.long).unsqueeze(0)      
     else:
         img_feat, num_bbs, img_position_ids = None, None, None
     
@@ -94,7 +94,7 @@ def emocls_collate(inputs):
         num_frames = [f.size(0) for f in speech_feats]
         speech_feat = pad_tensors(speech_feats, num_frames)
         # print('[Debug] batch padding speech input {}'.format(speech_feat.shape)) # (n, max_num_frame, dim)
-        speech_position_ids = torch.arange(0, max(num_frames), dtype=torch.long).unsqueeze(0)    
+        speech_position_ids = torch.arange(0, speech_feat.size(1), dtype=torch.long).unsqueeze(0)    
     else:
         speech_feat, num_frames, speech_position_ids = None, None, None
 
@@ -106,15 +106,15 @@ def emocls_collate(inputs):
 
     batch = {'input_ids': input_ids,
              'position_ids': position_ids,
-             'txt_lens': txt_lens,
              'img_feat': img_feat,
              'img_position_ids': img_position_ids,
              'speech_feat': speech_feat,
              'speech_position_ids': speech_position_ids,
-             'img_lens': num_bbs,
              'attn_masks': attn_masks,
              'gather_index': gather_index,
              'targets': targets,
-             'img_frame_names': batch_img_frame_names
+             'txt_lens': txt_lens,
+             'img_lens': num_bbs,
+             'img_frame_names': batch_frame_names
              }
     return batch

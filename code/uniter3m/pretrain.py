@@ -29,52 +29,26 @@ from code.uniter3m.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   MlmDataset, MelmDataset, MrfrDataset, MrcDataset,
                   mlm_collate, melm_collate, mrfr_collate, mrc_collate,
                   ItmDataset, itm_collate, MsrfrDataset, msrfr_collate)
-
 from code.uniter3m.model.pretrain import UniterForPretraining
-from code.uniter3m.optim import get_lr_sched
-from code.uniter3m.optim.misc import build_optimizer
 
-from code.uniter3m.utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
-from code.uniter3m.utils.distributed import (all_reduce_and_rescale_tensors, all_gather_list,
+# from uniter
+from code.uniter.optim import get_lr_sched
+from code.uniter.optim.misc import build_optimizer
+from code.uniter.utils.const import IMG_LABEL_DIM, BUCKET_SIZE
+from code.uniter.utils.misc import NoOp, parse_with_config, set_dropout, set_random_seed
+from code.uniter.utils.distributed import (all_reduce_and_rescale_tensors, all_gather_list,
                                broadcast_tensors)
-from code.uniter3m.utils.save import ModelSaver, save_training_meta
-from code.uniter3m.utils.misc import NoOp, parse_with_config, set_dropout, set_random_seed
-from code.uniter3m.utils.const import IMG_LABEL_DIM, BUCKET_SIZE
-
-def build_dataloader(dataset, collate_fn, is_train, opts):
-    if is_train:
-        batch_size = opts.train_batch_size
-    else:
-        batch_size = opts.val_batch_size
-    sampler = TokenBucketSampler(dataset.lens, bucket_size=BUCKET_SIZE,
-                                 batch_size=batch_size, droplast=is_train,
-                                 size_multiple=4)
-    loader = DataLoader(dataset, batch_sampler=sampler,
-                        num_workers=opts.n_workers, pin_memory=opts.pin_mem,
-                        collate_fn=collate_fn)
-    return loader
-
-
-def build_dataloader_itm(dataset, collate_fn, is_train, opts):
-    if is_train:
-        batch_size = opts.train_batch_size
-    else:
-        batch_size = opts.val_batch_size
-    sampler = TokenBucketSamplerForItm(
-        dataset, bucket_size=BUCKET_SIZE,
-        batch_size=batch_size, droplast=is_train)
-    loader = DataLoader(dataset, batch_sampler=sampler,
-                        num_workers=opts.n_workers, pin_memory=opts.pin_mem,
-                        collate_fn=collate_fn)
-    return loader
+from code.uniter.utils.save import ModelSaver, save_training_meta
+from code.uniter.utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
+from code.uniter.pretrain import build_dataloader, build_dataloader_itm, 
 
 def build_mlm_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:
-        if opts.use_speech and opts.use_visual:
+        if img_db is not None and speech_db is not None:
             datasets = [MlmDataset(t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
-        elif opts.use_speech and not opts.use_visual:
+        elif img_db is None and speech_db is not None:
             datasets = [MlmDataset(t, None, s) for t, s in zip(txt_db, speech_db)]
-        elif not opts.use_speech and opts.use_visual:
+        elif img_db is not None and speech_db is None:
             datasets = [MlmDataset(t, i, None) for t, i in zip(txt_db, img_db)]
         else:
             LOGGER.info('[Error] Error mlm datasets')
@@ -86,11 +60,11 @@ def build_mlm_dataset(txt_db, img_db, speech_db, is_train, opts):
 
 def build_melm_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:
-        if opts.use_speech and opts.use_visual:
+        if img_db is not None and speech_db is not None:
             datasets = [MelmDataset(opts.melm_prob, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
-        elif opts.use_speech and not opts.use_visual:
+        elif img_db is None and speech_db is not None:
             datasets = [MelmDataset(opts.melm_prob, t, None, s) for t, s in zip(txt_db, speech_db)]
-        elif not opts.use_speech and opts.use_visual:
+        elif img_db is not None and speech_db is None:
             datasets = [MelmDataset(opts.melm_prob, t, i, None) for t, i in zip(txt_db, img_db)]
         else:
             LOGGER.info('[Error] Error melm datasets')
@@ -101,10 +75,11 @@ def build_melm_dataset(txt_db, img_db, speech_db, is_train, opts):
     return dataset, melm_collate
 
 def build_mrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
+    assert img_db != None
     if is_train:
-        if opts.use_speech and opts.use_visual:
+        if speech_db is not None:
             datasets = [MrfrDataset(opts.mrm_prob, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
-        elif not opts.use_speech and opts.use_visual:
+        elif speech_db is None:
             datasets = [MrfrDataset(opts.mrm_prob, t, i, None) for t, i in zip(txt_db, img_db)]
         else:
             LOGGER.info('[Error] Error mrfr datasets')
@@ -115,10 +90,11 @@ def build_mrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
     return dataset, mrfr_collate
 
 def build_msrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
+    assert speech_db != None
     if is_train:
-        if opts.use_speech and opts.use_visual:
+        if img_db is not None:
             datasets = [MsrfrDataset(opts.msrm_prob, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
-        elif opts.use_speech and not opts.use_visual:
+        elif img_db is None:
             datasets = [MsrfrDataset(opts.msrm_prob, t, None, s) for t, s in zip(txt_db, speech_db)]
         else:
             LOGGER.info('[Error] Error mrfr datasets')
@@ -129,12 +105,11 @@ def build_msrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
     return dataset, msrfr_collate
 
 def build_mrc_dataset(txt_db, img_db, speech_db, is_train, opts):
+    assert img_db != None
     if is_train:
-        if opts.use_speech and opts.use_visual:
+        if speech_db is not None:
             datasets = [MrcDataset(opts.mrm_prob, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
-        elif opts.use_speech and not opts.use_visual:
-            datasets = [MrcDataset(opts.mrm_prob, t, None, s) for t, s in zip(txt_db, speech_db)]
-        elif not opts.use_speech and opts.use_visual:
+        elif speech_db is None:
             datasets = [MrcDataset(opts.mrm_prob, t, i, None) for t, i in zip(txt_db, img_db)]
         else:
             LOGGER.info('[Error] Error mrc datasets')
@@ -147,11 +122,11 @@ def build_mrc_dataset(txt_db, img_db, speech_db, is_train, opts):
 
 def build_itm_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:
-        if opts.use_speech and opts.use_visual:
+        if img_db is not None and speech_db is not None:
             datasets = [ItmDataset(t, i, s, opts.itm_neg_prob) for t, i, s in zip(txt_db, img_db, speech_db)]
-        elif opts.use_speech and not opts.use_visual:
+        elif img_db is None and speech_db is not None:
             datasets = [ItmDataset(t, None, s, opts.itm_neg_prob) for t, s in zip(txt_db, speech_db)]
-        elif not opts.use_speech and opts.use_visual:
+        elif img_db is not None and speech_db is None:
             datasets = [ItmDataset(t, i, None, opts.itm_neg_prob) for t, i in zip(txt_db, img_db)]
         else:
             LOGGER.info('[Error] Error itm datasets')
@@ -390,7 +365,7 @@ def main(opts):
             optimizer.zero_grad()
             pbar.update(1)
 
-            if global_step % 100 == 0:
+            if global_step % 200 == 0:
                 # monitor training throughput
                 LOGGER.info(f'==============Step {global_step}===============')
                 LOGGER.info('Current learning rate {}'.format(lr_this_step))
@@ -433,7 +408,7 @@ def validate(model, val_dataloaders):
             val_log = validate_melm(model, loader)
         elif task.startswith('mrfr') and args.use_visual:
             val_log = validate_mrfr(model, loader)
-        elif task.startswith('msrfr'):
+        elif task.startswith('msrfr') and args.use_speech:
             val_log = validate_msrfr(model, loader)
         elif task.startswith('mrc') and args.use_visual:
             val_log = validate_mrc(model, loader, task)

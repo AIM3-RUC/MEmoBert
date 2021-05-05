@@ -3,8 +3,8 @@ import torch
 import json
 import logging
 from torch import nn
-from code.uniter3flow.model.model_base import BertConfig, BertPreTrainedModel, BertEncoder
-from code.uniter3flow.model.layer import BertLayer, BertPooler
+from code.uniter3flowFom.model.model_base import BertConfig, BertPreTrainedModel, BertEncoder
+from code.uniter3flowFom.model.layer import BertLayer, BertPooler
 from apex.normalization.fused_layer_norm import FusedLayerNorm
 
 ''' 

@@ -13,51 +13,8 @@ from apex.normalization.fused_layer_norm import FusedLayerNorm as LayerNorm
 
 from code.uniter3m.model.layer import GELU, BertOnlyMLMHead
 from code.uniter3m.model.model import UniterModel, UniterPreTrainedModel
-
-class RegionFeatureRegression(nn.Module):
-    " for MRM"
-    def __init__(self, hidden_size, feat_dim, img_linear_weight):
-        super().__init__()
-        self.net = nn.Sequential(nn.Linear(hidden_size, hidden_size),
-                                 GELU(),
-                                 LayerNorm(hidden_size, eps=1e-12))
-
-        self.weight = img_linear_weight
-        self.bias = nn.Parameter(torch.zeros(feat_dim))
-
-    def forward(self, input_):
-        hidden = self.net(input_)
-        output = F.linear(hidden, self.weight.t(), self.bias)
-        return output
-
-
-class RegionClassification(nn.Module):
-    " for MRC(-kl)"
-    def __init__(self, hidden_size, label_dim):
-        super().__init__()
-        self.net = nn.Sequential(nn.Linear(hidden_size, hidden_size),
-                                 GELU(),
-                                 LayerNorm(hidden_size, eps=1e-12),
-                                 nn.Linear(hidden_size, label_dim))
-
-    def forward(self, input_):
-        output = self.net(input_)
-        return output
-
-class EmoMelmClassification(nn.Module):
-    " for the multitask of MELM"
-    def __init__(self, hidden_size, label_dim):
-        super().__init__()
-        self.net = nn.Sequential(nn.Linear(hidden_size, hidden_size),
-                                 GELU(),
-                                 LayerNorm(hidden_size, eps=1e-12),
-                                 nn.Linear(hidden_size, label_dim))
-
-    def forward(self, input_):
-        output = self.net(input_)
-        # print('[Debug] in EmoMelmClassification input {}'.format(input_.shape))
-        # print('[Debug] in EmoMelmClassification output {}'.format(output.shape))
-        return output
+## from uniter 
+from code.uniter.model.pretrain import RegionFeatureRegression, RegionClassification, EmoMelmClassification
 
 class UniterForPretraining(UniterPreTrainedModel):
     """ UNITER pretraining """

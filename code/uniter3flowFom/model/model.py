@@ -15,12 +15,12 @@ import numpy as np
 import torch
 from torch import nn
 from apex.normalization.fused_layer_norm import FusedLayerNorm
-from code.uniter3flow.model.model_base import BertConfig, BertPreTrainedModel
-from code.uniter3flow.model.enc_speech_new import SpeechWav2Vec2Model
 from transformers import Wav2Vec2Config
-from code.uniter3flow.model.enc_visual_new import VisualEncoderBertModel
-from code.uniter3flow.model.enc_text import TextEncoderBertModel
-from code.uniter3flow.model.enc_cross import CrossEncoderBertModel
+from code.uniter3flowFom.model.model_base import BertConfig, BertPreTrainedModel
+from code.uniter3flowFom.model.enc_speech_new import SpeechWav2Vec2Model
+from code.uniter3flowFom.model.enc_visual_new import VisualEncoderBertModel
+from code.uniter3flowFom.model.enc_text import TextEncoderBertModel
+from code.uniter3flowFom.model.enc_cross import CrossEncoderBertModel
 
 logger = logging.getLogger(__name__)
 

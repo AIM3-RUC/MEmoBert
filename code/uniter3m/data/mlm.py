@@ -11,45 +11,8 @@ from torch.nn.utils.rnn import pad_sequence
 from toolz.sandbox import unzip
 from code.uniter3m.data.data import (DetectFeatTxtTokDataset, TxtTokLmdb,
                    pad_tensors, get_gather_index)
-
-def random_word(tokens, vocab_range, mask):
-    """
-    Masking some random tokens for Language Model task with probabilities as in
-        the original BERT paper.
-    :param tokens: list of int, tokenized sentence.
-    :param vocab_range: for choosing a random word
-    :return: (list of int, list of int), masked tokens and related labels for
-        LM prediction
-    """
-    output_label = []
-
-    for i, token in enumerate(tokens):
-        prob = random.random()
-        # mask token with 15% probability
-        if prob < 0.15:
-            prob /= 0.15
-            # 80% randomly change token to mask token
-            if prob < 0.8:
-                # print('[Debug] 0.8 predict mask token {}'.format(token))
-                tokens[i] = mask
-            # 10% randomly change token to random token
-            elif prob < 0.9:
-                # print('[Debug] 0.1 predict random token {}'.format(token))
-                tokens[i] = random.choice(list(range(*vocab_range)))
-            # -> rest 10% randomly keep current token
-            # append current token to output (we will predict these later)
-            output_label.append(token)
-        else:
-            # no masking token (will be ignored by loss function later)
-            output_label.append(-1)
-    if all(o == -1 for o in output_label):
-        # at least mask 1
-        output_label[0] = tokens[0]
-        tokens[0] = mask
-
-    return tokens, output_label
-
-
+# from uniter 
+from code.uniter.data.mlm import random_word
 class MlmDataset(DetectFeatTxtTokDataset):
     def __init__(self, txt_db, img_db, speech_db):
         assert isinstance(txt_db, TxtTokLmdb)
@@ -71,7 +34,7 @@ class MlmDataset(DetectFeatTxtTokDataset):
         attn_masks = torch.ones(len(input_ids), dtype=torch.long)
         # print('[Debug] item {} text attn mask {} {}'.format(i, attn_masks, attn_masks.shape))
 
-        if self.img_db:
+        if self.img_db is not None:
             # print(f'[Debug] item {i} img is not None')
             img_feat, num_bb = self._get_img_feat(example['img_fname'], self.img_shape)
             img_attn_masks = torch.ones(num_bb, dtype=torch.long)
@@ -81,7 +44,7 @@ class MlmDataset(DetectFeatTxtTokDataset):
             # print(f'[Debug] item img {i} is None')
             img_feat = None
         
-        if self.speech_db:
+        if self.speech_db is not None:
             # print(f'[Debug] item {i} speech is not None')
             speech_feat, num_frame = self._get_speech_feat(example['img_fname'])
             speech_attn_masks = torch.ones(num_frame, dtype=torch.long)
@@ -147,7 +110,7 @@ def mlm_collate(inputs):
         num_frames = [f.size(0) for f in speech_feats]
         speech_feat = pad_tensors(speech_feats, num_frames)
         # print('[Debug] batch padding speech input {}'.format(speech_feat.shape)) # (n, max_num_frame, dim)
-        speech_position_ids = torch.arange(0, max(num_frames), dtype=torch.long).unsqueeze(0)    
+        speech_position_ids = torch.arange(0, speech_feat.size(1), dtype=torch.long).unsqueeze(0)    
     else:
         speech_feat, num_frames, speech_position_ids = None, None, None
 

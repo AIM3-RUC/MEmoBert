@@ -12,7 +12,7 @@ import torch
 from torch.nn.utils.rnn import pad_sequence
 from toolz.sandbox import unzip
 from code.uniter3m.data.data import (DetectFeatTxtTokDataset, TxtTokLmdb, pad_tensors, get_gather_index)
-from code.uniter3m.data.mlm import random_word
+from code.uniter.data.mlm import random_word
 
 def random_emo_word(melm_prob, tokens, vocab_range, emo_tokens, mask):
     """
@@ -93,7 +93,7 @@ class MelmDataset(DetectFeatTxtTokDataset):
         else:
             txt_emo_labels = None
         
-        if self.img_db:
+        if self.img_db is not None:
             # print(f'[Debug] item {i} img is not None')
             img_feat, num_bb = self._get_img_feat(example['img_fname'], self.img_shape)
             img_attn_masks = torch.ones(num_bb, dtype=torch.long)
@@ -103,7 +103,7 @@ class MelmDataset(DetectFeatTxtTokDataset):
             # print(f'[Debug] item img {i} is None')
             img_feat = None
         
-        if self.speech_db:
+        if self.speech_db is not None:
             # print(f'[Debug] item {i} speech is not None')
             speech_feat, num_frame = self._get_speech_feat(example['img_fname'])
             speech_attn_masks = torch.ones(num_frame, dtype=torch.long)
@@ -161,7 +161,7 @@ def melm_collate(inputs):
         num_bbs = [f.size(0) for f in img_feats]
         img_feat = pad_tensors(img_feats, num_bbs)
         # print('[Debug] batch padding img input {}'.format(img_feat.shape)) # (n, max_num_nbb, dim)
-        img_position_ids = torch.arange(0, max(num_bbs), dtype=torch.long).unsqueeze(0)      
+        img_position_ids = torch.arange(0, img_feat.size(1), dtype=torch.long).unsqueeze(0)      
     else:
         img_feat, num_bbs, img_position_ids = None, None, None
     
@@ -170,7 +170,7 @@ def melm_collate(inputs):
         num_frames = [f.size(0) for f in speech_feats]
         speech_feat = pad_tensors(speech_feats, num_frames)
         # print('[Debug] batch padding speech input {}'.format(speech_feat.shape)) # (n, max_num_frame, dim)
-        speech_position_ids = torch.arange(0, max(num_frames), dtype=torch.long).unsqueeze(0)    
+        speech_position_ids = torch.arange(0, speech_feat.size(1), dtype=torch.long).unsqueeze(0)    
     else:
         speech_feat, num_frames, speech_position_ids = None, None, None
 

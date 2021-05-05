@@ -14,12 +14,12 @@ import torch
 from torch._C import dtype
 from torch.nn.utils.rnn import pad_sequence
 from toolz.sandbox import unzip
-from code.uniter3flowFOM.data.data import (DetectFeatTxtTokDataset, TxtTokLmdb, DetectFeatLmdb, pad_tensors)
+from code.uniter3flowFom.data.data import (DetectFeatTxtTokDataset, TxtTokLmdb, DetectFeatLmdb, pad_tensors)
 
 '''
 For Image Contextual Representations Or Speech Contextual Representations.
 FOM 是 Frame Order Moding, 这里主要是最 Image 做. 如果有Speech信息那么全部保留.
-因为Speech的输入帧数和Speech-Encoder之后的帧数目不同，所以Frame-shuffle需要在Forward函数中做。
+
 '''
 class FOMDataset(DetectFeatTxtTokDataset):
     def __init__(self, random_reorder_p, txt_db, img_db, speech_db):
@@ -35,42 +35,41 @@ class FOMDataset(DetectFeatTxtTokDataset):
         self.txt_db = txt_db
         self.img_db = img_db
         self.speech_db = speech_db
+        self.img_shape = None
 
-    def __getitem__(self, i, add_cls_token=True):
+    def __getitem__(self, i):
         '''
         :add_cls_token, add cls token or not
         '''
         example = super().__getitem__(i)
         # text input
         input_ids = example['input_ids']
-        input_ids = torch.tensor([self.txt_db.cls_] + input_ids)
+        input_ids = torch.tensor([self.txt_db.cls_] + input_ids + [self.txt_db.sep])
         text_attn_masks = torch.ones(len(input_ids), dtype=torch.long)
 
+        if self.img_db:
+            img_feat, num_bb = self._get_img_feat(example['img_fname'], self.img_shape)
+            self.img_shape = img_feat.shape[1:]
+            img_attn_masks = torch.ones(num_bb, dtype=torch.long)
+        else:
+            img_feat, img_attn_masks = None, None
+        
         if self.speech_db:
             speech_feat, num_frame = self._get_speech_feat(example['img_fname'])
+            # for the output of speech encoder 
+            num_segment = int(num_frame/(0.02 * 16000) - 1)
+            speech_attn_masks = torch.ones(num_segment, dtype=torch.long)
         else:
-            speech_feat, num_frame =  None, None
+            speech_feat, speech_attn_masks = None, None        
         
-        # for img frame ordering
-        img_fname = self.train_imgs[i]
-        img_feat, num_bb = self._get_img_feat(img_fname)
-        img_attn_masks = torch.ones(num_bb, dtype=torch.long)
-        img_position_ids = [i for i in range(num_bb)]
-        if add_cls_token:
-            # for each item, not in batch process
-            cls_token_attn_masks = torch.ones(1, dtype=img_attn_masks.dtype)
-            print('[Debug] cls_token_attn_masks {}'.format(cls_token_attn_masks.shape, type(cls_token_attn_masks)))
-            img_attn_masks = torch.cat((cls_token_attn_masks, img_attn_masks), dim=1)
-            print('[Debug] img_attn_masks {}'.format(img_attn_masks.shape))
-            img_position_ids = torch.arange(0, img_feat.size(0)+1, dtype=torch.long).unsqueeze(0)
+        img_position_ids = torch.arange(0, img_feat.size(0), dtype=torch.long).unsqueeze(0)
         # Random shuffle 15% of pos_ids
         img_orders, img_targets = random_reorder(
-            list(range(len(img_position_ids))), add_cls_token, self.random_reorder_p)
+            list(range(len(img_position_ids))), self.random_reorder_p)
         print('[Debug] img_orders {}'.format(img_orders))
         print('[Debug] img_targets {}'.format(img_targets))
         img_orders = torch.tensor(img_orders, dtype=torch.long)
         img_order_targets = torch.tensor(img_targets, dtype=torch.long)
-       
         return input_ids, img_feat, speech_feat, text_attn_masks, img_attn_masks, img_orders, img_order_targets
 
 def fom_collate(inputs):
@@ -147,7 +146,7 @@ def fom_collate(inputs):
     return batch
 
 
-def random_reorder(pos_ids, add_cls_token, random_reorder_p=0.15):
+def random_reorder(pos_ids, random_reorder_p=0.15):
     """
     random reorder frame positions
     每帧以15%的概率选中进行，然后以预测 整个序列原来的顺序。
@@ -161,32 +160,29 @@ def random_reorder(pos_ids, add_cls_token, random_reorder_p=0.15):
     """
     selected_pos = []
     target_pos = []
-    for i, pos_id in enumerate(pos_ids):
-        # pos_id is same as i
-        if add_cls_token:
-            # for [cls] token
-            if i == 0:
-                continue
+    # step1: 选择哪些位置的id将会被打乱
+    for i, pos_id in enumerate(pos_ids):    
         prob = random.random()
         # mask token with 15% probability
         if prob < random_reorder_p:
             selected_pos.append(i)
             target_pos.append(pos_id)
-    # print('[Debug] select pos {}'.format(selected_pos))
-    # print('[Debug] target pos {}'.format(target_pos))
+    print('[Debug] select pos {}'.format(selected_pos))
+    print('[Debug] target pos {}'.format(target_pos))
+    # step2: 将选中的目标进行打乱
     target_pos_shuffled = copy.deepcopy(target_pos)
     random.shuffle(target_pos_shuffled)
-    # print('[Debug] target_pos_shuffled {}'.format(target_pos_shuffled))
+    print('[Debug] target_pos_shuffled {}'.format(target_pos_shuffled))
     output_order = copy.deepcopy(pos_ids)
     output_target = [-1] * len(output_order)
     for i, pos in enumerate(selected_pos):
         output_order[pos] = target_pos_shuffled[i]
         output_target[target_pos_shuffled[i]] = pos
-    # print('[Debug] output_order {}'.format(output_order))
-    # print('[Debug] output_target {}'.format(output_target))
+    print('[Debug] output_order {}'.format(output_order))
+    print('[Debug] output_target {}'.format(output_target))
     return output_order, output_target
 
-
 if __name__ == '__main__':
-    pos_ids = [0,1,2,3,4,5]
-    random_reorder(pos_ids, add_cls_token=False, random_reorder_p=0.5)
+    # export PYTHONPATH=/data7/MEmoBert
+    pos_ids = [0,1,2,3,4,5,6,7,8]
+    random_reorder(pos_ids, random_reorder_p=0.3)

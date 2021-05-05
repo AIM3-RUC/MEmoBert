@@ -13,9 +13,9 @@ from toolz.sandbox import unzip
 from cytoolz import concat
 import numpy as np
 
-from code.uniter3flow.data.data import (DetectFeatTxtTokDataset, DetectFeatLmdb, TxtTokLmdb,
+from code.uniter3flowFom.data.data import (DetectFeatTxtTokDataset, DetectFeatLmdb, TxtTokLmdb,
                    pad_tensors, get_ids_and_lens)
-from code.uniter3flow.data.sampler import TokenBucketSampler
+from code.uniter3flowFom.data.sampler import TokenBucketSampler
 from code.uniter3m.data.data import get_gather_index
 
 class TokenBucketSamplerForItm(TokenBucketSampler):
