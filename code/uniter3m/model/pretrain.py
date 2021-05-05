@@ -11,10 +11,10 @@ from torch import nn
 from torch.nn import functional as F
 from apex.normalization.fused_layer_norm import FusedLayerNorm as LayerNorm
 
-from code.uniter3m.model.layer import GELU, BertOnlyMLMHead
 from code.uniter3m.model.model import UniterModel, UniterPreTrainedModel
 ## from uniter 
 from code.uniter.model.pretrain import RegionFeatureRegression, RegionClassification, EmoMelmClassification
+from code.uniter.model.layer import GELU, BertOnlyMLMHead
 
 class UniterForPretraining(UniterPreTrainedModel):
     """ UNITER pretraining """
