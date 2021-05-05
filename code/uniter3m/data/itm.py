@@ -73,8 +73,10 @@ class ItmDataset(DetectFeatTxtTokDataset):
         input_ids = self.txt_db.combine_inputs(input_ids)
         attn_masks = torch.ones(len(input_ids), dtype=torch.long)
 
+        # must use this, very shit bug that upset me two days
+        img_fname = self.train_imgs[i]
         if self.img_db is not None:
-            img_feat, num_bb = self._get_img_feat(example['img_fname'], self.img_shape)
+            img_feat, num_bb = self._get_img_feat(img_fname, self.img_shape)
             self.img_shape = img_feat.shape[1:]
             img_attn_masks = torch.ones(num_bb, dtype=torch.long)
             attn_masks = torch.cat((attn_masks, img_attn_masks))
@@ -82,7 +84,7 @@ class ItmDataset(DetectFeatTxtTokDataset):
             img_feat = None
 
         if self.speech_db is not None:
-            speech_feat, num_frame = self._get_speech_feat(example['img_fname'])
+            speech_feat, num_frame = self._get_speech_feat(img_fname)
             speech_attn_masks = torch.ones(num_frame, dtype=torch.long)
             attn_masks = torch.cat((attn_masks, speech_attn_masks))
         else:

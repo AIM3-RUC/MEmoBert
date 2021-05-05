@@ -95,13 +95,14 @@ class ItmDataset(DetectFeatTxtTokDataset):
         ground_truth_label = self.labels[i]
         target = torch.Tensor(1).long()
         target.data.fill_(ground_truth_label)
-        img_fname = example['img_fname']
 
         # text input
         input_ids = example['input_ids']
         input_ids = torch.tensor([self.txt_db.cls_] + input_ids + [self.txt_db.sep])
         text_attn_masks = torch.ones(len(input_ids), dtype=torch.long)
 
+        ### must use this
+        img_fname = self.train_imgs[i]
         if self.img_db:
             img_feat, num_bb = self._get_img_feat(img_fname, self.img_shape)
             self.img_shape = img_feat.shape[1:]
