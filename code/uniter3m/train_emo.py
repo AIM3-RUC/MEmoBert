@@ -420,7 +420,7 @@ if __name__ == "__main__":
     if args.corpus_name == 'meld':
         select_metrix = 'WF1'
     elif args.corpus_name == 'msp':
-        select_metrix = 'WA'
+        select_metrix = 'UA'
     elif args.corpus_name == 'iemocap':
         select_metrix = 'UA'
     LOGGER.info(f'[INFO] Corpus {args.corpus_name} and select metrix {select_metrix}')

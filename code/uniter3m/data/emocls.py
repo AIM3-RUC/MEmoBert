@@ -36,9 +36,10 @@ class EmoCLsDataset(DetectFeatTxtTokDataset):
         input_ids = torch.tensor([self.txt_db.cls_] + input_ids + [self.txt_db.sep])
         attn_masks = torch.ones(len(input_ids), dtype=torch.long)
 
+        img_fname = example['img_fname']
         if self.img_db is not None:
             # print(f'[Debug] item {i} img is not None')
-            img_feat, num_bb = self._get_img_feat(example['img_fname'], self.img_shape)
+            img_feat, num_bb = self._get_img_feat(img_fname, self.img_shape)
             img_attn_masks = torch.ones(num_bb, dtype=torch.long)
             self.img_shape = img_feat.shape[1:]
             attn_masks = torch.cat((attn_masks, img_attn_masks))
@@ -48,7 +49,7 @@ class EmoCLsDataset(DetectFeatTxtTokDataset):
         
         if self.speech_db is not None:
             # print(f'[Debug] item {i} speech is not None')
-            speech_feat, num_frame = self._get_speech_feat(example['img_fname'])
+            speech_feat, num_frame = self._get_speech_feat(img_fname)
             speech_attn_masks = torch.ones(num_frame, dtype=torch.long)
             attn_masks = torch.cat((attn_masks, speech_attn_masks))
             # print('[Debug] item {} speech attn mask {} and final attn mask {}'.format(i, speech_attn_masks.shape, attn_masks.shape))

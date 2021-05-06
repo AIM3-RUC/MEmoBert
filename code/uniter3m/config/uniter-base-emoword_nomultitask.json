@@ -12,10 +12,10 @@
   "num_hidden_layers": 12,
   "type_vocab_size": 2,
   "speech_visual_use_same_type": true,
-  "melm_type_emo_size": 4,
+  "melm_type_emo_size": 3,
   "use_emo_type_emb": false,
   "melm_multitask": false,
   "melm_multitask_rate": 1.0,
-  "melm_emo_category_size": 4,
+  "melm_emo_category_size": 3,
   "vocab_size": 30522
 }

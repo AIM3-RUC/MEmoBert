@@ -41,7 +41,7 @@ class BertTextEmbeddings(nn.Module):
         position_embeddings = self.position_embeddings(position_ids)
         embeddings = words_embeddings + position_embeddings
         
-        logger.info('[Info] Use the default token type embeddings')
+        # logger.info('[Info] Use the default token type embeddings')
         if token_type_ids is None:
             token_type_ids = torch.zeros_like(input_ids)
         token_type_embeddings = self.token_type_embeddings(token_type_ids)
