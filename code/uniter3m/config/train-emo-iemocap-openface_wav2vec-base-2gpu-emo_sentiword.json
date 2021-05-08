@@ -1,9 +1,8 @@
 {
     "compressed_db": false,
-    "checkpoint": "/data7/emobert/exp/pretrain/nomask_movies_v1_uniter_4tasks/ckpt/model_step_100000.pt",
+    "checkpoint": "/data7/emobert/exp/pretrain/xxx",
     "model_config": "config/uniter-base.json",
-    "output_dir": "/data7/emobert/exp/finetune/msp_baseon_nomask_movies_v1_uniter_4tasks/",
-    "melm_type_multask": false,
+    "output_dir": "/data7/emobert/exp/finetune/xx",
     "max_txt_len": 30,
     "conf_th": 0.1,
     "max_bb": 36,

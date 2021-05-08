@@ -21,7 +21,14 @@ from code.uniter3flow.model.layer import GELU
 class MEmoBertForEmoTraining(nn.Module):
     """ Finetune UNITER for Emotion Recognition
     """
-    def __init__(self, config_file, use_speech, use_visual, cls_num, frozen_en_layers, cls_dropout=0.1, cls_type='vqa'):
+    def __init__(self, config_file, use_speech, use_visual, cls_num, frozen_en_layers, cls_dropout=0.1, cls_type='vqa',
+                                        pretrained_text_checkpoint=None,
+                                        pretrained_audio_checkpoint=None,
+                                        fix_text_encoder=False,
+                                        fix_visual_encoder=False,
+                                        fix_speech_encoder=False,
+                                        fix_cross_encoder=False,
+                                        use_type_embedding=False):
         '''
         cls_type: "emocls" is similar with  https://github.com/brightmart/roberta_zh/blob/master/run_classifier.py#L478
         and "vqa" is similar with official-uniter/model/vqa.py 
@@ -29,7 +36,15 @@ class MEmoBertForEmoTraining(nn.Module):
         super(MEmoBertForEmoTraining, self).__init__()
         config = BertConfig.from_json_file(config_file)
         print(f'[Debug] config {type(config)}')
-        self.emoBert = MEmoBertModel(config, use_speech, use_visual)
+        self.
+        self.emoBert = MEmoBertModel(config, use_speech, use_visual,
+                                            pretrained_text_checkpoint=pretrained_text_checkpoint,
+                                            pretrained_audio_checkpoint=pretrained_audio_checkpoint,
+                                            fix_text_encoder=fix_text_encoder,
+                                            fix_visual_encoder=fix_visual_encoder,
+                                            fix_speech_encoder=fix_speech_encoder,
+                                            fix_cross_encoder=fix_cross_encoder,
+                                            use_type_embedding=use_type_embedding)
         ## for paraphrase loss
         if cls_type == 'emocls':
             self.output = nn.Sequential(
@@ -51,19 +66,18 @@ class MEmoBertForEmoTraining(nn.Module):
         self.apply(self.init_weights)
 
     def init_weights(self, module):
-        """ Initialize the weights.
-        """
-        if isinstance(module, (nn.Linear, nn.Embedding)):
-            # truncated_normal for initialization
+        """ Initialize the weights """
+        if isinstance(module, nn.Linear):
+            # Slightly different from the TF version which uses truncated_normal for initialization
             # cf https://github.com/pytorch/pytorch/pull/5617
-            module.weight.data.normal_(mean=0.0,
-                                       std=self.emoBert.c_config.initializer_range)
-        elif isinstance(module, LayerNorm):
+            module.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
+        elif isinstance(module, (FusedLayerNorm, nn.GroupNorm)):
             module.bias.data.zero_()
             module.weight.data.fill_(1.0)
-        if isinstance(module, nn.Linear) and module.bias is not None:
+        elif isinstance(module, nn.Conv1d):
+            torch.nn.init.kaiming_normal_(module.weight.data)
+        if isinstance(module, (nn.Linear, nn.Conv1d)) and module.bias is not None:
             module.bias.data.zero_()
-
 
     def forward(self, batch, compute_loss=True):
         '''

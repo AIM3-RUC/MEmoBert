@@ -75,6 +75,7 @@ def main(opts):
         model_saver = NoOp()
 
     LOGGER.info("Loading Train Dataset {} {}".format(opts.train_txt_dbs, opts.train_img_dbs, opts.train_speech_dbs))
+
     train_all_img_dbs = ImageLmdbGroup(opts.conf_th, opts.max_bb, opts.min_bb,
                                 opts.compressed_db, opts.image_data_augmentation)
     train_speech_dbs = SpeechLmdbGroup(opts.speech_conf_th, opts.max_frames, opts.min_frames,
@@ -82,8 +83,14 @@ def main(opts):
     train_datasets = []
     for txt_path, img_path, speech_path in zip(opts.train_txt_dbs, opts.train_img_dbs, opts.train_speech_dbs):
         txt_path = txt_path.format(opts.cvNo)
-        img_db = train_all_img_dbs[img_path]
-        speech_db = train_speech_dbs[speech_path]
+        if self.use_visual:
+            img_db = train_all_img_dbs[img_path]
+        else:
+            img_db = None
+        if self.use_speech:
+            speech_db = train_speech_dbs[speech_path]
+        else:
+            speech_db = None
         txt_db = TxtTokLmdb(txt_path, opts.max_txt_len)
         print(type(txt_db), type(img_db), type(speech_path))
         train_datasets.append(EmoCLsDataset(txt_db, img_db, speech_db))
@@ -97,8 +104,14 @@ def main(opts):
     # val
     opts.val_txt_db = opts.val_txt_db.format(opts.cvNo)
     LOGGER.info(f"Loading Val Dataset {opts.val_img_db}, {opts.val_txt_db}, {opts.val_speech_db}")
-    val_img_db = eval_all_img_dbs[opts.val_img_db]
-    val_speech_db = eval_all_speech_dbs[opts.val_speech_db]
+    if self.use_visual:
+        val_img_db = eval_all_img_dbs[opts.val_img_db]
+    else:
+        val_img_db = None
+    if self.use_speech:
+        val_speech_db = eval_all_speech_dbs[opts.val_speech_db]
+    else:
+        val_speech_db = None
     val_txt_db = TxtTokLmdb(opts.val_txt_db, -1)
     val_dataset = EmoCLsDataset(val_txt_db, val_img_db, val_speech_db)
     val_dataloader = build_dataloader(val_dataset, emocls_collate, False, opts)
@@ -215,9 +228,9 @@ def main(opts):
                     steps2val_results[global_step] = val_log
                     steps2test_results[global_step] = test_log
                     # update the current best model based on validation results
-                    if val_log['WA'] > best_eval_WA:
+                    if val_log[select_metrix] > best_eval_metrix:
                         best_eval_step = global_step
-                        best_eval_WA = val_log['WA']
+                        best_eval_metrix = val_log[select_metrix]
                         patience = opts.patience
                         LOGGER.info('Save model at {} global step'.format(global_step))
                         model_saver.save(model, global_step)
@@ -233,7 +246,7 @@ def main(opts):
     pbar.close()
     LOGGER.info(f"finished {opts.num_train_steps} steps in {time()- start} seconds!")
     ### final use the best model tested on validation set.
-    LOGGER.info('Val: Best eval steps {} found with WA {}'.format(best_eval_step,  best_eval_WA))
+    LOGGER.info('Val: Best eval steps {} found with {} {}'.format(best_eval_step, select_metrix, best_eval_metrix))
     LOGGER.info('Val: {}'.format(steps2val_results[best_eval_step]))
     LOGGER.info('Test: {}'.format(steps2test_results[best_eval_step]))
     steps2val_results['beststep'] = best_eval_step
@@ -360,6 +373,8 @@ if __name__ == "__main__":
                         help="number of data workers")
     parser.add_argument('--pin_mem', action='store_true',
                         help="pin memory")
+    parser.add_argument('--corpus_name',  default='iemocap', type=str,
+                        help="downstream task name")
 
     # can use config files
     parser.add_argument('--config', help='JSON config files')
@@ -376,6 +391,16 @@ if __name__ == "__main__":
     args.output_dir = output_dir = join(args.output_dir, str(args.cvNo))
     if not exists(args.output_dir):
         os.makedirs(args.output_dir)
+    
+    if args.corpus_name == 'meld':
+        select_metrix = 'WF1'
+    elif args.corpus_name == 'msp':
+        select_metrix = 'UA'
+    elif args.corpus_name == 'iemocap':
+        select_metrix = 'UA'
+    LOGGER.info(f'[INFO] Corpus {args.corpus_name} and select metrix {select_metrix}')
+    LOGGER.info(f'[INFO] output {args.output_dir}')
+
     # options safe guard
     if args.conf_th == -1:
         assert args.max_bb + args.max_txt_len + 2 <= 512

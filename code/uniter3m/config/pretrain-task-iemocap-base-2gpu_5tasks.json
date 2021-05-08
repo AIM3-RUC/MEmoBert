@@ -1,7 +1,7 @@
 {
-    "output_dir": "/data7/emobert/exp/pretrain/tasks/iemocap_basedon-nomask_movies_v1_uniter_4tasks_faceth0.1-4tasks",
+    "output_dir": "/data7/emobert/exp/pretrain/tasks/xxx",
     "model_config": "config/uniter-base.json",
-    "checkpoint": "/data7/emobert/exp/pretrain/nomask_movies_v1_uniter_4tasks_faceth0.1/model_step_10000.pt",
+    "checkpoint": "/data7/emobert/exp/pretrain/xxx",
     "mrm_prob": 0.15,
     "itm_neg_prob": 0.5,
     "itm_ot_lambda": 0.1,
@@ -34,7 +34,7 @@
         {
             "name": "iemocap_trn",
             "db": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/trn_emowords_emotype.db"
+                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/trn_emowords_sentiword.db"
             ],
             "img": [
                 "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/"
@@ -45,9 +45,13 @@
             "tasks": [
                 "itm",
                 "mlm",
-                "msrfr"
+                "msrfr",
+                "mrfr",
+                "mrckl"     
             ],
             "mix_ratio": [
+                2,
+                2,
                 1,
                 1,
                 1
@@ -56,7 +60,7 @@
         {
             "name": "iemocap_trnval",
             "db": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val_emowords_emotype.db"
+                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val_emowords_sentiword.db"
             ],
             "img": [
                 "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/"
@@ -67,9 +71,13 @@
             "tasks": [
                 "itm",
                 "mlm",
-                "msrfr"
+                "msrfr",
+                "mrfr",
+                "mrckl"     
             ],
             "mix_ratio": [
+                2,
+                2,
                 1,
                 1,
                 1
@@ -80,7 +88,7 @@
         {
             "name": "iemocap_val",
             "db": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val_emowords_emotype.db"
+                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val_emowords_sentiword.db"
             ],
             "img": [
                 "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/"
@@ -91,13 +99,15 @@
             "tasks": [
                 "itm",
                 "mlm",
-                "msrfr"           
+                "msrfr",
+                "mrfr",
+                "mrckl"             
             ]
         },
         {
             "name": "iemocap_tst",
             "db": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst_emowords_emotype.db"
+                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst_emowords_sentiword.db"
             ],
             "img": [
                 "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/"
@@ -108,7 +118,9 @@
             "tasks": [
                 "itm",
                 "mlm",
-                "msrfr"           
+                "msrfr",
+                "mrfr",
+                "mrckl"           
             ]
         }
     ]

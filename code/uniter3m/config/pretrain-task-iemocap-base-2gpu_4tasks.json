@@ -45,14 +45,12 @@
             "tasks": [
                 "itm",
                 "mlm",
-                "melm",
                 "mrfr",
                 "mrckl"     
             ],
             "mix_ratio": [
                 2,
-                1,
-                1,
+                2,
                 1,
                 1
             ]
@@ -71,14 +69,12 @@
             "tasks": [
                 "itm",
                 "mlm",
-                "melm",
                 "mrfr",
                 "mrckl"     
             ],
             "mix_ratio": [
                 2,
-                1,
-                1,
+                2,
                 1,
                 1
             ]
@@ -99,7 +95,6 @@
             "tasks": [
                 "itm",
                 "mlm",
-                "melm",
                 "mrfr",
                 "mrckl"             
             ]
@@ -118,7 +113,6 @@
             "tasks": [
                 "itm",
                 "mlm",
-                "melm",
                 "mrfr",
                 "mrckl"           
             ]

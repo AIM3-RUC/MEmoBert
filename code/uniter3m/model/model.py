@@ -262,7 +262,11 @@ class UniterSpeechEmbeddings(nn.Module):
                                                 config.hidden_size)
         self.mask_embedding = nn.Embedding(2, speech_dim, padding_idx=0)
 
-        self.token_type_embeddings = nn.Embedding(1, config.hidden_size)
+        if config.speech_visual_use_same_type:
+            logger.info('[Debug] use the same type embedding with visual')
+        else:
+            logger.info('[Debug] use the independently type embedding for speech')
+            self.token_type_embeddings = nn.Embedding(1, config.hidden_size)
         # tf naming convention for layer norm
         self.LayerNorm = FusedLayerNorm(config.hidden_size, eps=1e-12)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
