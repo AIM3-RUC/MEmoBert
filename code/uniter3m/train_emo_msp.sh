@@ -58,9 +58,9 @@ corpus_name='msp'
 # done
 
 # case2.1: text + wav2vec + visual - on gpu5
-for lr in 2e-5 5e-5
+for lr in 5e-5
 do
-        for cvNo in $(seq 1 10)
+        for cvNo in $(seq 11 12)
         do
         num_train_steps=1000
         valid_steps=100

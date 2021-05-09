@@ -68,15 +68,43 @@ export PYTHONPATH=/data7/MEmoBert
 
 # 之前的visual和speech采用相同的type-embedding，但是采用的 position embeeding 却不同
 # 所以这里修改一下，加一个给不同的模态加不同的 type embedding. 只需要将speech_visual_use_same_type=false就可以
-# case6: text + wav2vec + visual, type-embedding running on gpu0,1
-CUDA_VISIBLE_DEVICES=0,1 horovodrun -np 2 python pretrain.py \
-        --cvNo 0 --n_workers 4 --use_speech --use_visual \
-        --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks.json \
-        --model_config config/uniter-base-emoword_nomultitask.json \
-        --learning_rate 5e-5 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
-        --IMG_DIM 342 --Speech_DIM 768 \
-        --conf_th 0.5 --max_txt_len 30 --max_bb 36 \
-        --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
-        --train_batch_size 64 --val_batch_size 64 \
-        --num_train_steps 30000 --warmup_steps 3000 --valid_steps 3000 \
-        --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_vstype2_lr5e5_bs512_faceth0.5
+# case6: text + wav2vec + visual, diff type-embedding running on gpu0,1
+# CUDA_VISIBLE_DEVICES=0,1 horovodrun -np 2 python pretrain.py \
+#         --cvNo 0 --n_workers 4 --use_speech --use_visual \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks.json \
+#         --model_config config/uniter-base-emoword_nomultitask.json \
+#         --learning_rate 5e-5 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 768 \
+#         --conf_th 0.5 --max_txt_len 30 --max_bb 36 \
+#         --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
+#         --train_batch_size 64 --val_batch_size 64 \
+#         --num_train_steps 30000 --warmup_steps 3000 --valid_steps 3000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_vstype2_lr5e5_bs512_faceth0.5
+
+# 将 itm 任务替换为 vtm 和 stm 两个任务, 这样可以做下游的两模态的任务
+# case7: text + wav2vec + visual, diff type-embedding running on leo --training
+# CUDA_VISIBLE_DEVICES=0,1 horovodrun -np 2 python pretrain.py \
+#         --cvNo 0 --n_workers 4 --use_speech --use_visual \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_6tasks.json \
+#         --model_config config/uniter-base-emoword_nomultitask.json \
+#         --learning_rate 5e-5 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 768 \
+#         --conf_th 0.5 --max_txt_len 30 --max_bb 36 \
+#         --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
+#         --train_batch_size 64 --val_batch_size 64 \
+#         --num_train_steps 30000 --warmup_steps 3000 --valid_steps 3000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_6tasks_vstype2_lr5e5_bs512_faceth0.5
+
+# 增加除 itm 之外的 vtm 和 stm 两个任务, 共7个预训练任务了
+# case7: text + wav2vec + visual, diff type-embedding running on leo --training
+# CUDA_VISIBLE_DEVICES=2,6 horovodrun -np 2 python pretrain.py \
+#         --cvNo 0 --n_workers 4 --use_speech --use_visual \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_7tasks.json \
+#         --model_config config/uniter-base-emoword_nomultitask.json \
+#         --learning_rate 5e-5 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 768 \
+#         --conf_th 0.5 --max_txt_len 30 --max_bb 36 \
+#         --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
+#         --train_batch_size 64 --val_batch_size 64 \
+#         --num_train_steps 30000 --warmup_steps 3000 --valid_steps 3000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_7tasks_vstype2_lr5e5_bs512_faceth0.5

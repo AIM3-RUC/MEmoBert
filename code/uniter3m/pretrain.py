@@ -135,6 +135,25 @@ def build_itm_dataset(txt_db, img_db, speech_db, is_train, opts):
     collate_fn = itm_collate
     return dataset, collate_fn
 
+def build_vtm_dataset(txt_db, img_db, is_train, opts):
+    # only consider the visual and txt matching
+    if is_train:
+        datasets = [ItmDataset(t, i, None, opts.itm_neg_prob) for t, i in zip(txt_db, img_db)]
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = ItmDataset(txt_db, img_db, None, opts.itm_neg_prob)
+    collate_fn = itm_collate
+    return dataset, collate_fn
+
+def build_stm_dataset(txt_db, speech_db, is_train, opts):
+    # only consider the speech and txt matching
+    if is_train:
+        datasets = [ItmDataset(t, None, s, opts.itm_neg_prob) for t, s in zip(txt_db, speech_db)]
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = ItmDataset(txt_db, None, speech_db, opts.itm_neg_prob)
+    collate_fn = itm_collate
+    return dataset, collate_fn
 
 def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_dbs=None):
     if all_img_dbs is None and opts.use_visual:
@@ -192,11 +211,21 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
                 dataset = build_mrc_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('itm'):
                 dataset = build_itm_dataset(txt_db, img_db, speech_db, is_train, opts)
+            elif task.startswith('stm'):
+                dataset = build_stm_dataset(txt_db, speech_db, is_train, opts)
+            elif task.startswith('vtm'):
+                dataset = build_vtm_dataset(txt_db, img_db, is_train, opts)
             else:
                 raise ValueError(f'Undefined task {task}')
 
             LOGGER.info(f"{len(dataset[0])*hvd.size()} samples loaded")
             if task.startswith('itm'):
+                # itm handles distributed training in dset not sampler
+                loader = build_dataloader_itm(*dataset, is_train, opts)
+            elif task.startswith('vtm'):
+                # itm handles distributed training in dset not sampler
+                loader = build_dataloader_itm(*dataset, is_train, opts)
+            elif task.startswith('stm'):
                 # itm handles distributed training in dset not sampler
                 loader = build_dataloader_itm(*dataset, is_train, opts)
             else:
@@ -311,8 +340,7 @@ def main(opts):
         n_in_units[name] += (batch['attn_masks'] == 1).sum().item()
         task = name.split('_')[0]
         loss = model(batch, task=task, compute_loss=True)
-        if task.startswith('itm'):
-            # OT
+        if task.startswith('itm') or task.startswith('vtm') or task.startswith('stm'):
             itm_loss, ot_loss = loss
             n_loss_units[name] += itm_loss.size(0)
             itm_loss = itm_loss.mean()
@@ -412,6 +440,12 @@ def validate(model, val_dataloaders):
         elif task.startswith('mrc') and args.use_visual:
             val_log = validate_mrc(model, loader, task)
         elif task.startswith('itm'):
+            val_log = validate_itm(model, loader)
+        elif task.startswith('vtm') and args.use_visual:
+            LOGGER.info("start running VTM validation...")
+            val_log = validate_itm(model, loader)
+        elif task.startswith('stm') and args.use_speech:
+            LOGGER.info("start running STM validation...")
             val_log = validate_itm(model, loader)
         else:
             raise ValueError(f'Undefined task {task}')
@@ -620,7 +654,6 @@ def validate_itm(model, val_loader):
     LOGGER.info(f"validation finished in {int(tot_time)} seconds, "
                 f"score: {val_acc*100:.2f}")
     return val_log
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

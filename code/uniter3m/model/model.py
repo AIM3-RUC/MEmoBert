@@ -439,21 +439,25 @@ class UniterModel(UniterPreTrainedModel):
         extended_attention_mask = (1.0 - extended_attention_mask) * -10000.0
 
         # 当只 finetune top layers的时候, embeddings 也都要 fixed.
+        # 由于在三模态的时候我们也可以做两两模态的对比，所以这里采用构建的dataloader的情况进行判断
         if frozen_en_layers > 0:
             with torch.no_grad():
-                if self.use_visual and not self.use_speech:
+                if img_feat is not None and speech_feat is None:
+                    # logger.info('[Debug] Only the img feat Avaiable')
                     embedding_output = self._compute_img_txt_embeddings(
                         input_ids, position_ids,
                         img_feat, img_position_ids,
                         gather_index, img_masks, txt_type_ids, 
                         img_type_ids)
-                elif self.use_speech and not self.use_visual:
+                elif speech_feat is not None and img_feat is None:
+                    # logger.info('[Debug] Only the speech feat Avaiable')
                     embedding_output = self._compute_speech_txt_embeddings(
                         input_ids, position_ids,
                         speech_feat, speech_position_ids,
                         gather_index, speech_masks, txt_type_ids,
                         speech_type_ids)
-                elif self.use_speech and self.use_visual:
+                elif speech_feat is not None and img_feat is not None:
+                    # logger.info('[Debug] the speech feat Avaiable and img feat Avaiable')
                     embedding_output = self._compute_speech_img_txt_embeddings(
                             input_ids, position_ids,
                             img_feat, img_position_ids,
@@ -466,20 +470,22 @@ class UniterModel(UniterPreTrainedModel):
                     logger.info('[Error] some error in UniterModel')
                     exit(0)
         else:
-            if self.use_visual and not self.use_speech:
-                    embedding_output = self._compute_img_txt_embeddings(
-                        input_ids, position_ids,
-                        img_feat, img_position_ids,
-                        gather_index, img_masks, txt_type_ids, 
-                        img_type_ids)
-            elif self.use_speech and not self.use_visual:
+            if img_feat is not None and speech_feat is None:
+                # logger.info('[Debug] Only the img feat Avaiable')
+                embedding_output = self._compute_img_txt_embeddings(
+                    input_ids, position_ids,
+                    img_feat, img_position_ids,
+                    gather_index, img_masks, txt_type_ids, 
+                    img_type_ids)
+            elif speech_feat is not None and img_feat is None:
+                # logger.info('[Debug] Only the speech feat Avaiable')
                 embedding_output = self._compute_speech_txt_embeddings(
                     input_ids, position_ids,
                     speech_feat, speech_position_ids,
-                    gather_index, speech_masks, txt_type_ids, 
+                    gather_index, speech_masks, txt_type_ids,
                     speech_type_ids)
-            elif self.use_speech and self.use_visual:
-                # logger.info('[Debug] use both visual and speech!!!')
+            elif speech_feat is not None and img_feat is not None:
+                # logger.info('[Debug] the speech feat Avaiable and img feat Avaiable')
                 embedding_output = self._compute_speech_img_txt_embeddings(
                         input_ids, position_ids,
                         img_feat, img_position_ids,

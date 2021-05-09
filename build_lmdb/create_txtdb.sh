@@ -54,6 +54,13 @@ export PYTHONPATH=/data7/MEmoBert
 #                      --use_emo --use_emo_type emo3
 #   done
 # done
+## half the training set 
+# for i in `seq 1 12`; do
+#     python mk_txtdb_by_names.py --input /data7/emobert/exp/evaluation/MSP/refs/${i}/trn_ref.json \
+#                     --output /data7/emobert/exp/evaluation/MSP/txt_db/${i}/${setname}_emowords_sentiword_halftrn.db \
+#                     --toker bert-base-uncased  --dataset_name msp_${setname} \
+#                      --use_emo --use_emo_type sentiword
+# done
 
 ### for meld, 注意ref的id 和 img的id不一样，需要手动修改一下
 # for setname in val test train; do
@@ -63,9 +70,9 @@ export PYTHONPATH=/data7/MEmoBert
 #                 --toker bert-base-uncased  --dataset_name meld_${setname} \
 #                 --use_emo --use_emo_type emo3
 # done
-for setname in val test train; do
-    python mk_txtdb_by_names.py --input /data7/emobert/exp/evaluation/MELD/refs/${setname}.json \
-                --output /data7/emobert/exp/evaluation/MELD/txt_db/${setname}_emowords_emotype3.db \
-                --toker bert-base-uncased  --dataset_name meld_${setname} \
-                --use_emo --use_emo_type emo3
-done
+# for setname in val test train; do
+#     python mk_txtdb_by_names.py --input /data7/emobert/exp/evaluation/MELD/refs/${setname}.json \
+#                 --output /data7/emobert/exp/evaluation/MELD/txt_db/${setname}_emowords_emotype3.db \
+#                 --toker bert-base-uncased  --dataset_name meld_${setname} \
+#                 --use_emo --use_emo_type emo3
+# done

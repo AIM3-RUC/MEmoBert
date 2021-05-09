@@ -27,7 +27,7 @@ CUDA_VISIBLE_DEVICES=6,7 horovodrun -np 2 python pretrain.py \
         --conf_th 0.5 --max_bb 36 --min_bb 10 \
         --speech_conf_th 1.0 --max_frames 96000 --min_frames 10 \
         --num_train_steps 20000 --warmup_steps 2000 --valid_steps 2000 \
-        --output_dir /data7/emobert/exp/pretrain/flow3-stage1-text12_fix-wav2vec2_fix-cross4Update-nomask_movies_v1v2v3_uniter_mlmitm_lr5e5_notypeemb
+        --output_dir /data7/emobert/exp/pretrain/flow3-stage2-basedonstage1_text12_fix-wav2vec2_fix-cross4Update-nomask_movies_v1v2v3_uniter_mlmitm_lr5e5_notypeemb
 
 # case2: stage12: text + wav2vec running on gpu7
 # CUDA_VISIBLE_DEVICES=4,5 horovodrun -np 2 python pretrain.py \
