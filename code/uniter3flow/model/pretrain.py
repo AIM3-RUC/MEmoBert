@@ -7,6 +7,7 @@ UNITER for pretraining
 from collections import defaultdict
 import logging
 
+import torch
 from torch import nn
 from torch.nn import functional as F
 from apex.normalization.fused_layer_norm import FusedLayerNorm as LayerNorm
