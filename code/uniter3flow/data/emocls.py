@@ -10,6 +10,7 @@ import numpy as np
 from torch.nn.utils.rnn import pad_sequence
 from toolz.sandbox import unzip
 from code.uniter3flow.data.data import (DetectFeatTxtTokDataset, DetectFeatLmdb, TxtTokLmdb, pad_tensors)
+from code.uniter3m.data.data import get_gather_index
                    
 class EmoCLsDataset(DetectFeatTxtTokDataset):
     def __init__(self, txt_db, img_db, speech_db=None):
@@ -104,7 +105,7 @@ def emocls_collate(inputs, add_cls_token=True):
     # multi-modality atten mask
     gather_index = get_gather_index(txt_lens, num_bbs, num_segments, bs, max_tl, out_size)
 
-     batch = {'input_ids': input_ids,
+    batch = {'input_ids': input_ids,
              'position_ids': position_ids,
              'txt_lens': txt_lens,
             'text_attn_masks': text_attn_masks,
@@ -118,5 +119,4 @@ def emocls_collate(inputs, add_cls_token=True):
              'speech_position_ids': speech_position_ids,       
              'gather_index': gather_index,      
              'targets': targets}
-
     return batch

@@ -11,7 +11,7 @@ from toolz.sandbox import unzip
 import torch.nn.functional as F
 from preprocess.tasks.vision import DensefaceExtractor, FaceSelector
 from preprocess.extract_features import extract_denseface_trans_dir
-from preprocess.tasks.audio import ComParEExtractor, Wav2VecExtractor
+from preprocess.tasks.audio import ComParEExtractor, Wav2VecExtractor, RawWavExtractor
 import cv2
 
 '''
@@ -237,6 +237,21 @@ def extract_wav2vec_file(audio_path, extractor_model):
             feat = feat[0]
     return {'feat': feat, 'frame_idx': frame_nums}
 
+def extract_rawwav_file(audio_path, extractor_model):
+    # for one audio clip, audio_path = audio_dir + {set_name}/dia{dia_num}_utt{utt_num}
+    audio_path = audio_path + '.wav'
+    if not os.path.exists(audio_path):
+        print(f'[Not exist] {audio_path}')
+        feat = np.zeros(400)
+        frame_nums =np.array(1)
+    else:
+        feat = extractor_model(audio_path)
+        frame_nums = np.array(len(feat))
+        if len(feat.shape) == 2:
+            # batchsize=1
+            feat = feat[0]
+    return {'feat': feat, 'frame_idx': frame_nums}
+
 def transh5_format(save_path, new_save_path):
     data = h5py.File(save_path)
     out_h5f = h5py.File(new_save_path, 'w')
@@ -257,7 +272,6 @@ if __name__ == '__main__':
     output_dir = '/data7/emobert/exp/evaluation/MELD/feature'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-
 
     if False:
         detect_type = sys.argv[1]
@@ -308,7 +322,7 @@ if __name__ == '__main__':
         new_save_path = os.path.join(audio_feature_dir, 'all.h5')
         transh5_format(save_path, new_save_path)
 
-    if True:
+    if False:
         # for speech wav2vec2.0 
         use_asr_based_model = False
         if use_asr_based_model:
@@ -329,5 +343,24 @@ if __name__ == '__main__':
         new_save_path = os.path.join(audio_feature_dir, 'all.h5')
         transh5_format(save_path, new_save_path)
 
-# PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=0 python extract_denseface.py openface
-# PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=0 python extract_denseface.py seetaface
+    if True:
+        # for speech rawwav of wav2vec2.0
+        use_asr_based_model = False
+        audio_feature_dir = os.path.join(output_dir, 'wav2vec_rawwav')
+        if not os.path.exists(audio_feature_dir):
+            os.mkdir(audio_feature_dir)
+        model_path = '/data7/emobert/resources/pretrained/wav2vec_base'
+        wav2vec_model = RawWavExtractor(model_path, max_seconds=8)
+        extract_rawwav = partial(extract_rawwav_file, extractor_model=wav2vec_model)
+        save_path = os.path.join(audio_feature_dir, 'all_set.h5')
+        audio_dir = '/data7/MEmoBert/emobert/exp/evaluation/MELD/audio'
+        utt_ids = get_all_utt_ids()
+        print('total {} uttids'.format(len(utt_ids)))
+        extract_features_h5(extract_rawwav, lambda x: os.path.join(audio_dir, x),  utt_ids, save_path)
+        # trans h5 format, val-dia0_utt0.npz
+        save_path = os.path.join(audio_feature_dir, 'all_set.h5')
+        new_save_path = os.path.join(audio_feature_dir, 'all.h5')
+        transh5_format(save_path, new_save_path)
+
+# PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=7 python extract_denseface.py openface
+# PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=7 python extract_denseface.py

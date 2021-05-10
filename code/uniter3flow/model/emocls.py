@@ -36,7 +36,6 @@ class MEmoBertForEmoTraining(nn.Module):
         super(MEmoBertForEmoTraining, self).__init__()
         config = BertConfig.from_json_file(config_file)
         print(f'[Debug] config {type(config)}')
-        self.
         self.emoBert = MEmoBertModel(config, use_speech, use_visual,
                                             pretrained_text_checkpoint=pretrained_text_checkpoint,
                                             pretrained_audio_checkpoint=pretrained_audio_checkpoint,
@@ -49,14 +48,14 @@ class MEmoBertForEmoTraining(nn.Module):
         if cls_type == 'emocls':
             self.output = nn.Sequential(
                 nn.Dropout(cls_dropout),
-                nn.Linear(config.hidden_size, cls_num)
+                nn.Linear(self.emoBert.c_config.hidden_size, cls_num)
                 )
         elif cls_type == 'vqa':
             self.output = nn.Sequential(
-                nn.Linear(config.hidden_size, config.hidden_size*2), 
+                nn.Linear(self.emoBert.c_config.hidden_size, config.hidden_size*2), 
                 GELU(),
-                LayerNorm(config.hidden_size*2, eps=1e-12),
-                nn.Linear(config.hidden_size*2, cls_num)
+                LayerNorm(self.emoBert.c_config.hidden_size*2, eps=1e-12),
+                nn.Linear(self.emoBert.c_config.hidden_size*2, cls_num)
                 )
         else:
             print("------- [Error] classifier type {}".format(cls_type))
@@ -70,8 +69,8 @@ class MEmoBertForEmoTraining(nn.Module):
         if isinstance(module, nn.Linear):
             # Slightly different from the TF version which uses truncated_normal for initialization
             # cf https://github.com/pytorch/pytorch/pull/5617
-            module.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
-        elif isinstance(module, (FusedLayerNorm, nn.GroupNorm)):
+            module.weight.data.normal_(mean=0.0, std=self.emoBert.c_config.initializer_range)
+        elif isinstance(module, (LayerNorm, nn.GroupNorm)):
             module.bias.data.zero_()
             module.weight.data.fill_(1.0)
         elif isinstance(module, nn.Conv1d):

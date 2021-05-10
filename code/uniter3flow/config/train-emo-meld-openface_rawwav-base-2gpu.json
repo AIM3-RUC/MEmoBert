@@ -1,6 +1,5 @@
 {
     "compressed_db": false,
-    "checkpoint": "/data7/emobert/exp/pretrain/xxx",
     "model_config": "config/xxx",
     "output_dir": "/data7/emobert/exp/evaluation/MELD/finetune/xxx",
     "max_txt_len": 30,
@@ -42,12 +41,12 @@
         "/data7/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/raw_img_db/"
     ],
     "train_speech_dbs": [
-        "/data7/emobert/exp/evaluation/MELD/feature/norm_comparE_db"
+        "/data7/emobert/exp/evaluation/MELD/feature/wav2vec_rawwav_db"
     ],
     "val_txt_db": "/data7/emobert/exp/evaluation/MELD/txt_db/{}/test_emowords_emotype.db",
     "val_img_db": "/data7/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/raw_img_db/",
-    "val_speech_db": "/data7/emobert/exp/evaluation/MELD/feature/norm_comparE_db",
+    "val_speech_db": "/data7/emobert/exp/evaluation/MELD/feature/wav2vec_rawwav_db",
     "test_txt_db": "/data7/emobert/exp/evaluation/MELD/txt_db/{}/test_emowords_emotype.db",
     "test_img_db": "/data7/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/raw_img_db/",
-    "test_speech_db": "/data7/emobert/exp/evaluation/MELD/feature/norm_comparE_db"
+    "test_speech_db": "/data7/emobert/exp/evaluation/MELD/feature/wav2vec_rawwav_db"
 }

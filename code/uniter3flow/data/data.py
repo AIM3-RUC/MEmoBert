@@ -259,26 +259,6 @@ class DetectFeatTxtTokDataset(Dataset):
         speech_feat = self.speech_db[fname]
         num_bb = speech_feat.size(0)
         return speech_feat, num_bb
-    
-    def _get_raw_speech_feat(self, fname):
-        # Jinimng: audio speech features
-        # https://github.com/huggingface/transformers/blob/b24ead87e1be6bce17e4ec5c953b6d028e4b3af7/src/transformers/models/wav2vec2/processing_wav2vec2.py#L77
-        audio_path = self.speech_db[fname]
-        speech = self.read_audio(audio_path)
-        processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base")
-        speech_feat = processor(speech, return_tensors="pt", sampling_rate=sr).input_values
-        num_lens = speech_feat.size(0)
-        return speech_feat, num_len
-    
-    def read_audio(wav_path):
-        speech, sr = sf.read(wav_path)
-        if sr != 16000:
-            speech = librosa.resample(speech, sr, 16000)
-            sr = 16000
-        if sr * 10 < len(speech):
-            # print(f'{wav_path} long than 10 seconds and clip {speech.shape}')
-            speech = speech[:int(sr * 10)]
-        return speech, sr
 
 
 def pad_tensors(tensors, lens=None, pad=0):
@@ -339,18 +319,16 @@ class ImageLmdbGroup(object):
         return img_db
 
 class SpeechLmdbGroup(object):
-    def __init__(self, speech_conf_th, max_frames, min_frames, compress, data_augmentation=False):
+    def __init__(self, speech_conf_th, max_frames, min_frames, compress):
         self.path2imgdb = {}
         self.conf_th = speech_conf_th
         self.max_bb = max_frames
         self.min_bb = min_frames
         self.compress = compress
-        self.data_augmentation = data_augmentation
 
     def __getitem__(self, path):
         img_db = self.path2imgdb.get(path, None)
         if img_db is None:
             img_db = DetectFeatLmdb(path, self.conf_th, self.max_bb,
-                                    self.min_bb, self.compress,
-                                    data_augmentation=self.data_augmentation)
+                                    self.min_bb, self.compress)
         return img_db

@@ -7,8 +7,8 @@ sys.path.append('/data7/MEmoBert/preprocess/tasks')
 import pandas as pd
 from functools import partial
 from tqdm import tqdm
-from preprocess.tasks.audio import ComParEExtractor, Wav2VecExtractor
-from preprocess.MELD.extract_denseface_comparE import extract_comparE_file, extract_features_h5, extract_wav2vec_file
+from preprocess.tasks.audio import ComParEExtractor, Wav2VecExtractor, RawWavExtractor
+from preprocess.MELD.extract_denseface_comparE import extract_comparE_file, extract_features_h5, extract_wav2vec_file, extract_rawwav_file
 
 def get_all_utt_ids(target_root='/data7/emobert/exp/evaluation/MSP/target'):
     utt_ids = np.load(os.path.join(target_root, f'all_int2name.npy'))
@@ -49,7 +49,7 @@ if __name__ == '__main__':
                     _group[key] = deepcopy(tgt[key][()])
         out_h5f.close()
     
-    if True:
+    if False:
         # for speech wav2vec2.0 
         use_asr_based_model = False
         if use_asr_based_model:
@@ -65,3 +65,20 @@ if __name__ == '__main__':
         utt_ids = get_all_utt_ids(target_root='/data7/MEmoBert/emobert/exp/evaluation/MSP/target')
         print('total {} uttids'.format(len(utt_ids)))
         extract_features_h5(extract_wav2vec, lambda x: os.path.join(audio_dir, x),  utt_ids, save_path)
+    
+    if True:
+        output_dir = '/data7/emobert/exp/evaluation/MSP/feature'
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        # for speech 
+        audio_feature_dir = os.path.join(output_dir, 'wav2vec_rawwav')
+        if not os.path.exists(audio_feature_dir):
+            os.mkdir(audio_feature_dir)
+        model_path = '/data7/emobert/resources/pretrained/wav2vec_base'
+        wav2vec_model = RawWavExtractor(model_path, max_seconds=8)
+        extract_rawwav = partial(extract_rawwav_file, extractor_model=wav2vec_model)
+        save_path = os.path.join(audio_feature_dir, 'all.h5')
+        audio_dir = '/data7/emobert/exp/evaluation/MSP/audio'
+        utt_ids = get_all_utt_ids(target_root='/data7/emobert/exp/evaluation/MSP/target')
+        print('total {} uttids'.format(len(utt_ids)))
+        extract_features_h5(extract_rawwav, lambda x: os.path.join(audio_dir, x),  utt_ids, save_path)

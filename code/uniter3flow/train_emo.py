@@ -79,15 +79,15 @@ def main(opts):
     train_all_img_dbs = ImageLmdbGroup(opts.conf_th, opts.max_bb, opts.min_bb,
                                 opts.compressed_db, opts.image_data_augmentation)
     train_speech_dbs = SpeechLmdbGroup(opts.speech_conf_th, opts.max_frames, opts.min_frames,
-                                    opts.compressed_db, False)
+                                    opts.compressed_db)
     train_datasets = []
     for txt_path, img_path, speech_path in zip(opts.train_txt_dbs, opts.train_img_dbs, opts.train_speech_dbs):
         txt_path = txt_path.format(opts.cvNo)
-        if self.use_visual:
+        if opts.use_visual:
             img_db = train_all_img_dbs[img_path]
         else:
             img_db = None
-        if self.use_speech:
+        if opts.use_speech:
             speech_db = train_speech_dbs[speech_path]
         else:
             speech_db = None
@@ -100,15 +100,15 @@ def main(opts):
     eval_all_img_dbs = ImageLmdbGroup(opts.conf_th, opts.max_bb, opts.min_bb, 
                                     opts.compressed_db, False)
     eval_all_speech_dbs = SpeechLmdbGroup(opts.speech_conf_th, opts.max_frames, opts.min_frames,
-                                    opts.compressed_db, False)
+                                    opts.compressed_db)
     # val
     opts.val_txt_db = opts.val_txt_db.format(opts.cvNo)
     LOGGER.info(f"Loading Val Dataset {opts.val_img_db}, {opts.val_txt_db}, {opts.val_speech_db}")
-    if self.use_visual:
+    if opts.use_visual:
         val_img_db = eval_all_img_dbs[opts.val_img_db]
     else:
         val_img_db = None
-    if self.use_speech:
+    if opts.use_speech:
         val_speech_db = eval_all_speech_dbs[opts.val_speech_db]
     else:
         val_speech_db = None
@@ -118,20 +118,38 @@ def main(opts):
     # test
     opts.test_txt_db = opts.test_txt_db.format(opts.cvNo)
     LOGGER.info(f"Loading Test Dataset {opts.test_img_db}, {opts.test_txt_db} {opts.test_speech_db}")
-    test_img_db = eval_all_img_dbs[opts.test_img_db]
-    test_speech_db = eval_all_speech_dbs[opts.test_speech_db]
+    if opts.use_visual:
+        test_img_db = eval_all_img_dbs[opts.test_img_db]
+    else:
+        test_img_db = None
+    if opts.use_speech:
+        test_speech_db = eval_all_speech_dbs[opts.test_speech_db]
+    else:
+        test_speech_db = None
     test_txt_db = TxtTokLmdb(opts.test_txt_db, -1)
     test_dataset = EmoCLsDataset(test_txt_db, test_img_db, test_speech_db)
     test_dataloader = build_dataloader(test_dataset, emocls_collate, False, opts)
 
     model = MEmoBertForEmoTraining(opts.model_config, use_speech=opts.use_speech, use_visual=opts.use_visual, \
                                 cls_num=opts.cls_num, frozen_en_layers=opts.frozen_en_layers, \
-                                cls_dropout=opts.cls_dropout, cls_type=opts.cls_type)
+                                cls_dropout=opts.cls_dropout, cls_type=opts.cls_type,
+                                pretrained_text_checkpoint=opts.pretrained_text_checkpoint,
+                                pretrained_audio_checkpoint=opts.pretrained_audio_checkpoint,
+                                fix_text_encoder=opts.fix_text_encoder,
+                                fix_visual_encoder=opts.fix_visual_encoder,
+                                fix_speech_encoder=opts.fix_speech_encoder,
+                                fix_cross_encoder=opts.fix_cross_encoder,
+                                use_type_embedding=opts.use_type_embedding)
     if opts.checkpoint:
         LOGGER.info('[Info] Loading from pretrained model {}'.format(opts.checkpoint))
-        model.load_state_dict(torch.load(opts.checkpoint))
-    # print('[Debug] {}'.format(model.state_dict()['emoBert.visual_encoder.visualfront.frontend3D.1.weight']))
-    # print('[Debug] {}'.format(model.state_dict()['emoBert.text_encoder.encoder.layer.0.attention.output.LayerNorm.weight']))
+        state_dict = torch.load(opts.checkpoint)
+        for key in list(state_dict.keys()):
+            if key.startswith('cls') or key.startswith('itm_output'):
+                print(f'[Debug] delete {key}')
+                del state_dict[key]
+        missing_keys, unexpected_keys = model.load_state_dict(state_dict, strict=False)
+        LOGGER.info(f'[Info] missing_keys {missing_keys}')
+        LOGGER.info(f'[Info] unexpected_keys {unexpected_keys}')
     model.to(device)
     # make sure every process has same model parameters in the beginning
     broadcast_tensors([p.data for p in model.parameters()], 0)
@@ -152,7 +170,7 @@ def main(opts):
 
     global_step = 0
     n_examples = 0
-    best_eval_WA = 0
+    best_eval_metrix = 0
     best_eval_step = 0
     steps2test_results = {}
     steps2val_results = {}
@@ -284,14 +302,22 @@ if __name__ == "__main__":
     # Required parameters
     parser.add_argument('--compressed_db', action='store_true',
                         help='use compressed LMDB')
-    parser.add_argument("--model_config", type=str,
+    parser.add_argument('--config', required=True, type=str, help='JSON config files')
+    parser.add_argument("--model_config", required=True, type=str,
                         help="path to model structure config json")
-    parser.add_argument("--checkpoint",
-                        default=None, type=str,
-                        help="pretrained MLM")
-    parser.add_argument("--output_dir", default=None, type=str,
-                        help="The output directory where the model "
-                             "checkpoints will be written.")
+    parser.add_argument("--checkpoint", default=None, type=str,
+                        help="path to model checkpoint (*.pt)")
+    parser.add_argument("--checkpoint_step", default=0, type=int,
+                        help="which step continue to train")
+    parser.add_argument("--is_reinit_lr", action='store_true',
+                        help="Note: use with warmup_steps=0, when continue train and lr is reinit or not!")
+    parser.add_argument("--lr_sched_type", default='linear_decay',
+                        help="[fixed, linear_decay]")
+    parser.add_argument(
+        "--output_dir", default=None, type=str,
+        help="The output directory where the model checkpoints will be "
+             "written.")
+
     # self-modify
     parser.add_argument('--cvNo', type=int, required=True,
                         help='which cross-valiation folder')
@@ -309,31 +335,50 @@ if __name__ == "__main__":
     parser.add_argument('--max_txt_len', type=int, default=60,
                         help='max number of tokens in text (BERT BPE)')
     parser.add_argument('--conf_th', type=float, default=0.2,
-                        help='threshold for dynamic bounding boxes '
-                             '(-1 for fixed)')
-    parser.add_argument('--max_bb', type=int, default=100,
+                        help='threshold for dynamic bounding boxes (-1 for fixed)')
+    parser.add_argument('--max_bb', type=int, default=36,
                         help='max number of bounding boxes')
     parser.add_argument('--min_bb', type=int, default=10,
                         help='min number of bounding boxes')
-    parser.add_argument('--num_bb', type=int, default=36,
-                        help='static number of bounding boxes')
-    parser.add_argument("--image_data_augmentation", default=True, type=bool)
     parser.add_argument('--speech_conf_th', type=float, default=1.0,
                         help='threshold for dynamic speech frames boxes')
     parser.add_argument('--max_frames', type=int, default=360,
                         help='max number of speech frames')
     parser.add_argument('--min_frames', type=int, default=10,
                         help='min number of speech frames')
-
+    
     # use modality branch
     parser.add_argument("--use_speech", action='store_true',  help='use speech branch')
     parser.add_argument("--use_visual", action='store_true',  help='use visual branch')
 
+    # backbone parameters
+    parser.add_argument("--pretrained_text_checkpoint", default=None, type=str,
+                                    help='the path of the pretrained text checkpoint')
+    parser.add_argument("--pretrained_audio_checkpoint", default=None, type=str,
+                                    help='the path of the pretrained text checkpoint')
+    parser.add_argument("--image_data_augmentation", action='store_true')
+    parser.add_argument("--add_cls_token", action='store_true')
+    parser.add_argument("--use_backbone_optim", action='store_true',
+                                    help='use individual backbone optim for text-bert training')
+    parser.add_argument("--backbone_optim", default='adamw', type=str,
+                                    help='use backbone optim for text-bert training')
+    parser.add_argument("--backbone_learning_rate", default=1e-5, type=float, help="The initial learning rate of text backbone for Adam.")
+    parser.add_argument("--backbone_weight_decay", default=1e-5, type=float)
+    parser.add_argument("--backbone_warmup_steps", default=0, type=int)
+    parser.add_argument("--backbone_grad_norm", default=5.0, type=float)
+
+    # for fix or update backbone
+    parser.add_argument("--fix_visual_encoder", action='store_true')
+    parser.add_argument("--fix_text_encoder", action='store_true')
+    parser.add_argument("--fix_speech_encoder", action='store_true')
+    parser.add_argument("--fix_cross_encoder", action='store_true')
+    parser.add_argument("--use_type_embedding", action='store_true')
+
     # training parameters
-    parser.add_argument("--train_batch_size", default=128, type=int,
+    parser.add_argument("--train_batch_size", default=32, type=int,
                         help="Total batch size for training. "
-                             "(batch by examples)")
-    parser.add_argument("--inf_batch_size", default=128, type=int,
+                             "(batch by tokens)")
+    parser.add_argument("--inf_batch_size", default=32, type=int,
                         help="batch size for running inference. "
                              "(used for validation, and evaluation)")
     parser.add_argument('--gradient_accumulation_steps', type=int, default=16,
@@ -343,9 +388,9 @@ if __name__ == "__main__":
                         help="The initial learning rate for Adam.")
     parser.add_argument("--valid_steps", default=1000, type=int,
                         help="Run validation every X steps")
-    parser.add_argument("--num_train_steps", default=10000, type=int,
+    parser.add_argument("--num_train_steps", default=100000, type=int,
                         help="Total number of training updates to perform.")
-    parser.add_argument("--optim", default='adam',
+    parser.add_argument("--optim", default='adamw',
                         choices=['adam', 'adamax', 'adamw'],
                         help="optimizer")
     parser.add_argument("--betas", default=[0.9, 0.98], nargs='+',
@@ -354,15 +399,11 @@ if __name__ == "__main__":
                         help="tune dropout regularization")
     parser.add_argument("--weight_decay", default=0.01, type=float,
                         help="weight decay (L2) regularization")
-    parser.add_argument("--grad_norm", default=0.25, type=float,
+    parser.add_argument("--grad_norm", default=2.0, type=float,
                         help="gradient clipping (-1 for no clipping)")
-    parser.add_argument("--warmup_steps", default=4000, type=int,
+    parser.add_argument("--warmup_steps", default=10000, type=int,
                         help="Number of training steps to perform linear "
                              "learning rate warmup for.")
-    parser.add_argument("--patience", default=5, type=int,
-                        help="Early stop patience")
-    parser.add_argument("--lr_sched_type", default='linear_decay',
-                        help="[fixed, linear]")
     # device parameters
     parser.add_argument('--seed', type=int, default=42,
                         help="random seed for initialization")
@@ -371,13 +412,9 @@ if __name__ == "__main__":
                              "of 32-bit")
     parser.add_argument('--n_workers', type=int, default=4,
                         help="number of data workers")
-    parser.add_argument('--pin_mem', action='store_true',
-                        help="pin memory")
+    parser.add_argument('--pin_mem', action='store_true', help="pin memory")
     parser.add_argument('--corpus_name',  default='iemocap', type=str,
                         help="downstream task name")
-
-    # can use config files
-    parser.add_argument('--config', help='JSON config files')
 
     args = parse_with_config(parser)
 

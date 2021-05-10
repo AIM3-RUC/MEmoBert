@@ -1,8 +1,7 @@
 {
     "compressed_db": false,
-    "checkpoint": "/data7/emobert/exp/pretrain/resnet3d_nomask_movies_v1v2v3_uniter_mlmitm_lr5e5-backbone_scratch_optimFalse-bs480_faceth0.5/ckpt/model_step_8000.pt",
-    "model_config": "config/uniter-base-backbone_3dresnet.json",
-    "output_dir": "/data7/MEmoBert/emobert/exp/evaluation/MSP/finetune/xxx",
+    "model_config": "config/xxx",
+    "output_dir": "/data7/emobert/exp/evaluation/xxx",
     "max_txt_len": 30,
     "conf_th": 0.0,
     "max_bb": 36,
@@ -42,12 +41,12 @@
         "/data7/emobert/exp/evaluation/IEMOCAP/feature/openface_iemocap_raw_img/raw_img_db/"
     ],
     "train_speech_dbs": [
-        "/data7/emobert/exp/evaluation/IEMOCAP/feature/movies_norm_comparE_db"
+        "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_rawwav_db/"
     ],
     "val_txt_db": "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst_emowords_emotype.db",
     "val_img_db": "/data7/emobert/exp/evaluation/IEMOCAP/feature/openface_iemocap_raw_img/raw_img_db/",
-    "val_speech_db": "/data7/emobert/exp/evaluation/IEMOCAP/feature/movies_norm_comparE_db",
+    "val_speech_db": "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_rawwav_db/",
     "test_txt_db": "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst_emowords_emotype.db",
     "test_img_db": "/data7/emobert/exp/evaluation/IEMOCAP/feature/openface_iemocap_raw_img/raw_img_db/",
-    "test_speech_db": "/data7/emobert/exp/evaluation/IEMOCAP/feature/movies_norm_comparE_db"
+    "test_speech_db": "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_rawwav_db/"
 }
