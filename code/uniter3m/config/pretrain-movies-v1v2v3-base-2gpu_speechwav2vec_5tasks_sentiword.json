@@ -136,7 +136,7 @@
                 "mrfr",
                 "mrckl",
                 "msrfr"
-            ],
+            ]
         },
         {
             "name": "movies_v1_trn_val3k",
