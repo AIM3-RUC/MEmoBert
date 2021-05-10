@@ -54,6 +54,7 @@ class DetectFeatLmdb(object):
                              readonly=True, create=False,
                              readahead=not _check_distributed())
         self.txn = self.env.begin(buffers=True)
+        print("[Debug] Loading Image db {} Done!!!".format(db_name))
 
     def __del__(self):
         self.env.close()
@@ -98,11 +99,11 @@ class DetectFeatTxtTokDataset(Dataset):
         self.txt_lens, self.ids = get_ids_and_lens(txt_db)
         self.lens = copy.deepcopy(self.txt_lens)
         txt2img = txt_db.txt2img
-        if img_db:
+        if img_db is not None:
             print('[Debug in data] add the img lens')
             self.lens = [tl + self.img_db.name2nbb[txt2img[id_]]
                      for tl, id_ in zip(self.lens, self.ids)]
-        if speech_db:
+        if speech_db is not None:
             print('[Debug in data] add the speech lens')
             self.lens = [tl + self.speech_db.name2nbb[txt2img[id_]]
                      for tl, id_ in zip(self.lens, self.ids)]
