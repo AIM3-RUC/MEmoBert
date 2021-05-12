@@ -466,6 +466,9 @@ class UniterModel(UniterPreTrainedModel):
                             img_masks, speech_masks, 
                             txt_type_ids, img_type_ids,
                             speech_type_ids)
+                elif speech_feat is None and img_feat is None:
+                    embedding_output = self._compute_txt_embeddings(
+                        input_ids, position_ids)
                 else:
                     logger.info('[Error] some error in UniterModel')
                     exit(0)
@@ -494,6 +497,9 @@ class UniterModel(UniterPreTrainedModel):
                         img_masks, speech_masks, 
                         txt_type_ids, img_type_ids,
                         speech_type_ids)
+            elif speech_feat is None and img_feat is None:
+                embedding_output = self._compute_txt_embeddings(
+                        input_ids, position_ids)
             else:
                 logger.info('[Error] some error in UniterModel')
                 exit(0)

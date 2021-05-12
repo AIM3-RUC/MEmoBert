@@ -159,6 +159,9 @@ def get_gather_index(txt_lens, num_bbs, num_frames, batch_size, max_len, out_siz
                                                         dtype=torch.long).data
             gather_index.data[i, tl+nbb:tl+nbb+nframe] = torch.arange(max_len+max_bb, max_len+max_bb+nframe,
                                                         dtype=torch.long).data
+    elif num_bbs is None and num_frames is None:
+        # 如果只包含文本信息的话，那么不需要进行gather.
+        pass
     else:
         print('[Error] Error in gather index')
     return gather_index
