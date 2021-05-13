@@ -88,6 +88,9 @@ class DetectFeatLmdb(object):
 
 class DetectFeatTxtTokDataset(Dataset):
     def __init__(self, txt_db, img_db=None, speech_db=None):
+        '''
+        所有的数据检索都以以txt作为标准，所以txt_db不能为None, 可以通过其他方法进行控制
+        '''
         assert isinstance(txt_db, TxtTokLmdb)
         if img_db:
             assert isinstance(img_db, DetectFeatLmdb)
@@ -164,6 +167,21 @@ def get_gather_index(txt_lens, num_bbs, num_frames, batch_size, max_len, out_siz
         pass
     else:
         print('[Error] Error in gather index')
+    return gather_index
+
+def get_gather_index_notxtdb(num_bbs, num_frames, batch_size, max_bb, out_size):
+    '''
+    Jinming modify this for multimodalies.
+    '''
+    gather_index = torch.arange(0, out_size, dtype=torch.long).unsqueeze(0).repeat(batch_size, 1)
+    if num_bbs is None or num_frames is None:
+        # 如果只包含一个模态，那么不需要做gather-index
+       pass
+    else:
+        # 同时包含图片和语音模态
+        for i, (nbb, nframe) in enumerate(zip(num_bbs, num_frames)):
+            gather_index.data[i, nbb:nbb+nframe] = torch.arange(max_bb, max_bb+nframe,
+                                                        dtype=torch.long).data
     return gather_index
 
 class ImageLmdbGroup(object):

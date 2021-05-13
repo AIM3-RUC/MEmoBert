@@ -18,7 +18,7 @@ from apex import amp
 from horovod import torch as hvd
 from tqdm import tqdm
 
-from code.uniter3m.data import (PrefetchLoader, TxtTokLmdb, ImageLmdbGroup, SpeechLmdbGroup, EmoCLsDataset, emocls_collate)
+from code.uniter3m.data import (PrefetchLoader, TxtTokLmdb, ImageLmdbGroup, SpeechLmdbGroup, EmoClsDataset, emocls_collate)
 from code.uniter3m.model.emocls import UniterForEmoRecognition, evaluation
 from code.uniter3m.optim import get_lr_sched
 from code.uniter3m.optim.misc import build_optimizer
@@ -85,6 +85,7 @@ def main(opts):
     train_datasets = []
     for txt_path, img_path, speech_path in zip(opts.train_txt_dbs, opts.train_img_dbs, opts.train_speech_dbs):
         txt_path = txt_path.format(opts.cvNo)
+        txt_db = TxtTokLmdb(txt_path, opts.max_txt_len)
         if opts.use_visual:
             img_db = train_all_img_dbs[img_path]
         else:
@@ -93,9 +94,8 @@ def main(opts):
             speech_db = train_speech_dbs[speech_path]
         else:
             speech_db = None
-        txt_db = TxtTokLmdb(txt_path, opts.max_txt_len)
         print(type(txt_db), type(img_db), type(speech_path))
-        train_datasets.append(EmoCLsDataset(txt_db, img_db, speech_db))
+        train_datasets.append(EmoClsDataset(txt_db, img_db, speech_db, use_text=opts.use_text))
     train_dataset = ConcatDataset(train_datasets)
 
     LOGGER.info("Loading no image_data_augmentation for validation and testing")
@@ -105,9 +105,11 @@ def main(opts):
     if opts.use_speech:
         eval_all_speech_dbs = SpeechLmdbGroup(opts.speech_conf_th, opts.max_frames, opts.min_frames, \
                                     compress=opts.compressed_db)
+                                
     # val
-    opts.val_txt_db = opts.val_txt_db.format(opts.cvNo)
     LOGGER.info(f"Loading Val Dataset {opts.val_img_db}, {opts.val_txt_db}, {opts.val_speech_db}")
+    opts.val_txt_db = opts.val_txt_db.format(opts.cvNo)
+    val_txt_db = TxtTokLmdb(opts.val_txt_db, -1)
     if opts.use_visual:
         val_img_db = eval_all_img_dbs[opts.val_img_db]
     else:
@@ -116,12 +118,12 @@ def main(opts):
         val_speech_db = eval_all_speech_dbs[opts.val_speech_db]
     else:
         val_speech_db = None
-    val_txt_db = TxtTokLmdb(opts.val_txt_db, -1)
-    val_dataset = EmoCLsDataset(val_txt_db, val_img_db, val_speech_db)
+    val_dataset = EmoClsDataset(val_txt_db, val_img_db, val_speech_db, use_text=opts.use_text)
     val_dataloader = build_dataloader(val_dataset, emocls_collate, False, opts)
     # test
-    opts.test_txt_db = opts.test_txt_db.format(opts.cvNo)
     LOGGER.info(f"Loading Test Dataset {opts.test_img_db}, {opts.test_txt_db} {opts.test_speech_db}")
+    opts.test_txt_db = opts.test_txt_db.format(opts.cvNo)
+    test_txt_db = TxtTokLmdb(opts.test_txt_db, -1)
     if opts.use_visual:
         test_img_db = eval_all_img_dbs[opts.test_img_db]
     else:
@@ -130,11 +132,10 @@ def main(opts):
         test_speech_db = eval_all_speech_dbs[opts.test_speech_db]
     else:
         test_speech_db = None
-    test_txt_db = TxtTokLmdb(opts.test_txt_db, -1)
-    test_dataset = EmoCLsDataset(test_txt_db, test_img_db, test_speech_db)
+    test_dataset = EmoClsDataset(test_txt_db, test_img_db, test_speech_db, use_text=opts.use_text)
     test_dataloader = build_dataloader(test_dataset, emocls_collate, False, opts)
 
-     # Prepare model
+    # Prepare model
     if opts.checkpoint:
         LOGGER.info('[Info] Loading from pretrained model {}'.format(opts.checkpoint))
         checkpoint = torch.load(opts.checkpoint)
@@ -186,7 +187,7 @@ def main(opts):
         train_dataloader = build_dataloader(
             train_dataset, emocls_collate, True, opts)
         for step, batch in enumerate(train_dataloader):
-            n_examples += batch['input_ids'].size(0)
+            n_examples += batch['targets'].size(0)
             loss = model(batch, compute_loss=True)
             loss = loss.mean()
             delay_unscale = (step+1) % opts.gradient_accumulation_steps != 0
@@ -350,6 +351,7 @@ if __name__ == "__main__":
     # use modality branch
     parser.add_argument("--use_speech", action='store_true',  help='use speech branch')
     parser.add_argument("--use_visual", action='store_true',  help='use visual branch')
+    parser.add_argument("--use_text", action='store_true',  help='use text branch')
 
     # training parameters
     parser.add_argument("--train_batch_size", default=128, type=int,

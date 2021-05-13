@@ -367,6 +367,21 @@ class UniterModel(UniterPreTrainedModel):
                                         speech_type_embeddings, speech_masks)
         return output
 
+    def _compute_img_speech_embeddings(self, img_feat, img_position_ids,
+                                    speech_feat, speech_position_ids,
+                                    gather_index,
+                                    img_masks=None, speech_masks=None,  
+                                    img_type_ids=None, speech_type_ids=None):
+        img_emb = self._compute_img_embeddings(
+            img_feat, img_position_ids, img_masks, img_type_ids)
+        speech_emb = self._compute_speech_embeddings(
+            speech_feat, speech_position_ids, speech_masks, speech_type_ids)
+        # align back to most compact input
+        gather_index = gather_index.unsqueeze(-1).expand(
+            -1, -1, self.config.hidden_size)
+        embedding_output = torch.gather(torch.cat([img_emb, speech_emb], dim=1),
+                                        dim=1, index=gather_index)
+        return embedding_output
 
     def _compute_img_txt_embeddings(self, input_ids, position_ids,
                                     img_feat, img_position_ids,
@@ -442,6 +457,64 @@ class UniterModel(UniterPreTrainedModel):
         # 由于在三模态的时候我们也可以做两两模态的对比，所以这里采用构建的dataloader的情况进行判断
         if frozen_en_layers > 0:
             with torch.no_grad():
+                if input_ids is not None:
+                    # logger.info('[Debug] the txt modality is Not None')
+                    if img_feat is not None and speech_feat is None:
+                        # logger.info('\t[Debug] Only the img feat Avaiable')
+                        embedding_output = self._compute_img_txt_embeddings(
+                            input_ids, position_ids,
+                            img_feat, img_position_ids,
+                            gather_index, img_masks, txt_type_ids, 
+                            img_type_ids)
+                    elif speech_feat is not None and img_feat is None:
+                        # logger.info('\t[Debug] Only the speech feat Avaiable')
+                        embedding_output = self._compute_speech_txt_embeddings(
+                            input_ids, position_ids,
+                            speech_feat, speech_position_ids,
+                            gather_index, speech_masks, txt_type_ids,
+                            speech_type_ids)
+                    elif speech_feat is not None and img_feat is not None:
+                        # logger.info('\t[Debug] the speech feat Avaiable and img feat Avaiable')
+                        embedding_output = self._compute_speech_img_txt_embeddings(
+                                input_ids, position_ids,
+                                img_feat, img_position_ids,
+                                speech_feat, speech_position_ids,
+                                gather_index,
+                                img_masks, speech_masks, 
+                                txt_type_ids, img_type_ids,
+                                speech_type_ids)
+                    elif speech_feat is None and img_feat is None:
+                        # 如果只包含一个模态，那么不需要gather
+                        # logger.info('\t[Debug] the text feat Avaiable')
+                        embedding_output = self._compute_txt_embeddings(
+                            input_ids, position_ids)
+                    else:
+                        logger.info('[Error] some error in UniterModel')
+                        exit(0)
+                else:
+                    # logger.info('[Debug] the txt modality is None!!!')
+                    if img_feat is not None and speech_feat is None:
+                        # logger.info('\t [Debug] Only the visual feat Avaiable')
+                        embedding_output = self._compute_img_embeddings(
+                                    img_feat, img_position_ids,
+                                    img_masks, img_type_ids)
+                    elif speech_feat is not None and img_feat is None:
+                        # logger.info('\t[Debug] Only the speech feat Avaiable')
+                        embedding_output = self._compute_speech_embeddings(
+                            speech_feat, speech_position_ids,
+                            speech_masks, speech_type_ids)
+                    # add on case on not none and not None
+                    else:
+                        # logger.info('\t[Debug] both the visual and speech feat Avaiable')
+                        embedding_output = self._compute_img_speech_embeddings(
+                                img_feat, img_position_ids,
+                                speech_feat, speech_position_ids,
+                                gather_index,
+                                img_masks, speech_masks, 
+                                img_type_ids, speech_type_ids)
+        else:
+            if input_ids is not None:
+                # logger.info('[Debug] the txt modality is Not None')
                 if img_feat is not None and speech_feat is None:
                     # logger.info('[Debug] Only the img feat Avaiable')
                     embedding_output = self._compute_img_txt_embeddings(
@@ -468,41 +541,31 @@ class UniterModel(UniterPreTrainedModel):
                             speech_type_ids)
                 elif speech_feat is None and img_feat is None:
                     embedding_output = self._compute_txt_embeddings(
-                        input_ids, position_ids)
+                            input_ids, position_ids)
                 else:
                     logger.info('[Error] some error in UniterModel')
                     exit(0)
-        else:
-            if img_feat is not None and speech_feat is None:
-                # logger.info('[Debug] Only the img feat Avaiable')
-                embedding_output = self._compute_img_txt_embeddings(
-                    input_ids, position_ids,
-                    img_feat, img_position_ids,
-                    gather_index, img_masks, txt_type_ids, 
-                    img_type_ids)
-            elif speech_feat is not None and img_feat is None:
-                # logger.info('[Debug] Only the speech feat Avaiable')
-                embedding_output = self._compute_speech_txt_embeddings(
-                    input_ids, position_ids,
-                    speech_feat, speech_position_ids,
-                    gather_index, speech_masks, txt_type_ids,
-                    speech_type_ids)
-            elif speech_feat is not None and img_feat is not None:
-                # logger.info('[Debug] the speech feat Avaiable and img feat Avaiable')
-                embedding_output = self._compute_speech_img_txt_embeddings(
-                        input_ids, position_ids,
-                        img_feat, img_position_ids,
-                        speech_feat, speech_position_ids,
-                        gather_index,
-                        img_masks, speech_masks, 
-                        txt_type_ids, img_type_ids,
-                        speech_type_ids)
-            elif speech_feat is None and img_feat is None:
-                embedding_output = self._compute_txt_embeddings(
-                        input_ids, position_ids)
             else:
-                logger.info('[Error] some error in UniterModel')
-                exit(0)
+                # logger.info('[Debug] the txt modality is None!!!')
+                if img_feat is not None and speech_feat is None:
+                    # logger.info('\t [Debug] Only the visual feat Avaiable')
+                    embedding_output = self._compute_img_embeddings(
+                                img_feat, img_position_ids,
+                                img_masks, img_type_ids)
+                elif speech_feat is not None and img_feat is None:
+                    # logger.info('\t[Debug] Only the speech feat Avaiable')
+                    embedding_output = self._compute_speech_embeddings(
+                        speech_feat, speech_position_ids,
+                        speech_masks, speech_type_ids)
+                else:
+                    # logger.info('\t[Debug] both the visual and speech feat Avaiable')
+                    embedding_output = self._compute_img_speech_embeddings(
+                            img_feat, img_position_ids,
+                            speech_feat, speech_position_ids,
+                            gather_index,
+                            img_masks, speech_masks, 
+                            img_type_ids, speech_type_ids)
+        # for model output
         encoded_layers = self.encoder(
             embedding_output, extended_attention_mask,
             frozen_en_layers=frozen_en_layers,
