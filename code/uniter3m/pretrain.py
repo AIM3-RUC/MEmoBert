@@ -28,7 +28,8 @@ from code.uniter3m.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   TxtTokLmdb, ImageLmdbGroup, SpeechLmdbGroup, ConcatDatasetWithLens,
                   MlmDataset, MelmDataset, MrfrDataset, MrcDataset,
                   mlm_collate, melm_collate, mrfr_collate, mrc_collate,
-                  ItmDataset, itm_collate, MsrfrDataset, msrfr_collate)
+                  ItmDataset, itm_collate, MsrfrDataset, msrfr_collate,
+                  EmoClsDataset, emocls_collate)
 from code.uniter3m.model.pretrain import UniterForPretraining
 
 # from uniter
@@ -118,6 +119,23 @@ def build_mrc_dataset(txt_db, img_db, speech_db, is_train, opts):
 
     return dataset, mrc_collate
 
+def build_emocls_dataset(txt_db, img_db, speech_db, is_train, opts):
+    if is_train:
+        if img_db is not None and speech_db is not None:
+            datasets = [EmoClsDataset(t, i, s, opts.use_soft_label) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif img_db is None and speech_db is not None:
+            datasets = [EmoClsDataset(t, None, s, opts.use_soft_label) for t, s in zip(txt_db, speech_db)]
+        elif img_db is not None and speech_db is None:
+            datasets = [EmoClsDataset(t, i, None, opts.use_soft_label) for t, i in zip(txt_db, img_db)]
+        elif img_db is None and speech_db is None:
+            datasets = [EmoClsDataset(t, None, None, opts.use_soft_label) for t in txt_db]
+        else:
+            LOGGER.info('[Error] Error itm datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = EmoClsDataset(txt_db, img_db, speech_db, opts.use_soft_label)
+    collate_fn = emocls_collate
+    return dataset, collate_fn
 
 def build_itm_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:
@@ -209,6 +227,8 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
                 dataset = build_msrfr_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('mrc'):
                 dataset = build_mrc_dataset(txt_db, img_db, speech_db, is_train, opts)
+            elif task.startswith('emocls'):
+                dataset = build_emocls_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('itm'):
                 dataset = build_itm_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('stm'):
@@ -439,6 +459,8 @@ def validate(model, val_dataloaders):
             val_log = validate_msrfr(model, loader)
         elif task.startswith('mrc') and args.use_visual:
             val_log = validate_mrc(model, loader, task)
+        elif task.startswith('emocls'):
+            val_log = validate_emocls(model, loader)
         elif task.startswith('itm'):
             val_log = validate_itm(model, loader)
         elif task.startswith('vtm') and args.use_visual:
@@ -620,6 +642,39 @@ def validate_mrc(model, val_loader, task):
     return val_log
 
 
+@torch.no_grad()
+def validate_emocls(model, val_loader):
+    LOGGER.info("start running EmoCls validation...")
+    val_loss = 0
+    n_feat = 0
+    st = time()
+    tot_score = 0
+    for i, batch in enumerate(val_loader):
+        prediction_soft_label = model(
+            batch, task='emocls', compute_loss=False)
+        # default use "kl" in task:
+        prediction_soft_label = F.log_softmax(
+            prediction_soft_label, dim=-1)
+        label_targets = batch['targets']
+        loss = F.kl_div(
+            prediction_soft_label, label_targets, reduction='sum')
+        tot_score += compute_accuracy_for_soft_targets(
+            prediction_soft_label, label_targets)
+        val_loss += loss.item()
+        n_feat += batch['input_ids'].size(0)
+    val_loss = sum(all_gather_list(val_loss))
+    tot_score = sum(all_gather_list(tot_score))
+    n_feat = sum(all_gather_list(n_feat))
+    tot_time = time()-st
+    val_loss /= n_feat
+    val_acc = tot_score / n_feat
+    val_log = {'loss': val_loss,
+               'acc': val_acc,
+               'feat_per_s': n_feat/tot_time}
+    LOGGER.info(f"validation finished in {int(tot_time)} seconds, "
+                f"score: {val_acc*100:.2f}")
+    return val_log
+
 def compute_accuracy_for_soft_targets(out, labels):
     outputs = out.max(dim=-1)[1]
     labels = labels.max(dim=-1)[1]  # argmax
@@ -718,6 +773,7 @@ if __name__ == "__main__":
     # use modality branch
     parser.add_argument("--use_speech", action='store_true',  help='use speech branch')
     parser.add_argument("--use_visual", action='store_true',  help='use visual branch')
+    parser.add_argument("--use_soft_label", action='store_true',  help='use soft-label for Emo Cls target')
 
     # training parameters
     parser.add_argument("--train_batch_size", default=4096, type=int,

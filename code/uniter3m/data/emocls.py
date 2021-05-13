@@ -12,11 +12,13 @@ from toolz.sandbox import unzip
 from code.uniter3m.data.data import (DetectFeatTxtTokDataset, TxtTokLmdb, \
                    pad_tensors, get_gather_index)
                    
-class EmoCLsDataset(DetectFeatTxtTokDataset):
-    def __init__(self, txt_db, img_db=None, speech_db=None):
+class EmoClsDataset(DetectFeatTxtTokDataset):
+    def __init__(self, txt_db, img_db=None, speech_db=None, use_soft_label=False):
         assert isinstance(txt_db, TxtTokLmdb)
         super().__init__(txt_db, img_db, speech_db)
+        # use_soft_label: default is False, use the hard label for downstream tasks
         self.img_shape = None
+        self.use_soft_label = use_soft_label
 
     def __getitem__(self, i):
         """
@@ -29,8 +31,10 @@ class EmoCLsDataset(DetectFeatTxtTokDataset):
         0's padded so that (L + num_bb) % 8 == 0
         """
         example = super().__getitem__(i)
-        target = example['target'] # int
-
+        if self.use_soft_label:
+            target = example['soft_labels'] # probs
+        else:
+            target = example['target']  # int 
         # text input
         input_ids = example['input_ids']
         input_ids = torch.tensor([self.txt_db.cls_] + input_ids + [self.txt_db.sep])
@@ -102,8 +106,15 @@ def emocls_collate(inputs):
     bs, max_tl = input_ids.size()
     out_size = attn_masks.size(1)
     gather_index = get_gather_index(txt_lens, num_bbs, num_frames, bs, max_tl, out_size)
+    
     # transfer targets to tensor (batch-size)
-    targets = torch.from_numpy(np.array(targets).reshape((-1))).long()
+    # print(f'[Debug] EmoCls target {np.array(targets).shape}')
+    if len(np.array(targets).shape) == 2:
+        # soft-label
+        targets = torch.from_numpy(np.array(targets))
+    else:
+        # hard-label
+        targets = torch.from_numpy(np.array(targets).reshape((-1))).long()
 
     batch = {'input_ids': input_ids,
              'position_ids': position_ids,

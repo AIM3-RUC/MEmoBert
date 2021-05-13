@@ -16,6 +16,19 @@ from code.uniter3m.model.model import UniterModel, UniterPreTrainedModel
 from code.uniter.model.pretrain import RegionFeatureRegression, RegionClassification, EmoMelmClassification
 from code.uniter.model.layer import GELU, BertOnlyMLMHead
 
+class EmoClassification(nn.Module):
+    " for the emotion classification, with kl-loss"
+    def __init__(self, hidden_size, label_dim):
+        super().__init__()
+        self.net = nn.Sequential(nn.Linear(hidden_size, hidden_size),
+                                 GELU(),
+                                 LayerNorm(hidden_size, eps=1e-12),
+                                 nn.Linear(hidden_size, label_dim))
+
+    def forward(self, input_):
+        output = self.net(input_)
+        return output
+
 class UniterForPretraining(UniterPreTrainedModel):
     """ UNITER pretraining """
     def __init__(self, config, img_dim, speech_dim, img_label_dim, use_visual, use_speech):
@@ -41,13 +54,17 @@ class UniterForPretraining(UniterPreTrainedModel):
             self.speech_feat_regress = RegionFeatureRegression(
                 config.hidden_size, speech_dim,
                 self.uniter.speech_embeddings.speech_linear.weight)
-            
+
         # Jinming: add for melm multi-task
         if config.melm_multitask is True:
             print("Use the melm multitask")
             self.emomelm_classifier = EmoMelmClassification(
                 config.hidden_size, config.melm_emo_category_size
             )
+        # for emotion classification
+        self.emo_classifier = EmoClassification(
+                config.hidden_size, config.weak_emo_category_size)
+        # for image-text matching
         self.itm_output = nn.Linear(config.hidden_size, 2)
         self.apply(self.init_weights)
 
@@ -97,8 +114,11 @@ class UniterForPretraining(UniterPreTrainedModel):
             mrc_label_target = batch['label_targets']
             return self.forward_mrc(batch, img_masks, img_mask_tgt,
                                     mrc_label_target, task, compute_loss)
+        elif task == 'emocls':
+            targets = batch['targets']
+            return self.forward_emocls(batch, targets, compute_loss)
         else:
-            raise ValueError('invalid task')
+            raise ValueError(f'invalid task {task}')
 
     def forward_mlm(self, batch, txt_labels, compute_loss=True):
         '''
@@ -213,6 +233,20 @@ class UniterForPretraining(UniterPreTrainedModel):
             return itm_loss, ot_loss
         else:
             return itm_scores, ot_loss
+    
+    def forward_emocls(self, batch, targets, compute_loss=True):
+        # targets, soft-label distribution
+        sequence_output = self.uniter(batch, output_all_encoded_layers=False)
+        pooled_output = self.uniter.pooler(sequence_output)
+        prediction_soft_label = self.emo_classifier(pooled_output) # logits
+
+        if compute_loss:
+            prediction_soft_label = F.log_softmax(prediction_soft_label, dim=-1)
+            # the target should be the softmax(logits), donot do the log
+            emocls_loss = F.kl_div(prediction_soft_label, targets, reduction='none', log_target=False)
+            return emocls_loss
+        else:
+            return prediction_soft_label
 
     def forward_mrc(self, batch, img_masks, img_mask_tgt,
                     label_targets, task, compute_loss=True):
@@ -228,14 +262,11 @@ class UniterForPretraining(UniterPreTrainedModel):
             if "kl" in task:
                 prediction_soft_label = F.log_softmax(
                     prediction_soft_label, dim=-1)
-                mrc_loss = F.kl_div(
-                    prediction_soft_label, label_targets, reduction='none')
+                # the target should be the softmax(logits), donot do the log
+                mrc_loss = F.kl_div(prediction_soft_label, label_targets, reduction='none', log_target=False)
             else:
-                # background class should not be the target
-                label_targets = torch.max(label_targets[:, 1:], dim=-1)[1] + 1
-                mrc_loss = F.cross_entropy(
-                    prediction_soft_label, label_targets,
-                    ignore_index=0, reduction='none')
+                print('[Error] of the loss type')
+                exit(0)
             return mrc_loss
         else:
             return prediction_soft_label

@@ -11,5 +11,5 @@ from .itm import (TokenBucketSamplerForItm, ItmDataset,
 from .mlm import MlmDataset, mlm_collate
 from .melm import MelmDataset, melm_collate
 from .mrm import MrfrDataset, MrcDataset, mrfr_collate, mrc_collate
-from .emocls import EmoCLsDataset, emocls_collate
+from .emocls import EmoClsDataset, emocls_collate
 from .msrm import MsrfrDataset, msrfr_collate
