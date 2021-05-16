@@ -235,16 +235,33 @@ class UniterForPretraining(UniterPreTrainedModel):
             return itm_scores, ot_loss
     
     def forward_emocls(self, batch, targets, compute_loss=True):
-        # targets, soft-label distribution
+        '''
+        targets: probs or logits or hard-category
+            emocls_type: soft using kl-loss, logits using kl-loss, hard using ce-loss
+        '''
         sequence_output = self.uniter(batch, output_all_encoded_layers=False)
         pooled_output = self.uniter.pooler(sequence_output)
         prediction_soft_label = self.emo_classifier(pooled_output) # logits
 
         if compute_loss:
-            prediction_soft_label = F.log_softmax(prediction_soft_label, dim=-1)
-            # the target should be the softmax(logits), donot do the log
-            emocls_loss = F.kl_div(prediction_soft_label, targets, reduction='none', log_target=False)
-            return emocls_loss
+            if  self.config.emocls_type == 'soft':
+                prediction_soft_label = F.log_softmax(prediction_soft_label, dim=-1)
+                # the target should be the softmax(logits), donot do the log
+                emocls_loss = F.kl_div(prediction_soft_label, targets, reduction='none', log_target=False)
+                return emocls_loss
+            elif self.config.emocls_type == 'logits':
+                # get temperture probs
+                targets = targets.true_divide(self.config.emocls_temperture)
+                prediction_soft_label = prediction_soft_label.true_divide(self.config.emocls_temperture)
+                prediction_soft_label = F.log_softmax(prediction_soft_label, dim=-1)
+                # the target should be the softmax(logits), donot do the log
+                emocls_loss = F.kl_div(prediction_soft_label, targets, reduction='none', log_target=False)
+                return emocls_loss
+            elif self.config.emocls_type == 'hard':
+                emocls_loss = F.cross_entropy(prediction_soft_label, targets, reduction='none')
+                return emocls_loss
+            else:
+                logger.info('[Error] the emocls_type {}'.format(self.config.emocls_type))
         else:
             return prediction_soft_label
 

@@ -13,12 +13,12 @@ from code.uniter3m.data.data import (DetectFeatTxtTokDataset, TxtTokLmdb, \
                    pad_tensors, get_gather_index, get_gather_index_notxtdb)
                    
 class EmoClsDataset(DetectFeatTxtTokDataset):
-    def __init__(self, txt_db, img_db=None, speech_db=None, use_soft_label=False, use_text=False):
+    def __init__(self, txt_db, img_db=None, speech_db=None, emocls_type=False, use_text=False):
         assert isinstance(txt_db, TxtTokLmdb)
         super().__init__(txt_db, img_db, speech_db)
         # use_soft_label: default is False, use the hard label for downstream tasks
         self.img_shape = None
-        self.use_soft_label = use_soft_label
+        self.emocls_type = emocls_type
         self.use_text = use_text
 
         if not self.use_text is None and speech_db is None and img_db is None:
@@ -37,11 +37,16 @@ class EmoClsDataset(DetectFeatTxtTokDataset):
         0's padded so that (L + num_bb) % 8 == 0
         """
         example = super().__getitem__(i)
-        if self.use_soft_label:
+        if self.emocls_type == 'soft':
             target = example['soft_labels'] # probs
-        else:
+        elif self.emocls_type == 'hard':
             target = example['target']  # int 
-        
+        elif self.emocls_type == 'logits':
+            target = example['logits']  # logits need to devide by temp in the nodel
+        else:
+            print('[Error] the error emo classification type')
+            exit(0)
+
         if self.use_text:
             # text input
             input_ids = example['input_ids']

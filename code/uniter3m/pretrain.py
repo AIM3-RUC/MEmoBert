@@ -122,18 +122,18 @@ def build_mrc_dataset(txt_db, img_db, speech_db, is_train, opts):
 def build_emocls_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:
         if img_db is not None and speech_db is not None:
-            datasets = [EmoClsDataset(t, i, s, opts.use_soft_label) for t, i, s in zip(txt_db, img_db, speech_db)]
+            datasets = [EmoClsDataset(t, i, s, opts.emocls_type) for t, i, s in zip(txt_db, img_db, speech_db)]
         elif img_db is None and speech_db is not None:
-            datasets = [EmoClsDataset(t, None, s, opts.use_soft_label) for t, s in zip(txt_db, speech_db)]
+            datasets = [EmoClsDataset(t, None, s, opts.emocls_type) for t, s in zip(txt_db, speech_db)]
         elif img_db is not None and speech_db is None:
-            datasets = [EmoClsDataset(t, i, None, opts.use_soft_label) for t, i in zip(txt_db, img_db)]
+            datasets = [EmoClsDataset(t, i, None, opts.emocls_type) for t, i in zip(txt_db, img_db)]
         elif img_db is None and speech_db is None:
-            datasets = [EmoClsDataset(t, None, None, opts.use_soft_label) for t in txt_db]
+            datasets = [EmoClsDataset(t, None, None, opts.emocls_type) for t in txt_db]
         else:
             LOGGER.info('[Error] Error itm datasets')
         dataset = ConcatDatasetWithLens(datasets)
     else:
-        dataset = EmoClsDataset(txt_db, img_db, speech_db, opts.use_soft_label)
+        dataset = EmoClsDataset(txt_db, img_db, speech_db, opts.emocls_type)
     collate_fn = emocls_collate
     return dataset, collate_fn
 
@@ -773,7 +773,7 @@ if __name__ == "__main__":
     # use modality branch
     parser.add_argument("--use_speech", action='store_true',  help='use speech branch')
     parser.add_argument("--use_visual", action='store_true',  help='use visual branch')
-    parser.add_argument("--use_soft_label", action='store_true',  help='use soft-label for Emo Cls target')
+    parser.add_argument("--emocls_type", default='probs', type='str', help='soft, hard, logits(means logits/temp)')
 
     # training parameters
     parser.add_argument("--train_batch_size", default=4096, type=int,

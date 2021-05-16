@@ -1,12 +1,12 @@
 export PYTHONPATH=/data7/MEmoBert
 gpu_id=$1
 dropout=0.1
-corpus_name='iemocap'
+corpus_name='msp'
 
 # # case2: text + wav2vec + visual - on gpu5
 for lr in 2e-5 5e-5
 do
-        for cvNo in $(seq 1 10)
+        for cvNo in $(seq 1 12)
         do
         num_train_steps=1500
         valid_steps=100
@@ -26,14 +26,14 @@ do
                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-                --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclsSoft_noitm_vstype2_train3w-lr${lr}_train${num_train_steps}_trnval
+                --output_dir /data7/emobert/exp/evaluation/MSP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclsSoft_noitm_vstype2_train3w-lr${lr}_train${num_train_steps}_trnval
     done
 done
 
 
 for lr in 2e-5 5e-5
 do
-        for cvNo in $(seq 1 10)
+        for cvNo in $(seq 1 12)
         do
         num_train_steps=1500
         valid_steps=100
@@ -53,6 +53,6 @@ do
                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-                --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2_train3w-lr${lr}_train${num_train_steps}_trnval
+                --output_dir /data7/emobert/exp/evaluation/MSP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2_train3w-lr${lr}_train${num_train_steps}_trnval
     done
 done
