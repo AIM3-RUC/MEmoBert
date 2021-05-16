@@ -773,7 +773,7 @@ if __name__ == "__main__":
     # use modality branch
     parser.add_argument("--use_speech", action='store_true',  help='use speech branch')
     parser.add_argument("--use_visual", action='store_true',  help='use visual branch')
-    parser.add_argument("--emocls_type", default='probs', type='str', help='soft, hard, logits(means logits/temp)')
+    parser.add_argument("--emocls_type", default='probs', type=str, help='soft, hard, logits(means logits/temp)')
 
     # training parameters
     parser.add_argument("--train_batch_size", default=4096, type=int,
