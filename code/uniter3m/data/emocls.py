@@ -13,7 +13,7 @@ from code.uniter3m.data.data import (DetectFeatTxtTokDataset, TxtTokLmdb, \
                    pad_tensors, get_gather_index, get_gather_index_notxtdb)
                    
 class EmoClsDataset(DetectFeatTxtTokDataset):
-    def __init__(self, txt_db, img_db=None, speech_db=None, emocls_type=False, use_text=False):
+    def __init__(self, txt_db, img_db=None, speech_db=None, emocls_type='soft', use_text=True):
         assert isinstance(txt_db, TxtTokLmdb)
         super().__init__(txt_db, img_db, speech_db)
         # use_soft_label: default is False, use the hard label for downstream tasks
