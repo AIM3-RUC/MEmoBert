@@ -460,7 +460,7 @@ def validate(model, val_dataloaders):
         elif task.startswith('mrc') and args.use_visual:
             val_log = validate_mrc(model, loader, task)
         elif task.startswith('emocls'):
-            val_log = validate_emocls(model, loader)
+            val_log = validate_emocls(model, loader, emocls_type=args.emocls_type)
         elif task.startswith('itm'):
             val_log = validate_itm(model, loader)
         elif task.startswith('vtm') and args.use_visual:
@@ -643,7 +643,7 @@ def validate_mrc(model, val_loader, task):
 
 
 @torch.no_grad()
-def validate_emocls(model, val_loader):
+def validate_emocls(model, val_loader, emocls_type='soft'):
     LOGGER.info("start running EmoCls validation...")
     val_loss = 0
     n_feat = 0
@@ -652,14 +652,24 @@ def validate_emocls(model, val_loader):
     for i, batch in enumerate(val_loader):
         prediction_soft_label = model(
             batch, task='emocls', compute_loss=False)
-        # default use "kl" in task:
-        prediction_soft_label = F.log_softmax(
-            prediction_soft_label, dim=-1)
         label_targets = batch['targets']
-        loss = F.kl_div(
-            prediction_soft_label, label_targets, reduction='sum')
-        tot_score += compute_accuracy_for_soft_targets(
-            prediction_soft_label, label_targets)
+
+        if emocls_type == 'soft' or emocls_type == 'logits':
+            if emocls_type == 'logits':
+                # the defalult 
+                targets = targets.true_divide(args.emocls_temperture)
+                prediction_soft_label = prediction_soft_label.true_divide(args.emocls_temperture)
+            # default use "kl" in task:
+            prediction_soft_label = F.log_softmax(
+                prediction_soft_label, dim=-1)
+            loss = F.kl_div(
+                prediction_soft_label, label_targets, reduction='sum')
+            tot_score += compute_accuracy_for_soft_targets(
+                prediction_soft_label, label_targets)
+        else:
+            loss = F.cross_entropy(prediction_soft_label, label_targets, reduction='sum')
+            tot_score += (prediction_soft_label.max(dim=-1)[1] == label_targets).sum().item()
+
         val_loss += loss.item()
         n_feat += batch['input_ids'].size(0)
     val_loss = sum(all_gather_list(val_loss))
@@ -773,7 +783,8 @@ if __name__ == "__main__":
     # use modality branch
     parser.add_argument("--use_speech", action='store_true',  help='use speech branch')
     parser.add_argument("--use_visual", action='store_true',  help='use visual branch')
-    parser.add_argument("--emocls_type", default='probs', type=str, help='soft, hard, logits(means logits/temp)')
+    parser.add_argument("--emocls_type", default='soft', type=str, help='soft, hard, logits(means logits/temp)')
+    parser.add_argument("--emocls_temperture", default=2.0, type=float, help='default is 2.0')
 
     # training parameters
     parser.add_argument("--train_batch_size", default=4096, type=int,

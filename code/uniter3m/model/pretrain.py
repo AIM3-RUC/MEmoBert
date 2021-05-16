@@ -252,7 +252,7 @@ class UniterForPretraining(UniterPreTrainedModel):
                 return emocls_loss
             elif self.config.emocls_type == 'logits':
                 # get temperture probs
-                print('[Debug] using the logits/temp method')
+                # print('[Debug] using the logits/temp method')
                 targets = targets.true_divide(self.config.emocls_temperture)
                 prediction_soft_label = prediction_soft_label.true_divide(self.config.emocls_temperture)
                 prediction_soft_label = F.log_softmax(prediction_soft_label, dim=-1)
@@ -260,7 +260,7 @@ class UniterForPretraining(UniterPreTrainedModel):
                 emocls_loss = F.kl_div(prediction_soft_label, targets, reduction='none', log_target=False)
                 return emocls_loss
             elif self.config.emocls_type == 'hard':
-                print('[Debug] using the hard emo cls method')
+                # print('[Debug] using the hard emo cls method')
                 emocls_loss = F.cross_entropy(prediction_soft_label, targets, reduction='none')
                 return emocls_loss
             else:
