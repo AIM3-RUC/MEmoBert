@@ -147,8 +147,8 @@ CUDA_VISIBLE_DEVICES=4 horovodrun -np 1 python pretrain.py \
         --IMG_DIM 342 --Speech_DIM 768 \
         --conf_th 0.5 --max_txt_len 30 --max_bb 36 \
         --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
-        --train_batch_size 25 --val_batch_size 25 \
-        --num_train_steps 30000 --warmup_steps 3000 --valid_steps 30 \
+        --train_batch_size 256 --val_batch_size 256 \
+        --num_train_steps 30000 --warmup_steps 3000 --valid_steps 3000 \
         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclsHard_withitm_vstype2_lr5e5_bs1024
 
 ### case8.2: text + wav2vec + visual, diff emo cls (logits-label) task with itm task running on a100
