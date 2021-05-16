@@ -657,7 +657,7 @@ def validate_emocls(model, val_loader, emocls_type='soft'):
         if emocls_type == 'soft' or emocls_type == 'logits':
             if emocls_type == 'logits':
                 # the defalult 
-                targets = targets.true_divide(args.emocls_temperture)
+                label_targets = label_targets.true_divide(args.emocls_temperture)
                 prediction_soft_label = prediction_soft_label.true_divide(args.emocls_temperture)
             # default use "kl" in task:
             prediction_soft_label = F.log_softmax(
