@@ -3,7 +3,6 @@
 #直接finetune的时候 --model_name_or_path bert-base-uncased
 
 export PYTHONPATH=/data7/MEmoBert
-source activate transformers
 gpuid=$1
 pretrain_model_dir=/data7/MEmoBert/emobert/exp/mlm_pretrain/results
 output_dir=/data7/emobert/exp/finetune/onlytext
@@ -11,13 +10,13 @@ output_dir=/data7/emobert/exp/finetune/onlytext
 corpus_name='msp'
 corpus_name_L='MSP'
 
-for cvNo in `seq 11 12`;
+for cvNo in `seq 7 12`;
 do
     for lr in 2e-5 5e-5; 
     do
     bert_data_dir=/data7/emobert/exp/evaluation/${corpus_name_L}/bert_data/${cvNo}
     CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
-        --model_name_or_path ${pretrain_model_dir}/moviesv1v2v3/bert_base_uncased_2e5/checkpoint-34409/  \
+        --model_name_or_path bert-base-uncased  \
         --cvNo ${cvNo} \
         --train_file ${bert_data_dir}/trn_val.csv \
         --validation_file ${bert_data_dir}/tst.csv \
@@ -29,7 +28,7 @@ do
         --patience 2 \
         --learning_rate ${lr} \
         --lr_scheduler_type 'linear' \
-        --output_dir ${output_dir}/${corpus_name}_taskpretrain_moviesv1v2v3-trnval_bert_base_lr${lr}_bs32_trnval/${cvNo}
+        --output_dir ${output_dir}/${corpus_name}_bert_base_uncased_lr${lr}_bs32_trnval/${cvNo}
     done
 done
 

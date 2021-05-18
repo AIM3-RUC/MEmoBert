@@ -21,7 +21,7 @@ class EmoClsDataset(DetectFeatTxtTokDataset):
         self.emocls_type = emocls_type
         self.use_text = use_text
 
-        if not self.use_text is None and speech_db is None and img_db is None:
+        if not self.use_text and speech_db is None and img_db is None:
             print('[Error] all modalities are None')
             exit(0)
 

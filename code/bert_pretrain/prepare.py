@@ -190,12 +190,13 @@ def prepare2iemocap():
             print(text_save_path)
 
 def prepare2msp():
+    # 注意句子当中有回车符 \n 导致最后数目并不相同，去除句子中的回车符
     for cvNo in range(1, 13):
         for setname in ['trn', 'val', 'tst']:
-            target_path = '/data7/emobert/exp/evaluation/MSP-IMPROV/target/{}/{}_label.npy'.format(cvNo, setname)
-            int2name_path = '/data7/emobert/exp/evaluation/MSP-IMPROV/target/{}/{}_int2name.npy'.format(cvNo, setname)
-            text_path = '/data7/emobert/exp/evaluation/MSP-IMPROV/refs/{}/{}_ref.json'.format(cvNo, setname)
-            save_dir = '/data7/emobert/exp/evaluation/MSP-IMPROV/bert_data/{}'.format(cvNo)
+            target_path = '/data7/emobert/exp/evaluation/MSP/target/{}/{}_label.npy'.format(cvNo, setname)
+            int2name_path = '/data7/emobert/exp/evaluation/MSP/target/{}/{}_int2name.npy'.format(cvNo, setname)
+            text_path = '/data7/emobert/exp/evaluation/MSP/refs/{}/{}_ref.json'.format(cvNo, setname)
+            save_dir = '/data7/emobert/exp/evaluation/MSP/bert_data/{}'.format(cvNo)
             if not exists(save_dir):
                 os.makedirs(save_dir)
             save_path = join(save_dir, '{}.csv'.format(setname))
@@ -212,7 +213,9 @@ def prepare2msp():
             for i in range(len(int2name)):
                 label = target[i]
                 key_id = int2name[i]
-                text = text_dict[key_id]['txt'][0]
+                if '\n' in text_dict[key_id]['txt'][0]:
+                    print(text_dict[key_id]['txt'])
+                text = text_dict[key_id]['txt'][0].replace('\n', '')
                 label2 = text_dict[key_id]['label']
                 assert label == int(label2)
                 all_sents.append([label, text])
@@ -223,7 +226,14 @@ def prepare2msp():
             write_file(text_save_path, all_text_sents)
             print(save_path)
             print(text_save_path)
-
+        trn_filepath = os.path.join(save_dir, 'trn.csv')
+        val_filepath = os.path.join(save_dir, 'val.csv')
+        trn_val_filepath = os.path.join(save_dir, 'trn_val.csv')
+        trn_sampels = read_csv(trn_filepath, delimiter=',', skip_rows=0)
+        val_sampels = read_csv(val_filepath, delimiter=',', skip_rows=1)
+        concat_sampels = trn_sampels + val_sampels
+        write_csv(trn_val_filepath, concat_sampels, delimiter=',')
+        print(trn_val_filepath)
 
 def prepare2meld4mlm():
     # based on the /data7/MEmoBert/emobert/exp/evaluation/MELD/bert_data
