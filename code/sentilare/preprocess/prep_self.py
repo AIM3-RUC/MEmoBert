@@ -103,7 +103,8 @@ def process_text(text_list, label_list, sentinet, gloss_embedding, gloss_emb_nor
         except:
             token_list = text.strip().split()
         if len(token_list) == 0:
-            continue
+            print('[Error] the text info is None {}'.format(text))
+            exit(0)
         sent_list.append(token_list)
         sent_list_str.append(text.strip())
         data_cnt += 1

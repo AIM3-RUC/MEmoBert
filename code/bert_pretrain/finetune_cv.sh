@@ -7,16 +7,16 @@ gpuid=$1
 pretrain_model_dir=/data7/MEmoBert/emobert/exp/mlm_pretrain/results
 output_dir=/data7/emobert/exp/finetune/onlytext
 
-corpus_name='msp'
-corpus_name_L='MSP'
+corpus_name='iemocap'
+corpus_name_L='IEMOCAP'
 
-for cvNo in `seq 7 12`;
+for cvNo in `seq 8 8`;
 do
-    for lr in 2e-5 5e-5; 
+    for lr in 5e-5; 
     do
     bert_data_dir=/data7/emobert/exp/evaluation/${corpus_name_L}/bert_data/${cvNo}
     CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
-        --model_name_or_path bert-base-uncased  \
+        --model_name_or_path roberta-base  \
         --cvNo ${cvNo} \
         --train_file ${bert_data_dir}/trn_val.csv \
         --validation_file ${bert_data_dir}/tst.csv \
@@ -28,7 +28,7 @@ do
         --patience 2 \
         --learning_rate ${lr} \
         --lr_scheduler_type 'linear' \
-        --output_dir ${output_dir}/${corpus_name}_bert_base_uncased_lr${lr}_bs32_trnval/${cvNo}
+        --output_dir ${output_dir}/${corpus_name}_roberta_base_lr${lr}_bs32_trnval_m1/${cvNo}
     done
 done
 

@@ -1,8 +1,7 @@
 # https://github.com/huggingface/transformers/tree/master/examples/text-classification
 #注意: meld 数据集名称 test train 而 iemocap msp 数据集 trn tst
-#直接finetune的时候 --model_name_or_path bert-base-uncased
+#直接finetune的时候 --model_name_or_path bert-base-uncased / roberta-base
 
-source activate transformers
 export PYTHONPATH=/data7/MEmoBert
 
 gpuid=$1
@@ -11,11 +10,11 @@ output_dir=/data7/emobert/exp/finetune/onlytext
 
 for cvNo in `seq 1 1`;
 do
-    for lr in 1e-5 2e-5;
+    for lr in 1e-5
     do
         bert_data_dir=/data7/emobert/exp/evaluation/MELD/bert_data
         CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
-            --model_name_or_path ${pretrain_model_dir}/moviesv1v2v3/bert_base_uncased_2e5/checkpoint-34409/  \
+            --model_name_or_path roberta-base \
             --train_file ${bert_data_dir}/train_val.csv \
             --validation_file ${bert_data_dir}/test.csv \
             --test_file ${bert_data_dir}/test.csv \
@@ -26,7 +25,7 @@ do
             --patience 2 \
             --learning_rate ${lr} \
             --lr_scheduler_type 'linear' \
-            --output_dir ${output_dir}/meld_taskpretain_moviesv1v2v3-trnval_bert_base_lr${lr}_bs32_trnval/${cvNo}
+            --output_dir ${output_dir}/meld_roberta_base_lr${lr}_bs32_trnval_m1/${cvNo}
     done
 done
 
