@@ -19,5 +19,6 @@
   "melm_emo_category_size": 3,
   "weak_emo_category_size": 5,
   "emocls_type": "soft",
-  "vocab_size": 30522
+  "vocab_size": 30522,
+  "use_emolare": false
 }

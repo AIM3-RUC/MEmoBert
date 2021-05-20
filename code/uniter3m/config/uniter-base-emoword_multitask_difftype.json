@@ -17,5 +17,6 @@
   "melm_multitask": true,
   "melm_multitask_rate": 1.0,
   "melm_emo_category_size": 3,
-  "vocab_size": 30522
+  "vocab_size": 30522,
+  "use_emolare": false
 }

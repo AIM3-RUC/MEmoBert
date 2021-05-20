@@ -12,9 +12,10 @@ from torch.nn import functional as F
 from apex.normalization.fused_layer_norm import FusedLayerNorm as LayerNorm
 
 from code.uniter3m.model.model import UniterModel, UniterPreTrainedModel
+from code.uniter3m.lare_layers import BertPostagHead, BertSentiHead, BertPolarityHead
 ## from uniter 
 from code.uniter.model.pretrain import RegionFeatureRegression, RegionClassification, EmoMelmClassification
-from code.uniter.model.layer import GELU, BertOnlyMLMHead
+from code.uniter.model.layer import GELU, BertOnlyMLMHead, BertPredictionHeadTransform
 
 class EmoClassification(nn.Module):
     " for the emotion classification, with kl-loss"
@@ -38,9 +39,10 @@ class UniterForPretraining(UniterPreTrainedModel):
         self.use_visual = use_visual
         self.uniter = UniterModel(config, img_dim, speech_dim, use_visual=self.use_visual, 
                                     use_speech=self.use_speech)
+
         self.cls = BertOnlyMLMHead(
             config, self.uniter.embeddings.word_embeddings.weight)
-            
+
         if self.use_visual:
             print('[Debug] use visual feature regression and region classification!!!')
             self.feat_regress = RegionFeatureRegression(
@@ -61,6 +63,13 @@ class UniterForPretraining(UniterPreTrainedModel):
             self.emomelm_classifier = EmoMelmClassification(
                 config.hidden_size, config.melm_emo_category_size
             )
+
+        if config.use_emolare:
+            print("Use the emolare module")
+            self.pos_tag_predictions = BertPostagHead(config, self.uniter.embeddings.word_embeddings.weight)
+            self.senti_word_predictions = BertSentiHead(config, self.uniter.embeddings.word_embeddings.weight)
+            self.senti_utt_predictions = BertPolarityHead(config, self.uniter.embeddings.word_embeddings.weight)
+
         # for emotion classification
         self.emo_classifier = EmoClassification(
                 config.hidden_size, config.weak_emo_category_size)
@@ -178,6 +187,60 @@ class UniterForPretraining(UniterPreTrainedModel):
                 return (prediction_scores, prediction_emo_scores)
             else:
                 return prediction_scores
+    
+    def forward_emolare(self, batch, txt_labels, txt_emo_labels=None, compute_loss=True):
+        '''
+        Early Fusion of Emo LARE. 没有句子级别的情感分类层, 
+        Late Supervised 在EF的基础上加了一个句子分类层,
+        目前一个batch里面既有EF又有LS, 但是格式是一样的，所以二者几乎是一样的。
+        当输入的utt-category是unknown的时候类别是什么呢？ 此时的label全是-1，所以没有loss.
+        four loss: mlm, postag, word_senti, utt_senti
+        '''
+        input_ids = batch['input_ids']
+        # (batch, max-len, dim)
+        sequence_output = self.uniter(batch, output_all_encoded_layers=False)
+        # get only the text part
+        sequence_output = sequence_output[:, :input_ids.size(1), :]
+        # only compute masked tokens for better efficiency
+        masked_output = self._compute_masked_hidden(sequence_output,
+                                                    txt_labels != -1)
+        prediction_scores = self.cls(masked_output)
+        # for pos tag precition
+        txt_pos_labels = batch['txt_pos_labels']
+        pos_masked_output = self._compute_masked_hidden(sequence_output,
+                                                    txt_pos_labels != -1)
+        pos_prediction_scores = self.pos_tag_predictions(pos_masked_output)
+
+        # for word senti precition
+        txt_senti_labels = batch['txt_senti_labels']
+        wsenti_masked_output = self._compute_masked_hidden(sequence_output,
+                                                    txt_senti_labels != -1)
+        wsenti_prediction_scores = self.senti_word_predictions(wsenti_masked_output)
+    
+        # for utt senti precition
+        sentence_polarity_label = batch['sentence_polarity_label']
+        usenti_masked_output = self._compute_masked_hidden(sequence_output,
+                                                    sentence_polarity_label != -1)
+        usenti_prediction_scores = self.senti_utt_predictions(usenti_masked_output)
+
+        if compute_loss:
+            masked_lm_loss = F.cross_entropy(prediction_scores,
+                                             txt_labels[txt_labels != -1],
+                                             reduction='none')
+            masked_pos_loss = F.cross_entropy(pos_prediction_scores,
+                                             txt_pos_labels[txt_pos_labels != -1],
+                                             reduction='none')
+            masked_wsenti_loss = F.cross_entropy(wsenti_prediction_scores,
+                                             txt_senti_labels[txt_senti_labels != -1],
+                                             reduction='none')
+            masked_usenti_loss = F.cross_entropy(usenti_prediction_scores,
+                                             sentence_polarity_label[sentence_polarity_label != -1],
+                                             reduction='none')
+           
+            toal_emolare_loss = masked_lm_loss + masked_pos_loss + masked_wsenti_loss + masked_usenti_loss
+            return toal_emolare_loss
+        else:
+            return prediction_scores, pos_prediction_scores, wsenti_prediction_scores, usenti_prediction_scores
 
     def _compute_masked_hidden(self, hidden, mask):
         """ get only the masked region (don't compute unnecessary hiddens) """

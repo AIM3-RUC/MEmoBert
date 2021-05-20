@@ -224,26 +224,66 @@ class UniterTextEmbeddings(nn.Module):
                                                 config.hidden_size)
         self.token_type_embeddings = nn.Embedding(config.type_vocab_size,
                                                   config.hidden_size)      
-        print("[Warning] Donot use emo type embeddings add to input")
+
+        ## for SentiLARE module
+        if self.config.use_word_senti_embedding:
+            print("[Debug] use_word_senti_embedding")
+            # index=4, means other category 
+            self.word_senti_embedding = nn.Embedding(3, self.config.hidden_size, padding_idx=2)
+        else:
+            self.word_senti_embedding = None
+        if self.config.use_pos_tag_embedding:
+            print("[Debug] use_pos_tag_embedding")
+            # index=4, means other category 
+            self.pos_tag_embedding = nn.Embedding(5, self.config.hidden_size, padding_idx=4)
+        else:
+            self.pos_tag_embedding = None
+        if self.config.use_utt_senti_embedding:
+            print("[Debug] use_utt_senti_embedding")
+            # index=5, means unknown category 
+            self.utt_senti_embedding = nn.Embedding(6, self.config.hidden_size, padding_idx=5)
+        else:
+            self.utt_senti_embedding = None
         # self.LayerNorm is not snake-cased to stick with TensorFlow model
         # variable name and be able to load any TensorFlow checkpoint file
         self.LayerNorm = FusedLayerNorm(config.hidden_size, eps=1e-12)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
-    def forward(self, input_ids, position_ids, token_type_ids=None):
+    def forward(self, input_ids, position_ids, token_type_ids=None,
+                    token_pos_tag_ids=None, token_senti_ids=None,
+                    token_utt_senti_ids=None):
         '''
         emo_type_ids: the emotion types of the input ids
         batch-data
         '''
         if token_type_ids is None:
             token_type_ids = torch.zeros_like(input_ids)
+        
+        if token_pos_tag_ids is None and self.pos_tag_embedding is None:
+            token_pos_tag_embeddings = 0
+        else:
+            token_pos_tag_embeddings = self.pos_tag_embedding(token_pos_tag_ids)
+
+        if token_senti_ids is None and self.word_senti_embedding is None:
+            token_senti_embeddings = 0
+        else:
+            token_senti_embeddings = self.word_senti_embedding(token_senti_ids)
+
+        if token_utt_senti_ids is None and self.utt_senti_embedding is None:
+            token_utt_senti_embeddings = 0
+        else:
+            token_utt_senti_embeddings = self.utt_senti_embedding(token_utt_senti_ids)
 
         words_embeddings = self.word_embeddings(input_ids)
         position_embeddings = self.position_embeddings(position_ids)
         token_type_embeddings = self.token_type_embeddings(token_type_ids)
+
         embeddings = (words_embeddings
                       + position_embeddings
-                      + token_type_embeddings)
+                      + token_type_embeddings
+                      + token_pos_tag_embeddings
+                      + token_senti_embeddings
+                      + token_utt_senti_embeddings)
 
         embeddings = self.LayerNorm(embeddings)
         embeddings = self.dropout(embeddings)
@@ -338,8 +378,12 @@ class UniterModel(UniterPreTrainedModel):
         self.apply(self.init_weights)
 
     def _compute_txt_embeddings(self, input_ids, position_ids,
-                                txt_type_ids=None):
-        output = self.embeddings(input_ids, position_ids, txt_type_ids)
+                                txt_type_ids=None, token_pos_tag_ids=None, 
+                                token_senti_ids=None, token_utt_senti_ids=None):
+        output = self.embeddings(input_ids, position_ids, txt_type_ids, 
+                                                    token_pos_tag_ids=None, 
+                                                    token_senti_ids=None, 
+                                                    token_utt_senti_ids=None)
         return output
 
     def _compute_img_embeddings(self, img_feat, img_position_ids, img_masks=None,
@@ -386,9 +430,13 @@ class UniterModel(UniterPreTrainedModel):
     def _compute_img_txt_embeddings(self, input_ids, position_ids,
                                     img_feat, img_position_ids,
                                     gather_index, img_masks=None,
-                                    txt_type_ids=None, img_type_ids=None):
+                                    txt_type_ids=None, img_type_ids=None,
+                                    token_pos_tag_ids=None, 
+                                    token_senti_ids=None, 
+                                    token_utt_senti_ids=None):
         txt_emb = self._compute_txt_embeddings(
-            input_ids, position_ids, txt_type_ids)
+                    input_ids, position_ids, txt_type_ids, 
+                        token_pos_tag_ids, token_senti_ids, token_utt_senti_ids)
         img_emb = self._compute_img_embeddings(
             img_feat, img_position_ids, img_masks, img_type_ids)
         # align back to most compact input
@@ -401,9 +449,13 @@ class UniterModel(UniterPreTrainedModel):
     def _compute_speech_txt_embeddings(self, input_ids, position_ids,
                                     speech_feat, speech_position_ids,
                                     gather_index, speech_masks=None,
-                                    txt_type_ids=None, speech_type_ids=None):
+                                    txt_type_ids=None, speech_type_ids=None,
+                                    token_pos_tag_ids=None, 
+                                    token_senti_ids=None, 
+                                    token_utt_senti_ids=None):
         txt_emb = self._compute_txt_embeddings(
-            input_ids, position_ids, txt_type_ids)
+                            input_ids, position_ids, txt_type_ids,
+                            token_pos_tag_ids, token_senti_ids, token_utt_senti_ids)
         speech_emb = self._compute_speech_embeddings(
             speech_feat, speech_position_ids, speech_masks, speech_type_ids)
         # align back to most compact input
@@ -421,9 +473,13 @@ class UniterModel(UniterPreTrainedModel):
                                     gather_index,
                                     img_masks=None, speech_masks=None,  
                                     txt_type_ids=None, img_type_ids=None, 
-                                    speech_type_ids=None):
+                                    speech_type_ids=None,
+                                    token_pos_tag_ids=None, 
+                                    token_senti_ids=None, 
+                                    token_utt_senti_ids=None):
         txt_emb = self._compute_txt_embeddings(
-            input_ids, position_ids, txt_type_ids)
+            input_ids, position_ids, txt_type_ids,
+            token_pos_tag_ids, token_senti_ids, token_utt_senti_ids)
         img_emb = self._compute_img_embeddings(
             img_feat, img_position_ids, img_masks, img_type_ids)
         speech_emb = self._compute_speech_embeddings(
@@ -446,6 +502,18 @@ class UniterModel(UniterPreTrainedModel):
         speech_position_ids = batch['speech_position_ids']
         attention_mask = batch['attn_masks']
         gather_index = batch['gather_index']
+        if self.use_emolare:
+            print('[Debug] use the LARE tasks!!!')
+            token_pos_tag_ids = batch['input_ids_pos']
+            token_pos_tag_ids_labels = batch['txt_pos_labels']
+            token_senti_ids = batch['input_ids_senti']
+            token_senti_ids_labels = batch['txt_senti_labels']
+            token_utt_senti_ids = batch['sentence_polarity_ids']
+            token_utt_senti_ids_labels = batch['sentence_polarity_label']
+        else:
+            token_pos_tag_ids, token_pos_tag_ids_labels = None, None
+            token_senti_ids, token_senti_ids_labels = None, None
+            token_utt_senti_ids, token_utt_senti_ids_labels = None, None
 
         # compute self-attention mask
         extended_attention_mask = attention_mask.unsqueeze(1).unsqueeze(2)
@@ -465,14 +533,16 @@ class UniterModel(UniterPreTrainedModel):
                             input_ids, position_ids,
                             img_feat, img_position_ids,
                             gather_index, img_masks, txt_type_ids, 
-                            img_type_ids)
+                            img_type_ids, token_pos_tag_ids, 
+                            token_senti_ids, token_utt_senti_ids)
                     elif speech_feat is not None and img_feat is None:
                         # logger.info('\t[Debug] Only the speech feat Avaiable')
                         embedding_output = self._compute_speech_txt_embeddings(
                             input_ids, position_ids,
                             speech_feat, speech_position_ids,
                             gather_index, speech_masks, txt_type_ids,
-                            speech_type_ids)
+                            speech_type_ids, token_pos_tag_ids, 
+                            token_senti_ids, token_utt_senti_ids)
                     elif speech_feat is not None and img_feat is not None:
                         # logger.info('\t[Debug] the speech feat Avaiable and img feat Avaiable')
                         embedding_output = self._compute_speech_img_txt_embeddings(
@@ -482,12 +552,14 @@ class UniterModel(UniterPreTrainedModel):
                                 gather_index,
                                 img_masks, speech_masks, 
                                 txt_type_ids, img_type_ids,
-                                speech_type_ids)
+                                speech_type_ids, token_pos_tag_ids, 
+                                token_senti_ids, token_utt_senti_ids)
                     elif speech_feat is None and img_feat is None:
                         # 如果只包含一个模态，那么不需要gather
                         # logger.info('\t[Debug] the text feat Avaiable')
                         embedding_output = self._compute_txt_embeddings(
-                            input_ids, position_ids)
+                            input_ids, position_ids, txt_type_ids,
+                            token_pos_tag_ids, token_senti_ids, token_utt_senti_ids)
                     else:
                         logger.info('[Error] some error in UniterModel')
                         exit(0)
@@ -497,12 +569,14 @@ class UniterModel(UniterPreTrainedModel):
                         # logger.info('\t [Debug] Only the visual feat Avaiable')
                         embedding_output = self._compute_img_embeddings(
                                     img_feat, img_position_ids,
-                                    img_masks, img_type_ids)
+                                    img_masks, img_type_ids, token_pos_tag_ids, 
+                                    token_senti_ids, token_utt_senti_ids)
                     elif speech_feat is not None and img_feat is None:
                         # logger.info('\t[Debug] Only the speech feat Avaiable')
                         embedding_output = self._compute_speech_embeddings(
                             speech_feat, speech_position_ids,
-                            speech_masks, speech_type_ids)
+                            speech_masks, speech_type_ids, token_pos_tag_ids, 
+                            token_senti_ids, token_utt_senti_ids)
                     # add on case on not none and not None
                     else:
                         # logger.info('\t[Debug] both the visual and speech feat Avaiable')
@@ -511,7 +585,9 @@ class UniterModel(UniterPreTrainedModel):
                                 speech_feat, speech_position_ids,
                                 gather_index,
                                 img_masks, speech_masks, 
-                                img_type_ids, speech_type_ids)
+                                img_type_ids, speech_type_ids,
+                                token_pos_tag_ids, 
+                                token_senti_ids, token_utt_senti_ids)
         else:
             if input_ids is not None:
                 # logger.info('[Debug] the txt modality is Not None')
@@ -521,14 +597,17 @@ class UniterModel(UniterPreTrainedModel):
                         input_ids, position_ids,
                         img_feat, img_position_ids,
                         gather_index, img_masks, txt_type_ids, 
-                        img_type_ids)
+                        img_type_ids,
+                        token_pos_tag_ids, 
+                        token_senti_ids, token_utt_senti_ids)
                 elif speech_feat is not None and img_feat is None:
                     # logger.info('[Debug] Only the speech feat Avaiable')
                     embedding_output = self._compute_speech_txt_embeddings(
                         input_ids, position_ids,
                         speech_feat, speech_position_ids,
                         gather_index, speech_masks, txt_type_ids,
-                        speech_type_ids)
+                        speech_type_ids, token_pos_tag_ids, 
+                        token_senti_ids, token_utt_senti_ids)
                 elif speech_feat is not None and img_feat is not None:
                     # logger.info('[Debug] the speech feat Avaiable and img feat Avaiable')
                     embedding_output = self._compute_speech_img_txt_embeddings(
@@ -538,10 +617,12 @@ class UniterModel(UniterPreTrainedModel):
                             gather_index,
                             img_masks, speech_masks, 
                             txt_type_ids, img_type_ids,
-                            speech_type_ids)
+                            speech_type_ids, token_pos_tag_ids, 
+                            token_senti_ids, token_utt_senti_ids)
                 elif speech_feat is None and img_feat is None:
                     embedding_output = self._compute_txt_embeddings(
-                            input_ids, position_ids)
+                            input_ids, position_ids, txt_type_ids,
+                            token_pos_tag_ids, token_senti_ids, token_utt_senti_ids)
                 else:
                     logger.info('[Error] some error in UniterModel')
                     exit(0)
@@ -551,12 +632,16 @@ class UniterModel(UniterPreTrainedModel):
                     # logger.info('\t [Debug] Only the visual feat Avaiable')
                     embedding_output = self._compute_img_embeddings(
                                 img_feat, img_position_ids,
-                                img_masks, img_type_ids)
+                                img_masks, img_type_ids,
+                                token_pos_tag_ids, 
+                                token_senti_ids, token_utt_senti_ids)
                 elif speech_feat is not None and img_feat is None:
                     # logger.info('\t[Debug] Only the speech feat Avaiable')
                     embedding_output = self._compute_speech_embeddings(
                         speech_feat, speech_position_ids,
-                        speech_masks, speech_type_ids)
+                        speech_masks, speech_type_ids,
+                        token_pos_tag_ids, 
+                        token_senti_ids, token_utt_senti_ids)
                 else:
                     # logger.info('\t[Debug] both the visual and speech feat Avaiable')
                     embedding_output = self._compute_img_speech_embeddings(
@@ -564,7 +649,9 @@ class UniterModel(UniterPreTrainedModel):
                             speech_feat, speech_position_ids,
                             gather_index,
                             img_masks, speech_masks, 
-                            img_type_ids, speech_type_ids)
+                            img_type_ids, speech_type_ids,
+                            token_pos_tag_ids, 
+                            token_senti_ids, token_utt_senti_ids)
         # for model output
         encoded_layers = self.encoder(
             embedding_output, extended_attention_mask,

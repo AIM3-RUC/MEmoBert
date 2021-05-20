@@ -29,7 +29,8 @@ from code.uniter3m.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   MlmDataset, MelmDataset, MrfrDataset, MrcDataset,
                   mlm_collate, melm_collate, mrfr_collate, mrc_collate,
                   ItmDataset, itm_collate, MsrfrDataset, msrfr_collate,
-                  EmoClsDataset, emocls_collate)
+                  EmoClsDataset, emocls_collate,
+                  EmoLareDataset, emolare_collate)
 from code.uniter3m.model.pretrain import UniterForPretraining
 
 # from uniter
@@ -73,6 +74,22 @@ def build_melm_dataset(txt_db, img_db, speech_db, is_train, opts):
     else:
         dataset = MelmDataset(opts.melm_prob, txt_db, img_db, speech_db)
     return dataset, melm_collate
+
+def build_emolare_dataset(txt_db, img_db, speech_db, is_train, opts):
+    if is_train:
+        if img_db is not None and speech_db is not None:
+            datasets = [EmoLareDataset(opts.emolare_LStask_ratio, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif img_db is None and speech_db is not None:
+            datasets = [EmoLareDataset(opts.emolare_LStask_ratio, t, None, s) for t, s in zip(txt_db, speech_db)]
+        elif img_db is not None and speech_db is None:
+            datasets = [EmoLareDataset(opts.emolare_LStask_ratio, t, i, None) for t, i in zip(txt_db, img_db)]
+        else:
+            LOGGER.info('[Error] Error mlm datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = EmoLareDataset(opts.emolare_LStask_ratio, txt_db, img_db, speech_db)
+
+    return dataset, emolare_collate
 
 def build_mrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
     assert img_db != None
@@ -235,6 +252,8 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
                 dataset = build_stm_dataset(txt_db, speech_db, is_train, opts)
             elif task.startswith('vtm'):
                 dataset = build_vtm_dataset(txt_db, img_db, is_train, opts)
+            elif task.startswith('emolare'):
+                dataset = build_emolare_dataset(txt_db, img_db, speech_db, is_train, opts)
             else:
                 raise ValueError(f'Undefined task {task}')
 
@@ -469,6 +488,9 @@ def validate(model, val_dataloaders):
         elif task.startswith('stm') and args.use_speech:
             LOGGER.info("start running STM validation...")
             val_log = validate_itm(model, loader)
+        elif task.startswith('emolare'):
+            LOGGER.info("start running EmoLare validation...")
+            val_log = validate_emolare(model, loader)
         else:
             raise ValueError(f'Undefined task {task}')
         val_log = {f'{task}_{k}': v for k, v in val_log.items()}
@@ -483,18 +505,12 @@ def validate_mlm(model, val_loader):
     n_correct = 0
     n_word = 0
     st = time()
-    # for manually verification 
-    # total_labels_words = []
-    # total_predict_words = []
-    # real_mask_words = 0
     for i, batch in enumerate(val_loader):
-        # print(batch['input_ids'].size())
         scores = model(batch, task='mlm', compute_loss=False)
         labels = batch['txt_labels']
         labels = labels[labels != -1]
         loss = F.cross_entropy(scores, labels, reduction='sum')
         val_loss += loss.item()
-        # scores.max(dim=-1) return (max-values, max-value-indexs)
         n_correct += (scores.max(dim=-1)[1] == labels).sum().item()
         n_word += labels.numel()
     val_loss = sum(all_gather_list(val_loss))
@@ -508,6 +524,86 @@ def validate_mlm(model, val_loader):
                'tok_per_s': n_word/tot_time}
     LOGGER.info(f"validation finished in {int(tot_time)} seconds, "
                 f"acc: {acc*100:.2f}")
+    return val_log
+
+@torch.no_grad()
+def validate_emolare(model, val_loader):
+    LOGGER.info("start running EmoLare validation...")
+    val_loss = 0
+    n_correct = 0
+    # for pos
+    val_loss_pos = 0
+    n_correct_pos = 0
+    # for word senti
+    val_loss_wsenti = 0
+    n_correct_wsenti = 0
+    # for utt senti
+    val_loss_usenti = 0
+    n_correct_usenti = 0
+    n_word = 0
+    n_utt = 0
+    st = time()
+    for i, batch in enumerate(val_loader):
+        scores, pos_scores, wsenti_scores, usenti_scores = model(batch, task='emolare', compute_loss=False)
+        # for token prediction
+        labels = batch['txt_labels']
+        labels = labels[labels != -1]
+        loss = F.cross_entropy(scores, labels, reduction='sum')
+        val_loss += loss.item()
+        n_correct += (scores.max(dim=-1)[1] == labels).sum().item()
+        # for token pos prediction
+        pos_labels = batch['txt_pos_labels']
+        pos_labels = pos_labels[pos_labels != -1]
+        pos_loss = F.cross_entropy(pos_scores, pos_labels, reduction='sum')
+        val_loss_pos += pos_loss.item()
+        n_correct_pos += (pos_scores.max(dim=-1)[1] == pos_labels).sum().item()
+        # for token senti prediction
+        txt_senti_labels = batch['txt_senti_labels']
+        txt_senti_labels = txt_senti_labels[txt_senti_labels != -1]
+        wsenti_loss = F.cross_entropy(wsenti_scores, txt_senti_labels, reduction='sum')
+        val_loss_wsenti += wsenti_loss.item()
+        n_correct_wsenti += (wsenti_scores.max(dim=-1)[1] == txt_senti_labels).sum().item()
+        # for utt senti prediction
+        txt_utt_senti_labels = batch['sentence_polarity_label']
+        txt_utt_senti_labels = txt_utt_senti_labels[txt_utt_senti_labels != -1]
+        usenti_loss = F.cross_entropy(usenti_scores, txt_utt_senti_labels, reduction='sum')
+        val_loss_usenti += usenti_loss.item()
+        n_correct_usenti += (usenti_scores.max(dim=-1)[1] == txt_utt_senti_labels).sum().item()
+        n_word += labels.numel()
+        n_utt += labels.size(0)
+    val_loss = sum(all_gather_list(val_loss))
+    n_correct = sum(all_gather_list(n_correct))
+    # for pos 
+    val_loss_pos = sum(all_gather_list(val_loss_pos))
+    n_correct_pos = sum(all_gather_list(n_correct_pos))
+    # for w senti 
+    val_loss_wsenti = sum(all_gather_list(val_loss_wsenti))
+    n_correct_wsenti = sum(all_gather_list(n_correct_wsenti))
+    # for u senti
+    val_loss_usenti = sum(all_gather_list(val_loss_usenti))
+    n_correct_usenti = sum(all_gather_list(n_correct_usenti))
+    n_word = sum(all_gather_list(n_word))
+    n_utt = sum(all_gather_list(n_utt))
+    tot_time = time()-st
+    val_loss /= n_word
+    acc = n_correct / n_word
+    val_loss_pos /= n_word
+    acc_pos = n_correct_pos / n_word
+    val_loss_wsenti  /= n_word
+    acc_wsenti = n_correct_wsenti / n_word
+    val_loss_usenti /= n_utt
+    acc_usenti =  n_correct_usenti / n_utt
+    val_log = {'loss': val_loss,
+               'acc': acc,
+               'loss_pos': val_loss_pos,
+               'acc_pos': acc_pos,
+               'loss_wsenti': val_loss_wsenti,
+               'acc_wsenti': acc_wsenti,
+               'loss_usenti': val_loss_usenti,
+               'acc_usenti': acc_usenti,
+               'tok_per_s': n_word/tot_time}
+    LOGGER.info(f"validation finished in {int(tot_time)} seconds, "
+                f"acc: {acc*100:.2f}, acc_pos: {acc_pos*100:.2f}, acc_wsenti: {acc_wsenti*100:.2f}, acc_usenti:{acc_usenti*100:.2f} ")
     return val_log
 
 @torch.no_grad()
@@ -785,6 +881,7 @@ if __name__ == "__main__":
     parser.add_argument("--use_visual", action='store_true',  help='use visual branch')
     parser.add_argument("--emocls_type", default='soft', type=str, help='soft, hard, logits(means logits/temp)')
     parser.add_argument("--emocls_temperture", default=2.0, type=float, help='default is 2.0')
+    parser.add_argument("--emolare_LStask_ratio", default=2.0, type=float, help='default is 0.2 LS and 0.8 EF, we can choice 0.2 0.4 0.6 0.8 and so on')
 
     # training parameters
     parser.add_argument("--train_batch_size", default=4096, type=int,

@@ -20,5 +20,6 @@
   "weak_emo_category_size": 5,
   "emocls_type": "logits",
   "emocls_temperture": 2.0,
-  "vocab_size": 30522
+  "vocab_size": 30522,
+  "use_emolare": false
 }
