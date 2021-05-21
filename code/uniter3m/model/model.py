@@ -259,17 +259,17 @@ class UniterTextEmbeddings(nn.Module):
         if token_type_ids is None:
             token_type_ids = torch.zeros_like(input_ids)
         
-        if token_pos_tag_ids is None and self.pos_tag_embedding is None:
+        if token_pos_tag_ids is None:
             token_pos_tag_embeddings = 0
         else:
             token_pos_tag_embeddings = self.pos_tag_embedding(token_pos_tag_ids)
 
-        if token_senti_ids is None and self.word_senti_embedding is None:
+        if token_senti_ids is None:
             token_senti_embeddings = 0
         else:
             token_senti_embeddings = self.word_senti_embedding(token_senti_ids)
 
-        if token_utt_senti_ids is None and self.utt_senti_embedding is None:
+        if token_utt_senti_ids is None:
             token_utt_senti_embeddings = 0
         else:
             token_utt_senti_embeddings = self.utt_senti_embedding(token_utt_senti_ids)
@@ -491,9 +491,12 @@ class UniterModel(UniterPreTrainedModel):
                                         dim=1, index=gather_index)
         return embedding_output
 
-    def forward(self, batch, img_masks=None, speech_masks=None,
+    def forward(self, batch, use_emolare_input=False, img_masks=None, speech_masks=None,
                 frozen_en_layers=0, output_all_encoded_layers=False,
                 txt_type_ids=None, img_type_ids=None, speech_type_ids=None):
+        '''use_emolare_input; if True, the use the input type as SentiLARE
+        if False: the use the input type as previous.
+        '''
         input_ids = batch['input_ids']
         position_ids = batch['position_ids']
         img_feat = batch['img_feat']
@@ -502,8 +505,8 @@ class UniterModel(UniterPreTrainedModel):
         speech_position_ids = batch['speech_position_ids']
         attention_mask = batch['attn_masks']
         gather_index = batch['gather_index']
-        if self.use_emolare:
-            print('[Debug] use the LARE tasks!!!')
+        if self.config.use_emolare and use_emolare_input:
+            # print('[Debug] use the LARE tasks!!!')
             token_pos_tag_ids = batch['input_ids_pos']
             token_pos_tag_ids_labels = batch['txt_pos_labels']
             token_senti_ids = batch['input_ids_senti']

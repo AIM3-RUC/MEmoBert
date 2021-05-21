@@ -51,14 +51,16 @@ def random_lare_word(tokens, tokens_pos, tokens_senti, vocab_range, mask):
                 # -> rest 10% randomly keep current token
                 # append current token to output (we will predict these later)
                 output_token_label.append(token)
+                # 对于普通的词，如果词性是 other的话，不计算这个词的loss.
+                if ori_pos != 4:  # the pos_tag of ordinary word is not unknown
+                    output_pos_label.append(ori_pos)
+                    output_senti_label.append(ori_sen)
+                else:
+                    output_pos_label.append(-1)
+                    output_senti_label.append(-1)
             else:
                 # no masking token (will be ignored by loss function later)
                 output_token_label.append(-1)
-            # 对于普通的词，如果词性是 other的话，不计算这个词的loss.
-            if ori_pos != 4:  # the pos_tag of ordinary word is not unknown
-                output_pos_label.append(ori_p)
-                output_senti_label.append(ori_s)
-            else:
                 output_pos_label.append(-1)
                 output_senti_label.append(-1)
         else:
@@ -82,21 +84,20 @@ def random_lare_word(tokens, tokens_pos, tokens_senti, vocab_range, mask):
                 # append current token to output (we will predict these later)
                 # 对于所有mask的情感词都采用 pos 和 senti 的预测
                 output_token_label.append(token)
-                output_pos_label.append(ori_p)
-                output_senti_label.append(ori_s)
+                output_pos_label.append(ori_pos)
+                output_senti_label.append(ori_sen)
             else:
                 # no masking token (will be ignored by loss function later)
                 output_token_label.append(-1)
                 output_pos_label.append(-1)
                 output_senti_label.append(-1)  
-    if all(o == -1 for o in output_label):
+    if all(o == -1 for o in output_token_label):
         output_token_label[0] = tokens[0]
-        output_pos_label[0] = tokens[0]
-        output_senti_label[0] = tokens[0]
+        output_pos_label[0] = 4
+        output_senti_label[0] = 2
         tokens[0] = mask
         tokens_pos[0] = 4
         tokens_senti[0] = 2
-
     return tokens, tokens_pos, tokens_senti, output_token_label, output_pos_label, output_senti_label
 
 class EmoLareDataset(DetectFeatTxtTokDataset):
@@ -128,7 +129,7 @@ class EmoLareDataset(DetectFeatTxtTokDataset):
         target = example['target'] # utterance-level label
 
         # text input
-        input_ids, input_ids_pos, input_ids_senti, txt_labels, txt_pos_labels, txt_sen_labels = self.create_lare_io(
+        input_ids, input_ids_pos, input_ids_senti, txt_labels, txt_pos_labels, txt_senti_labels = self.create_lare_io(
                         input_ids, input_pos_ids, input_senti_ids)
         attn_masks = torch.ones(len(input_ids), dtype=torch.long)
 
@@ -142,7 +143,10 @@ class EmoLareDataset(DetectFeatTxtTokDataset):
             # Early Fusion
             sentence_polarity_ids = [5] + [target] * (len(input_ids)-2) + [5]
             sentence_polarity_label = [-1] * len(input_ids_pos)
-        
+        # transfer to tensor
+        sentence_polarity_ids = torch.tensor(sentence_polarity_ids, dtype=input_ids_pos.dtype)
+        sentence_polarity_label = torch.tensor(sentence_polarity_label, dtype=txt_pos_labels.dtype)
+
         if self.img_db is not None:
             # print(f'[Debug] item {i} img is not None')
             img_feat, num_bb = self._get_img_feat(example['img_fname'], self.img_shape)
@@ -162,36 +166,30 @@ class EmoLareDataset(DetectFeatTxtTokDataset):
         else:
             speech_feat = None
 
-        return input_ids, img_feat, speech_feat, attn_masks, txt_labels, input_ids_pos, txt_pos_labels, input_ids_senti, txt_sen_labels, sentence_polarity_ids, sentence_polarity_label
+        return input_ids, img_feat, speech_feat, attn_masks, txt_labels, input_ids_pos, txt_pos_labels, input_ids_senti, txt_senti_labels, sentence_polarity_ids, sentence_polarity_label
 
     def create_lare_io(self, input_ids, tokens_pos, tokens_senti):
         # emo_input_ids: input_ids 中所有的情感词的 id
         input_ids, tokens_pos, tokens_senti, output_token_labels, output_pos_labels, output_senti_labels = random_lare_word(input_ids, 
                                                 tokens_pos, tokens_senti, self.txt_db.v_range, self.txt_db.mask)
+        # print(len(input_ids), len(tokens_pos), len(tokens_senti), len(output_token_labels), len(output_pos_labels), len(output_senti_labels))
         input_ids = torch.tensor([self.txt_db.cls_] + input_ids + [self.txt_db.sep])
         input_ids_pos = torch.tensor([4] + tokens_pos + [4])
         input_ids_senti = torch.tensor([2] + tokens_senti + [2])
         txt_labels = torch.tensor([-1] + output_token_labels + [-1])
         txt_pos_labels = torch.tensor([-1] + output_pos_labels + [-1])
-        txt_sen_labels = torch.tensor([-1] + output_senti_labels + [-1])
-        return input_ids, input_ids_pos, input_ids_senti, txt_labels, txt_pos_labels, txt_sen_labels
+        txt_senti_labels = torch.tensor([-1] + output_senti_labels + [-1])
+        return input_ids, input_ids_pos, input_ids_senti, txt_labels, txt_pos_labels, txt_senti_labels
 
 
 def emolare_collate(inputs):
-    """
-    OK
+    """OK
     """
     (input_ids, img_feats, speech_feats, attn_masks, txt_labels, input_ids_pos, txt_pos_labels, \
         input_ids_senti, txt_senti_labels, sentence_polarity_ids, sentence_polarity_label) = map(list, unzip(inputs))
 
     # text batches
     txt_lens = [i.size(0) for i in input_ids]
-
-    # Jinming: here emo_type_ids is batch, so judge the element is none or not 
-    if batch_txt_emo_labels[0] is not None:
-        batch_txt_emo_labels = pad_sequence(batch_txt_emo_labels, batch_first=True, padding_value=-1)
-    else:
-        batch_txt_emo_labels = None
     # input_ids
     input_ids = pad_sequence(input_ids, batch_first=True, padding_value=0)
     txt_labels = pad_sequence(txt_labels, batch_first=True, padding_value=-1)

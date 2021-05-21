@@ -176,6 +176,7 @@ def process_jsonl(jsonf, db, toker, max_tokens=100, dataset_name="", filter_path
         example['id'] = str(_id)
         example['dataset'] = dataset_name
         example['file_path'] = img_fname
+        example['img_fname'] = img_fname
         example['toked_caption'] = tokens
         example['input_ids'] = input_ids
         example['pos_ids'] = pos_a_ids

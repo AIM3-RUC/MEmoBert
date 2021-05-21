@@ -19,41 +19,62 @@ def read_txt_db(txt_db_dir):
     txn = env.begin(buffers=True)
     return txn
 
-version = 'v1' #  v1 v2 v3
-setname = 'val3k' # trn or trn3k or val3k
-txt_db_dir = f'/data7/MEmoBert/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all_{setname}.db'
-output_txt_db_dir = f'/data7/MEmoBert/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_emocls_all_{setname}.db'
-text2img_path = os.path.join(txt_db_dir, 'txt2img.json')
+def modify_emotype(version, setname):
+    txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all_{setname}.db'
+    output_txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_emocls_all_{setname}.db'
+    text2img_path = os.path.join(txt_db_dir, 'txt2img.json')
 
-all_text2img_path = '/data7/MEmoBert/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all.db/txt2img.json'
-all_targe_path = '/data7/MEmoBert/emobert/txt_pseudo_label/movie_txt_pseudo_label_{version}.h5'
-all_textId2target = h5py.File(all_targe_path, 'r')
-all_text2img = json.load(open(all_text2img_path))
-print('total {} txts'.format(len(all_text2img)))
-assert len(all_textId2target.keys()) == len(all_text2img)
+    all_text2img_path = '/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all.db/txt2img.json'
+    all_targe_path = '/data7/emobert/txt_pseudo_label/movie_txt_pseudo_label_{version}.h5'
+    all_textId2target = h5py.File(all_targe_path, 'r')
+    all_text2img = json.load(open(all_text2img_path))
+    print('total {} txts'.format(len(all_text2img)))
+    assert len(all_textId2target.keys()) == len(all_text2img)
 
-# transfer to all imgId2target
-imgId2target = {}
-for textId in all_text2img.keys():
-    img_fname = all_text2img[textId]
-    target = all_textId2target[textId]
-    imgId2target[img_fname] = target
+    # transfer to all imgId2target
+    imgId2target = {}
+    for textId in all_text2img.keys():
+        img_fname = all_text2img[textId]
+        target = all_textId2target[textId]
+        imgId2target[img_fname] = target
 
-txn = read_txt_db(txt_db_dir)
-text2img = json.load(open(text2img_path))
-textIds = text2img.keys()
-open_db = curry(open_lmdb, output_txt_db_dir, readonly=False)
-with open_db() as db:
-    for textId in tqdm(textIds, total=len(textIds)):
-        example = msgpack.loads(decompress(txn.get(textId.encode('utf-8'))), raw=False)
-        img_fname = example['img_fname']
-        # get correct info by the img_fname
-        emoinfo = imgId2target[img_fname]
-        pred = emoinfo['pred'][0]
-        logits = emoinfo['logits'][0]
-        target = np.argmax(pred)
-        assert example['id'] == textId
-        example['soft_labels'] = np.array(pred)
-        example['logits'] = np.array(logits)
-        example['target'] = np.array(target)
-        db[textId] = example
+    txn = read_txt_db(txt_db_dir)
+    text2img = json.load(open(text2img_path))
+    textIds = text2img.keys()
+    open_db = curry(open_lmdb, output_txt_db_dir, readonly=False)
+    with open_db() as db:
+        for textId in tqdm(textIds, total=len(textIds)):
+            example = msgpack.loads(decompress(txn.get(textId.encode('utf-8'))), raw=False)
+            img_fname = example['img_fname']
+            # get correct info by the img_fname
+            emoinfo = imgId2target[img_fname]
+            pred = emoinfo['pred'][0]
+            logits = emoinfo['logits'][0]
+            target = np.argmax(pred)
+            assert example['id'] == textId
+            example['soft_labels'] = np.array(pred)
+            example['logits'] = np.array(logits)
+            example['target'] = np.array(target)
+            db[textId] = example
+
+def add_img_frame_key(version, setname):
+    txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_emolare_all_{setname}.db'
+    output_txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_emolare_all_{setname}.db_new'
+    print(output_txt_db_dir)
+    text2img_path = os.path.join(txt_db_dir, 'txt2img.json')
+    txn = read_txt_db(txt_db_dir)
+    text2img = json.load(open(text2img_path))
+    textIds = text2img.keys()
+    open_db = curry(open_lmdb, output_txt_db_dir, readonly=False)
+    with open_db() as db:
+        for textId in tqdm(textIds, total=len(textIds)):
+            example = msgpack.loads(decompress(txn.get(textId.encode('utf-8'))), raw=False)
+            img_fname = example['file_path']
+            example['img_fname'] = img_fname
+            db[textId] = example
+
+# export PYTHONPATH=/data7/MEmoBert
+if __name__ == '__main__':
+    version = 'v3' #  v1 v2 v3
+    for setname in ['val3k', 'trn3k', 'trn']:
+        add_img_frame_key(version, setname)

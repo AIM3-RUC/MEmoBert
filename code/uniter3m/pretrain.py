@@ -57,7 +57,6 @@ def build_mlm_dataset(txt_db, img_db, speech_db, is_train, opts):
         dataset = ConcatDatasetWithLens(datasets)
     else:
         dataset = MlmDataset(txt_db, img_db, speech_db)
-
     return dataset, mlm_collate
 
 def build_melm_dataset(txt_db, img_db, speech_db, is_train, opts):
@@ -232,7 +231,7 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
                           for path in dset['db']]
             else:
                 LOGGER.info(f"Loading {task} train dataset {dset['db']}")
-                txt_db = TxtTokLmdb(dset['db'][0], -1)
+                txt_db = TxtTokLmdb(dset['db'][0], max_txt_len=60)
 
             if task.startswith('mlm'):
                 dataset = build_mlm_dataset(txt_db, img_db, speech_db, is_train, opts)
@@ -541,36 +540,56 @@ def validate_emolare(model, val_loader):
     val_loss_usenti = 0
     n_correct_usenti = 0
     n_word = 0
+    n_pos = 0
+    n_wsenti = 0
     n_utt = 0
     st = time()
     for i, batch in enumerate(val_loader):
-        scores, pos_scores, wsenti_scores, usenti_scores = model(batch, task='emolare', compute_loss=False)
+        scores, pos_scores, wsenti_scores, usenti_scores, \
+                    lm_loss, pos_loss, wsenti_loss, usenti_loss = model(batch, task='emolare', compute_loss=False)
         # for token prediction
-        labels = batch['txt_labels']
-        labels = labels[labels != -1]
-        loss = F.cross_entropy(scores, labels, reduction='sum')
-        val_loss += loss.item()
-        n_correct += (scores.max(dim=-1)[1] == labels).sum().item()
+        txt_labels = batch['txt_labels']
+        batch_size = txt_labels.size(0)
+        # 做一次筛选
+        # LOGGER.info('[Debug] the lm loss {} scores is {} and labels {}'.format(lm_loss.shape, scores.shape, txt_labels.shape))
+        masked_txt_labels = txt_labels[txt_labels != -1]
+        masked_lm_loss = lm_loss.view(batch_size, -1)[txt_labels != -1]
+        masked_scores = scores[txt_labels != -1]
+        # LOGGER.info('[Debug] the masked lm loss {} masked scores is {} and masked labels {}'.format(masked_lm_loss.shape, masked_scores.shape, masked_txt_labels.shape))
+        val_loss += masked_lm_loss.mean().item()
+        n_correct += (masked_scores.max(dim=-1)[1] == masked_txt_labels).sum().item()
         # for token pos prediction
         pos_labels = batch['txt_pos_labels']
-        pos_labels = pos_labels[pos_labels != -1]
-        pos_loss = F.cross_entropy(pos_scores, pos_labels, reduction='sum')
-        val_loss_pos += pos_loss.item()
-        n_correct_pos += (pos_scores.max(dim=-1)[1] == pos_labels).sum().item()
+        masked_pos_labels = pos_labels[pos_labels != -1]
+        masked_pos_loss = pos_loss.view(batch_size, -1)[pos_labels != -1]
+        masked_pos_scores = pos_scores[pos_labels != -1]
+        val_loss_pos += masked_pos_loss.mean().item()
+        n_correct_pos += (masked_pos_scores.max(dim=-1)[1] == masked_pos_labels).sum().item()
         # for token senti prediction
         txt_senti_labels = batch['txt_senti_labels']
-        txt_senti_labels = txt_senti_labels[txt_senti_labels != -1]
-        wsenti_loss = F.cross_entropy(wsenti_scores, txt_senti_labels, reduction='sum')
-        val_loss_wsenti += wsenti_loss.item()
-        n_correct_wsenti += (wsenti_scores.max(dim=-1)[1] == txt_senti_labels).sum().item()
-        # for utt senti prediction
+        masked_txt_senti_labels = txt_senti_labels[txt_senti_labels != -1]
+        masked_wsenti_loss = wsenti_loss.view(batch_size, -1)[txt_senti_labels != -1]
+        masked_wsenti_scores = wsenti_scores[txt_senti_labels != -1]
+        val_loss_wsenti += masked_wsenti_loss.mean().item()
+        n_correct_wsenti += (masked_wsenti_scores.max(dim=-1)[1] == masked_txt_senti_labels).sum().item()
+        # for utt senti prediction, the condition of all is -1.
         txt_utt_senti_labels = batch['sentence_polarity_label']
-        txt_utt_senti_labels = txt_utt_senti_labels[txt_utt_senti_labels != -1]
-        usenti_loss = F.cross_entropy(usenti_scores, txt_utt_senti_labels, reduction='sum')
-        val_loss_usenti += usenti_loss.item()
-        n_correct_usenti += (usenti_scores.max(dim=-1)[1] == txt_utt_senti_labels).sum().item()
-        n_word += labels.numel()
-        n_utt += labels.size(0)
+        masked_utt_senti_labels = txt_utt_senti_labels[txt_utt_senti_labels != -1]
+        if masked_utt_senti_labels.size(0) == 0:
+            n_correct_usenti += 0
+            val_loss_usenti += 0
+            n_utt += 0
+        else:
+            masked_usenti_loss = usenti_loss.view(batch_size, -1)[txt_utt_senti_labels != -1]
+            masked_usenti_scores = usenti_scores[txt_utt_senti_labels != -1]
+            val_loss_usenti += masked_usenti_loss.mean().item()
+            # print(f'[Debug]masked_usenti_scores {masked_usenti_scores.shape} masked_txt_senti_labels {masked_txt_senti_labels.shape}')
+            n_correct_usenti += (masked_usenti_scores.max(dim=-1)[1] == masked_utt_senti_labels).sum().item()
+            # print(f'[Debug] cur batch n_correct_usenti {(masked_usenti_scores.max(dim=-1)[1] == masked_txt_senti_labels).sum().item()} and n_utt {masked_txt_senti_labels.numel()}')
+            n_utt += masked_utt_senti_labels.numel()
+        n_word += masked_txt_labels.numel()
+        n_pos += masked_pos_labels.numel()
+        n_wsenti += masked_txt_senti_labels.numel()
     val_loss = sum(all_gather_list(val_loss))
     n_correct = sum(all_gather_list(n_correct))
     # for pos 
@@ -583,14 +602,16 @@ def validate_emolare(model, val_loader):
     val_loss_usenti = sum(all_gather_list(val_loss_usenti))
     n_correct_usenti = sum(all_gather_list(n_correct_usenti))
     n_word = sum(all_gather_list(n_word))
+    n_pos = sum(all_gather_list(n_pos))
+    n_wsenti = sum(all_gather_list(n_wsenti))
     n_utt = sum(all_gather_list(n_utt))
     tot_time = time()-st
     val_loss /= n_word
     acc = n_correct / n_word
-    val_loss_pos /= n_word
-    acc_pos = n_correct_pos / n_word
-    val_loss_wsenti  /= n_word
-    acc_wsenti = n_correct_wsenti / n_word
+    val_loss_pos /= n_pos
+    acc_pos = n_correct_pos / n_pos
+    val_loss_wsenti  /= n_wsenti
+    acc_wsenti = n_correct_wsenti / n_wsenti
     val_loss_usenti /= n_utt
     acc_usenti =  n_correct_usenti / n_utt
     val_log = {'loss': val_loss,
@@ -884,12 +905,10 @@ if __name__ == "__main__":
     parser.add_argument("--emolare_LStask_ratio", default=2.0, type=float, help='default is 0.2 LS and 0.8 EF, we can choice 0.2 0.4 0.6 0.8 and so on')
 
     # training parameters
-    parser.add_argument("--train_batch_size", default=4096, type=int,
-                        help="Total batch size for training. "
-                             "(batch by tokens)")
-    parser.add_argument("--val_batch_size", default=4096, type=int,
-                        help="Total batch size for validation. "
-                             "(batch by tokens)")
+    parser.add_argument("--train_batch_size", default=32, type=int,
+                        help="Total batch size for training. ")
+    parser.add_argument("--val_batch_size", default=32, type=int,
+                        help="Total batch size for validation. ")
     parser.add_argument('--gradient_accumulation_steps', type=int, default=16,
                         help="Number of updates steps to accumualte before "
                              "performing a backward/update pass.")

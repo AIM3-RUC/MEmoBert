@@ -12,7 +12,7 @@ from torch.nn import functional as F
 from apex.normalization.fused_layer_norm import FusedLayerNorm as LayerNorm
 
 from code.uniter3m.model.model import UniterModel, UniterPreTrainedModel
-from code.uniter3m.lare_layers import BertPostagHead, BertSentiHead, BertPolarityHead
+from code.uniter3m.model.lare_layers import BertPostagHead, BertSentiHead, BertPolarityHead
 ## from uniter 
 from code.uniter.model.pretrain import RegionFeatureRegression, RegionClassification, EmoMelmClassification
 from code.uniter.model.layer import GELU, BertOnlyMLMHead, BertPredictionHeadTransform
@@ -66,9 +66,9 @@ class UniterForPretraining(UniterPreTrainedModel):
 
         if config.use_emolare:
             print("Use the emolare module")
-            self.pos_tag_predictions = BertPostagHead(config, self.uniter.embeddings.word_embeddings.weight)
-            self.senti_word_predictions = BertSentiHead(config, self.uniter.embeddings.word_embeddings.weight)
-            self.senti_utt_predictions = BertPolarityHead(config, self.uniter.embeddings.word_embeddings.weight)
+            self.pos_tag_predictions = BertPostagHead(config, self.uniter.embeddings.pos_tag_embedding.weight)
+            self.senti_word_predictions = BertSentiHead(config, self.uniter.embeddings.word_senti_embedding.weight)
+            self.senti_utt_predictions = BertPolarityHead(config, self.uniter.embeddings.utt_senti_embedding.weight)
 
         # for emotion classification
         self.emo_classifier = EmoClassification(
@@ -91,7 +91,7 @@ class UniterForPretraining(UniterPreTrainedModel):
         batch = defaultdict(lambda: None, batch)
         if task == 'mlm':
             txt_labels = batch['txt_labels']
-            return self.forward_mlm(batch, txt_labels, compute_loss)
+            return self.forward_mlm(batch, txt_labels, compute_loss=compute_loss)
         elif task == 'melm':
             txt_labels = batch['txt_labels']
             # jinming: add emo labels is None or int
@@ -100,32 +100,35 @@ class UniterForPretraining(UniterPreTrainedModel):
             else:
                 txt_emo_labels = None
             # print('[Debug in MELM forward] the txt_emo_labels {}'.format(txt_emo_labels))
-            return self.forward_melm(batch, txt_labels, txt_emo_labels, compute_loss)
+            return self.forward_melm(batch, txt_labels, txt_emo_labels, compute_loss=compute_loss)
         elif task == 'mrfr':
             img_mask_tgt = batch['img_mask_tgt']
             img_masks = batch['img_masks']
             mrfr_feat_target = batch['feat_targets']
             return self.forward_mrfr(batch, img_masks, img_mask_tgt,
-                                     mrfr_feat_target, compute_loss)
+                                     mrfr_feat_target, compute_loss=compute_loss)
         elif task == 'msrfr':
             speech_mask_tgt = batch['speech_mask_tgt']
             speech_masks = batch['speech_masks']
             msrfr_feat_target = batch['feat_targets']
             return self.forward_msrfr(batch, speech_masks, speech_mask_tgt,
-                                     msrfr_feat_target, compute_loss)
+                                     msrfr_feat_target, compute_loss=compute_loss)
         elif task == 'itm' or task == 'vtm' or task == 'stm':
             targets = batch['targets']
             ot_inputs = batch['ot_inputs']
-            return self.forward_itm(batch, targets, ot_inputs, compute_loss)
+            return self.forward_itm(batch, targets, ot_inputs, compute_loss=compute_loss)
         elif task.startswith('mrc'):
             img_mask_tgt = batch['img_mask_tgt']
             img_masks = batch['img_masks']
             mrc_label_target = batch['label_targets']
             return self.forward_mrc(batch, img_masks, img_mask_tgt,
-                                    mrc_label_target, task, compute_loss)
+                                    mrc_label_target, task, compute_loss=compute_loss)
         elif task == 'emocls':
             targets = batch['targets']
-            return self.forward_emocls(batch, targets, compute_loss)
+            return self.forward_emocls(batch, targets, compute_loss=compute_loss)
+        elif task == 'emolare':
+            txt_labels = batch['txt_labels']
+            return self.forward_emolare(batch, txt_labels, compute_loss=compute_loss)
         else:
             raise ValueError(f'invalid task {task}')
 
@@ -147,6 +150,7 @@ class UniterForPretraining(UniterPreTrainedModel):
             masked_lm_loss = F.cross_entropy(prediction_scores,
                                              txt_labels[txt_labels != -1],
                                              reduction='none')
+            # print('[Debug] in MLM and lmloss {}'.format(masked_lm_loss.shape)) # all validate token loss torch.Size([35])
             return masked_lm_loss
         else:
             return prediction_scores
@@ -179,6 +183,7 @@ class UniterForPretraining(UniterPreTrainedModel):
                 # print('[Debug] in MELM emoloss {}'.format(masked_emo_loss))
                 # print('[Debug] in MELM lmloss {}'.format(masked_lm_loss))
                 masked_lm_loss += self.config.melm_multitask_rate * masked_emo_loss
+            # print('[Debug] in MLM lmloss {}'.format(masked_lm_loss))
             return masked_lm_loss
         else:
             # jinming: add multitask emo classification
@@ -188,59 +193,72 @@ class UniterForPretraining(UniterPreTrainedModel):
             else:
                 return prediction_scores
     
-    def forward_emolare(self, batch, txt_labels, txt_emo_labels=None, compute_loss=True):
+    def forward_emolare(self, batch, txt_labels, use_emolare_input=True, compute_loss=True):
         '''
         Early Fusion of Emo LARE. 没有句子级别的情感分类层, 
         Late Supervised 在EF的基础上加了一个句子分类层,
         目前一个batch里面既有EF又有LS, 但是格式是一样的，所以二者几乎是一样的。
         当输入的utt-category是unknown的时候类别是什么呢？ 此时的label全是-1，所以没有loss.
-        four loss: mlm, postag, word_senti, utt_senti
+        four loss: mlm, postag, word_senti, utt_senti.
+        注意1: 计算Loss的时候需要注意，token, pos, word-senti 由于unknow词不需要预测pos和wsenti. 另外又由于 EF 和 LS 混合在一块，所以有个samples不需要预测 utt-sentiment, 
+        此时, 几个loss的batchsize都不一致, 因此需要在不需要预测位置loss进行补0.
+        注意2：多个loss需要对齐，计算的时候不能根据label=-1进行mask操作.
         '''
         input_ids = batch['input_ids']
         # (batch, max-len, dim)
-        sequence_output = self.uniter(batch, output_all_encoded_layers=False)
+        sequence_output = self.uniter(batch, use_emolare_input, output_all_encoded_layers=False)
         # get only the text part
         sequence_output = sequence_output[:, :input_ids.size(1), :]
-        # only compute masked tokens for better efficiency
-        masked_output = self._compute_masked_hidden(sequence_output,
-                                                    txt_labels != -1)
-        prediction_scores = self.cls(masked_output)
+        prediction_scores = self.cls(sequence_output)
+        # print(f'[Debug] prediction_scores {prediction_scores.shape}') # torch.Size([20, 11, 30522])
+        
         # for pos tag precition
         txt_pos_labels = batch['txt_pos_labels']
-        pos_masked_output = self._compute_masked_hidden(sequence_output,
-                                                    txt_pos_labels != -1)
-        pos_prediction_scores = self.pos_tag_predictions(pos_masked_output)
+        pos_prediction_scores = self.pos_tag_predictions(sequence_output)
+        # print(f'[Debug] pos_prediction_scores {pos_prediction_scores.shape}')
 
         # for word senti precition
         txt_senti_labels = batch['txt_senti_labels']
-        wsenti_masked_output = self._compute_masked_hidden(sequence_output,
-                                                    txt_senti_labels != -1)
-        wsenti_prediction_scores = self.senti_word_predictions(wsenti_masked_output)
-    
-        # for utt senti precition
-        sentence_polarity_label = batch['sentence_polarity_label']
-        usenti_masked_output = self._compute_masked_hidden(sequence_output,
-                                                    sentence_polarity_label != -1)
-        usenti_prediction_scores = self.senti_utt_predictions(usenti_masked_output)
+        wsenti_prediction_scores = self.senti_word_predictions(sequence_output)
+        # print(f'[Debug] wsenti_prediction_scores {wsenti_prediction_scores.shape}')
 
+        # for utt senti precition
+        sentence_polarity_labels = batch['sentence_polarity_label']
+        usenti_prediction_scores = self.senti_utt_predictions(sequence_output)
+        # print(f'[Debug] sentence_polarity_labels {sentence_polarity_labels.shape}')
+        # print(f'[Debug] usenti_prediction_scores {usenti_prediction_scores.shape}')
+
+        masked_lm_loss = F.cross_entropy(prediction_scores.view(-1, self.config.vocab_size),
+                                            txt_labels.view(-1), reduction='none', ignore_index=-1)
+        # print(f'[Debug] masked_lm_loss {masked_lm_loss}')  ## 绝大部分都是0
+        # print(f'[Debug] masked_lm_loss {masked_lm_loss.shape}')  ## torch.Size([220])
+        # 先都设置初始值为0
+        masked_pos_loss = torch.zeros_like(masked_lm_loss, device=masked_lm_loss.device)
+        masked_wsenti_loss = torch.zeros_like(masked_lm_loss, device=masked_lm_loss.device)
+        masked_usenti_loss = torch.zeros_like(masked_lm_loss, device=masked_lm_loss.device)
+        # 然后分别计算
+        # print(f'max-pos {torch.max(txt_pos_labels)}')
+        # print(f'max-wsenti {torch.max(txt_senti_labels)}')
+        # print(f'max-usenti {torch.max(sentence_polarity_labels)}')
+        masked_pos_loss += F.cross_entropy(pos_prediction_scores.view(-1, 5),
+                                            txt_pos_labels.view(-1),
+                                            reduction='none', ignore_index=-1)
+        masked_wsenti_loss += F.cross_entropy(wsenti_prediction_scores.view(-1, 3),
+                                            txt_senti_labels.view(-1),
+                                            reduction='none', ignore_index=-1)
+        masked_usenti_loss += F.cross_entropy(usenti_prediction_scores.view(-1, 6),
+                                            sentence_polarity_labels.view(-1),
+                                            reduction='none', ignore_index=-1)
+        # print(f'[Debug] masked_pos_loss {masked_pos_loss.shape}')
+        # print(f'[Debug] masked_wsenti_loss {masked_wsenti_loss.shape}')
+        # print(f'[Debug] masked_usenti_loss {masked_usenti_loss.shape}')
         if compute_loss:
-            masked_lm_loss = F.cross_entropy(prediction_scores,
-                                             txt_labels[txt_labels != -1],
-                                             reduction='none')
-            masked_pos_loss = F.cross_entropy(pos_prediction_scores,
-                                             txt_pos_labels[txt_pos_labels != -1],
-                                             reduction='none')
-            masked_wsenti_loss = F.cross_entropy(wsenti_prediction_scores,
-                                             txt_senti_labels[txt_senti_labels != -1],
-                                             reduction='none')
-            masked_usenti_loss = F.cross_entropy(usenti_prediction_scores,
-                                             sentence_polarity_label[sentence_polarity_label != -1],
-                                             reduction='none')
-           
-            toal_emolare_loss = masked_lm_loss + masked_pos_loss + masked_wsenti_loss + masked_usenti_loss
-            return toal_emolare_loss
+            total_loss = masked_lm_loss + masked_pos_loss + masked_wsenti_loss + masked_usenti_loss
+            # print('[Debug] total emolare loss {}'.format(total_loss.shape))
+            return total_loss
         else:
-            return prediction_scores, pos_prediction_scores, wsenti_prediction_scores, usenti_prediction_scores
+            return prediction_scores, pos_prediction_scores, wsenti_prediction_scores, usenti_prediction_scores, \
+                            masked_lm_loss, masked_pos_loss, masked_wsenti_loss, masked_usenti_loss
 
     def _compute_masked_hidden(self, hidden, mask):
         """ get only the masked region (don't compute unnecessary hiddens) """

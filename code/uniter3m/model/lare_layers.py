@@ -1,6 +1,7 @@
 
 import torch
 from torch import nn
+from code.uniter.model.layer import BertPredictionHeadTransform
 
 class BertPostagHead(nn.Module):
     '''
