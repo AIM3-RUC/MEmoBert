@@ -27,14 +27,14 @@ class EmoClassification(nn.Module):
                 nn.linear(hidden_size, hidden_size),
                 GELU(),
                 nn.Dropout(cls_dropout),
-                nn.Linear(hidden_size, cls_num)
+                nn.Linear(hidden_size, label_dim)
                 )
         elif cls_type == 'vqa':
             self.output = nn.Sequential(
                 nn.Linear(hidden_size, hidden_size*2), 
                 GELU(),
                 LayerNorm(hidden_size*2, eps=1e-12),
-                nn.Linear(hidden_size*2, cls_num)
+                nn.Linear(hidden_size*2, label_dim)
                 )
         elif cls_type == 'small_vqa':
             self.output = nn.Sequential(nn.Linear(hidden_size, hidden_size),
