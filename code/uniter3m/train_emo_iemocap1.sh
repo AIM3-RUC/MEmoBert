@@ -17,6 +17,7 @@ do
         frozens=0
         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
                 --cvNo ${cvNo} --use_text --use_speech --use_visual \
+                --use_emolare \
                 --model_config config/uniter-base-emoword_nomultitask_difftype_lare.json \
                 --corpus_name ${corpus_name} --cls_num 4 \
                 --config config/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_lare.json \
@@ -47,7 +48,7 @@ do
         frozens=0
         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
                 --cvNo ${cvNo} --use_text --use_speech --use_visual \
-                --use
+                --use_emolare \
                 --model_config config/uniter-base-emoword_nomultitask_difftype_lare.json \
                 --corpus_name ${corpus_name} --cls_num 4 \
                 --config config/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_lare.json \
@@ -78,6 +79,7 @@ do
         frozens=0
         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
                 --cvNo ${cvNo} --use_text --use_speech --use_visual \
+                --use_emolare \
                 --model_config config/uniter-base-emoword_nomultitask_difftype_lare.json \
                 --corpus_name ${corpus_name} --cls_num 4 \
                 --config config/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_lare.json \
@@ -108,6 +110,7 @@ do
         frozens=0
         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
                 --cvNo ${cvNo} --use_text --use_speech --use_visual \
+                --use_emolare \
                 --model_config config/uniter-base-emoword_nomultitask_difftype_lare.json \
                 --corpus_name ${corpus_name} --cls_num 4 \
                 --config config/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_lare.json \

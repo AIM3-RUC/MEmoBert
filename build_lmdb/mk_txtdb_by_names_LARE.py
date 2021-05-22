@@ -125,6 +125,7 @@ def process_jsonl(jsonf, db, toker, max_tokens=100, dataset_name="", filter_path
     random.shuffle(segmentIds) # 无返回值
     total_segmentIds = []
     total_text_lists = []
+    total_real_target_lists = []
     for segmentId in tqdm(segmentIds, total=len(segmentIds)):
         value = contents[segmentId]
         img_fname = segmentId + '.npz'
@@ -136,11 +137,14 @@ def process_jsonl(jsonf, db, toker, max_tokens=100, dataset_name="", filter_path
             continue
         total_segmentIds.append(img_fname)
         total_text_lists.append(value['txt'][0])
+        if isinstance(value['label'], str):
+            value['label'] = int(value['label'])
+        total_real_target_lists.append(value['label'])
         if num_samples > 0 and num_samples == len(total_segmentIds):
             print('just sample {} as the part val set'.format(num_samples))
             break
-    print('Debug the processing samples {}'.format(len(total_text_lists), len(total_segmentIds)))
-    assert len(total_segmentIds) == len(total_text_lists)
+    print('Debug the processing samples {}'.format(len(total_text_lists), len(total_segmentIds), len(total_real_target_lists)))
+    assert len(total_segmentIds) == len(total_text_lists) == len(total_real_target_lists)
     # get weak-label list
     segmentId2emoinfo = get_weak_lable_list(corpus_name)
     print('[Debug] get the total segmentId2emoinfo {}'.format(len(segmentId2emoinfo)))
@@ -158,7 +162,7 @@ def process_jsonl(jsonf, db, toker, max_tokens=100, dataset_name="", filter_path
     assert len(total_label_list) == len(total_logits_list) == len(total_probs_list) == len(total_segmentIds)
     print('[Debug] process the total utts and get pos and word-senti')
     clean_sent_list, pos_list, senti_list, clean_label_list = process_text(total_text_lists, total_label_list, sentinet, gloss_embedding, gloss_embedding_norm)
-    assert len(clean_sent_list) == len(senti_list) == len(pos_list) == len(total_segmentIds)
+    assert len(clean_sent_list) == len(senti_list) == len(pos_list) == len(total_segmentIds) ==len(total_real_target_lists)
     assert len(clean_label_list) == len(total_label_list)
     print('[Debug] process sub-tokens')
     for i in range(len(total_text_lists)):
@@ -184,7 +188,8 @@ def process_jsonl(jsonf, db, toker, max_tokens=100, dataset_name="", filter_path
         example['word_senti_ids'] = senti_a_ids
         example['soft_labels'] = total_probs_list[i]
         example['logits'] = total_logits_list[i]
-        example['target'] = total_label_list[i]
+        example['weak_target'] = total_label_list[i]
+        example['target'] = total_real_target_lists[i]
         # print('[Debug] img_fname {}'.format(img_fname))
         # print('[Debug] tokens {}'.format(example['toked_caption']))
         # print('[Debug] input_ids {}'.format(example['input_ids']))

@@ -55,10 +55,10 @@ class EmoClsDataset(DetectFeatTxtTokDataset):
             attn_masks = torch.ones(len(input_ids), dtype=torch.long)
             if self.use_emolare:
                 # text pos 
-                input_ids_pos = torch.tensor([4] + example['pos_ids'] + [4])
-                input_ids_senti = torch.tensor([2] + example['word_senti_ids'] + [2])
+                input_pos_ids = torch.tensor([4] + example['pos_ids'] + [4])
+                input_senti_ids = torch.tensor([2] + example['word_senti_ids'] + [2])
                 # text u-senti, use the unknown seq instead at inference stage
-                sentence_polarity_ids = [5] * len(input_ids)
+                sentence_polarity_ids = torch.tensor([5] * len(input_ids))
             else:
                 input_pos_ids, input_senti_ids, sentence_polarity_ids = None, None, None       
         else:
@@ -118,15 +118,15 @@ def emocls_collate(inputs):
         position_ids = torch.arange(0, input_ids.size(1), dtype=torch.long
                                     ).unsqueeze(0)
         if input_pos_ids[0] is not None:
-            input_ids_pos = pad_sequence(input_ids_pos, batch_first=True, padding_value=4)
-            input_ids_senti = pad_sequence(input_ids_senti, batch_first=True, padding_value=2)
+            input_pos_ids = pad_sequence(input_pos_ids, batch_first=True, padding_value=4)
+            input_senti_ids = pad_sequence(input_senti_ids, batch_first=True, padding_value=2)
             # input_ids_senti
             sentence_polarity_ids = pad_sequence(sentence_polarity_ids, batch_first=True, padding_value=5)
         else:
-            input_ids_pos, input_ids_senti, sentence_polarity_ids = None, None, None
+            input_pos_ids, input_senti_ids, sentence_polarity_ids = None, None, None
     else:
         txt_lens, input_ids, position_ids = None, None, None
-        input_ids_pos, input_ids_senti, sentence_polarity_ids = None, None, None
+        input_pos_ids, input_senti_ids, sentence_polarity_ids = None, None, None
 
     if img_feats[0] is not None:
         ## image batches
@@ -184,8 +184,8 @@ def emocls_collate(inputs):
              'txt_lens': txt_lens,
              'img_lens': num_bbs,
              'img_frame_names': batch_frame_names,
-             'input_ids_pos': input_ids_pos, 
-             'input_ids_senti': input_ids_senti, 
+             'input_ids_pos': input_pos_ids, 
+             'input_ids_senti': input_senti_ids, 
              'sentence_polarity_ids': sentence_polarity_ids
              }
     return batch
