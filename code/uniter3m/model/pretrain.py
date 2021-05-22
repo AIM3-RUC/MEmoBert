@@ -24,17 +24,17 @@ class EmoClassification(nn.Module):
         if cls_type == 'emocls':
             self.output = nn.Sequential(
                 nn.Dropout(cls_dropout),
-                nn.linear(config.hidden_size, config.hidden_size),
+                nn.linear(hidden_size, hidden_size),
                 GELU(),
                 nn.Dropout(cls_dropout),
-                nn.Linear(config.hidden_size, cls_num)
+                nn.Linear(hidden_size, cls_num)
                 )
         elif cls_type == 'vqa':
             self.output = nn.Sequential(
-                nn.Linear(config.hidden_size, config.hidden_size*2), 
+                nn.Linear(hidden_size, hidden_size*2), 
                 GELU(),
-                LayerNorm(config.hidden_size*2, eps=1e-12),
-                nn.Linear(config.hidden_size*2, cls_num)
+                LayerNorm(hidden_size*2, eps=1e-12),
+                nn.Linear(hidden_size*2, cls_num)
                 )
         elif cls_type == 'small_vqa':
             self.output = nn.Sequential(nn.Linear(hidden_size, hidden_size),
