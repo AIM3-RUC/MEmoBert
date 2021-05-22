@@ -47,7 +47,7 @@ class EmoClassification(nn.Module):
             exit(0)
 
     def forward(self, input_):
-        output = self.net(input_)
+        output = self.output(input_)
         return output
 
 class UniterForPretraining(UniterPreTrainedModel):
