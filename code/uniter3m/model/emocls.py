@@ -15,6 +15,7 @@ from torch.nn import CrossEntropyLoss
 from apex.normalization.fused_layer_norm import FusedLayerNorm as LayerNorm
 from sklearn.metrics import accuracy_score, recall_score, f1_score, confusion_matrix
 from code.uniter3m.model.model import UniterPreTrainedModel, UniterModel
+from code.uniter3m.model.pretrain import EmoClassification
 ## from uniter
 from code.uniter.model.layer import GELU
 from code.uniter.utils.misc import NoOp
@@ -24,7 +25,7 @@ class UniterForEmoRecognition(UniterPreTrainedModel):
     """
     def __init__(self, config, img_dim, speech_dim, cls_num, frozen_en_layers, \
                         use_visual, use_speech, \
-                        cls_dropout=0.5, cls_type='vqa'):
+                        cls_dropout=0.5, cls_type='vqa', use_emolare=False):
         '''
         cls_type: "emocls" is similar with  https://github.com/brightmart/roberta_zh/blob/master/run_classifier.py#L478
         and "vqa" is similar with official-uniter/model/vqa.py 
@@ -32,21 +33,8 @@ class UniterForEmoRecognition(UniterPreTrainedModel):
         super().__init__(config)
         self.uniter = UniterModel(config, img_dim, speech_dim, use_visual, use_speech)
         ## for paraphrase loss
-        if cls_type == 'emocls':
-            self.output = nn.Sequential(
-                nn.Dropout(cls_dropout),
-                nn.Linear(config.hidden_size, cls_num)
-                )
-        elif cls_type == 'vqa':
-            self.output = nn.Sequential(
-                nn.Linear(config.hidden_size, config.hidden_size*2), 
-                GELU(),
-                LayerNorm(config.hidden_size*2, eps=1e-12),
-                nn.Linear(config.hidden_size*2, cls_num)
-                )
-        else:
-            print("------- [Error] classifier type {}".format(cls_type))
-            exit(0)
+        self.output = EmoClassification(config.hidden_size, cls_num, cls_type=cls_type)
+        self.use_emolare = use_emolare
         self.frozen_en_layers = frozen_en_layers
         self.criterion = CrossEntropyLoss()
         self.apply(self.init_weights)
@@ -57,14 +45,13 @@ class UniterForEmoRecognition(UniterPreTrainedModel):
         else the the function will return the logits = (batch, cls_num)
         '''
         batch = defaultdict(lambda: None, batch)
-        sequence_output = self.uniter(batch, frozen_en_layers=self.frozen_en_layers,
+        sequence_output = self.uniter(batch, use_emolare_input=self.use_emolare, frozen_en_layers=self.frozen_en_layers,
                                       output_all_encoded_layers=False)
         # the output of the first token [CLS]
         pooled_output = self.uniter.pooler(sequence_output)
         logits = self.output(pooled_output)
         # one-hot targets
         self.pred = torch.softmax(logits, dim=-1)
-        
         if compute_loss:
             cls_loss = self.criterion(logits, batch['targets'])
             return cls_loss

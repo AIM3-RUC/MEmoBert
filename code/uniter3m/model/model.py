@@ -508,15 +508,10 @@ class UniterModel(UniterPreTrainedModel):
         if self.config.use_emolare and use_emolare_input:
             # print('[Debug] use the LARE tasks!!!')
             token_pos_tag_ids = batch['input_ids_pos']
-            token_pos_tag_ids_labels = batch['txt_pos_labels']
             token_senti_ids = batch['input_ids_senti']
-            token_senti_ids_labels = batch['txt_senti_labels']
             token_utt_senti_ids = batch['sentence_polarity_ids']
-            token_utt_senti_ids_labels = batch['sentence_polarity_label']
         else:
-            token_pos_tag_ids, token_pos_tag_ids_labels = None, None
-            token_senti_ids, token_senti_ids_labels = None, None
-            token_utt_senti_ids, token_utt_senti_ids_labels = None, None
+            token_pos_tag_ids, token_senti_ids, token_utt_senti_ids,  = None, None, None
 
         # compute self-attention mask
         extended_attention_mask = attention_mask.unsqueeze(1).unsqueeze(2)

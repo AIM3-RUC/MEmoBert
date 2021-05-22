@@ -19,12 +19,32 @@ from code.uniter.model.layer import GELU, BertOnlyMLMHead, BertPredictionHeadTra
 
 class EmoClassification(nn.Module):
     " for the emotion classification, with kl-loss"
-    def __init__(self, hidden_size, label_dim):
+    def __init__(self, hidden_size, label_dim, cls_type='small_vqa'):
         super().__init__()
-        self.net = nn.Sequential(nn.Linear(hidden_size, hidden_size),
-                                 GELU(),
-                                 LayerNorm(hidden_size, eps=1e-12),
-                                 nn.Linear(hidden_size, label_dim))
+        if cls_type == 'emocls':
+            self.output = nn.Sequential(
+                nn.Dropout(cls_dropout),
+                nn.linear(config.hidden_size, config.hidden_size),
+                GELU(),
+                nn.Dropout(cls_dropout),
+                nn.Linear(config.hidden_size, cls_num)
+                )
+        elif cls_type == 'vqa':
+            self.output = nn.Sequential(
+                nn.Linear(config.hidden_size, config.hidden_size*2), 
+                GELU(),
+                LayerNorm(config.hidden_size*2, eps=1e-12),
+                nn.Linear(config.hidden_size*2, cls_num)
+                )
+        elif cls_type == 'small_vqa':
+            self.output = nn.Sequential(nn.Linear(hidden_size, hidden_size),
+                                    GELU(),
+                                    LayerNorm(hidden_size, eps=1e-12),
+                                    nn.Linear(hidden_size, label_dim)
+                                    )
+        else:
+            print("------- [Error] classifier type {}".format(cls_type))
+            exit(0)
 
     def forward(self, input_):
         output = self.net(input_)
@@ -195,6 +215,7 @@ class UniterForPretraining(UniterPreTrainedModel):
     
     def forward_emolare(self, batch, txt_labels, use_emolare_input=True, compute_loss=True):
         '''
+        use_emolare_input: must be true
         Early Fusion of Emo LARE. 没有句子级别的情感分类层, 
         Late Supervised 在EF的基础上加了一个句子分类层,
         目前一个batch里面既有EF又有LS, 但是格式是一样的，所以二者几乎是一样的。

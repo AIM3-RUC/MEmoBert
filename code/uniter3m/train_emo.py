@@ -95,7 +95,7 @@ def main(opts):
         else:
             speech_db = None
         print(type(txt_db), type(img_db), type(speech_path))
-        train_datasets.append(EmoClsDataset(txt_db, img_db, speech_db, use_text=opts.use_text))
+        train_datasets.append(EmoClsDataset(txt_db, img_db, speech_db, use_text=opts.use_text, use_emolare=opts.use_emolare))
     train_dataset = ConcatDataset(train_datasets)
 
     LOGGER.info("Loading no image_data_augmentation for validation and testing")
@@ -118,7 +118,7 @@ def main(opts):
         val_speech_db = eval_all_speech_dbs[opts.val_speech_db]
     else:
         val_speech_db = None
-    val_dataset = EmoClsDataset(val_txt_db, val_img_db, val_speech_db, use_text=opts.use_text)
+    val_dataset = EmoClsDataset(val_txt_db, val_img_db, val_speech_db, use_text=opts.use_text, use_emolare=opts.use_emolare)
     val_dataloader = build_dataloader(val_dataset, emocls_collate, False, opts)
     # test
     LOGGER.info(f"Loading Test Dataset {opts.test_img_db}, {opts.test_txt_db} {opts.test_speech_db}")
@@ -132,7 +132,7 @@ def main(opts):
         test_speech_db = eval_all_speech_dbs[opts.test_speech_db]
     else:
         test_speech_db = None
-    test_dataset = EmoClsDataset(test_txt_db, test_img_db, test_speech_db, use_text=opts.use_text)
+    test_dataset = EmoClsDataset(test_txt_db, test_img_db, test_speech_db, use_text=opts.use_text, use_emolare=opts.use_emolare)
     test_dataloader = build_dataloader(test_dataset, emocls_collate, False, opts)
 
     # Prepare model
@@ -143,11 +143,12 @@ def main(opts):
         checkpoint = {}
 
     model = UniterForEmoRecognition.from_pretrained(opts.model_config, state_dict=checkpoint, \
-                            img_dim=IMG_DIM, speech_dim=Speech_DIM,
-                            use_visual=opts.use_visual, use_speech=opts.use_speech,
+                            img_dim=IMG_DIM, speech_dim=Speech_DIM, \
+                            use_visual=opts.use_visual, use_speech=opts.use_speech, \
                             cls_num=opts.cls_num, \
                             frozen_en_layers=opts.frozen_en_layers, \
-                            cls_dropout=opts.cls_dropout, cls_type=opts.cls_type)
+                            cls_dropout=opts.cls_dropout, cls_type=opts.cls_type, \
+                            use_emolare=opts.use_emolare)
 
     # print('[Debug] {}'.format(model.state_dict()['emoBert.visual_encoder.visualfront.frontend3D.1.weight']))
     # print('[Debug] {}'.format(model.state_dict()['emoBert.text_encoder.encoder.layer.0.attention.output.LayerNorm.weight']))
@@ -352,6 +353,7 @@ if __name__ == "__main__":
     parser.add_argument("--use_speech", action='store_true',  help='use speech branch')
     parser.add_argument("--use_visual", action='store_true',  help='use visual branch')
     parser.add_argument("--use_text", action='store_true',  help='use text branch')
+    parser.add_argument("--use_emolare", action='store_true',  help='use label aware as input of text branch')
 
     # training parameters
     parser.add_argument("--train_batch_size", default=128, type=int,

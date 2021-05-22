@@ -13,13 +13,14 @@ from code.uniter3m.data.data import (DetectFeatTxtTokDataset, TxtTokLmdb, \
                    pad_tensors, get_gather_index, get_gather_index_notxtdb)
                    
 class EmoClsDataset(DetectFeatTxtTokDataset):
-    def __init__(self, txt_db, img_db=None, speech_db=None, emocls_type='hard', use_text=True):
+    def __init__(self, txt_db, img_db=None, speech_db=None, emocls_type='hard', use_text=True, use_lare=False):
         assert isinstance(txt_db, TxtTokLmdb)
         super().__init__(txt_db, img_db, speech_db)
         # emocls_type: default is hard, use the hard label for downstream tasks
         self.img_shape = None
         self.emocls_type = emocls_type
         self.use_text = use_text
+        self.use_lare = use_lare
 
         if not self.use_text and speech_db is None and img_db is None:
             print('[Error] all modalities are None')
@@ -52,8 +53,16 @@ class EmoClsDataset(DetectFeatTxtTokDataset):
             input_ids = example['input_ids']
             input_ids = torch.tensor([self.txt_db.cls_] + input_ids + [self.txt_db.sep])
             attn_masks = torch.ones(len(input_ids), dtype=torch.long)
+            if self.use_lare:
+                # text pos 
+                input_ids_pos = torch.tensor([4] + example['pos_ids'] + [4])
+                input_ids_senti = torch.tensor([2] + example['word_senti_ids'] + [2])
+                # text u-senti, use the unknown seq instead at inference stage
+                sentence_polarity_ids = [5] * len(input_ids)
+            else:
+                input_pos_ids, input_senti_ids, sentence_polarity_ids = None, None, None       
         else:
-            input_ids, attn_masks = None, None
+            input_ids, attn_masks, input_pos_ids, input_senti_ids, sentence_polarity_ids = None, None, None, None, None
 
         img_fname = example['img_fname']
         if self.img_db is not None:
@@ -84,7 +93,7 @@ class EmoClsDataset(DetectFeatTxtTokDataset):
         # for visualization
         frame_name = example['img_fname']
         # print("[Debug empty] txt {} img {}".format(len(input_ids), num_bb))
-        return input_ids, img_feat, speech_feat, attn_masks, target, frame_name
+        return input_ids, img_feat, speech_feat, attn_masks, target, frame_name, input_pos_ids, input_senti_ids, sentence_polarity_ids
 
 def emocls_collate(inputs):
     """
@@ -97,7 +106,8 @@ def emocls_collate(inputs):
     :num_bbs      list of [num_bb], real num_bbs
     :attn_masks   (n, max_{L + num_bb}) padded with 0
     """
-    (input_ids, img_feats, speech_feats, attn_masks, targets, batch_frame_names) = map(list, unzip(inputs))
+    (input_ids, img_feats, speech_feats, attn_masks, targets, batch_frame_names, \
+                                input_pos_ids, input_senti_ids, sentence_polarity_ids) = map(list, unzip(inputs))
     
     attn_masks = pad_sequence(attn_masks, batch_first=True, padding_value=0)
 
@@ -107,8 +117,16 @@ def emocls_collate(inputs):
         input_ids = pad_sequence(input_ids, batch_first=True, padding_value=0)
         position_ids = torch.arange(0, input_ids.size(1), dtype=torch.long
                                     ).unsqueeze(0)
+        if input_pos_ids[0] is not None:
+            input_ids_pos = pad_sequence(input_ids_pos, batch_first=True, padding_value=4)
+            input_ids_senti = pad_sequence(input_ids_senti, batch_first=True, padding_value=2)
+            # input_ids_senti
+            sentence_polarity_ids = pad_sequence(sentence_polarity_ids, batch_first=True, padding_value=5)
+        else:
+            input_ids_pos, input_ids_senti, sentence_polarity_ids = None, None, None
     else:
         txt_lens, input_ids, position_ids = None, None, None
+        input_ids_pos, input_ids_senti, sentence_polarity_ids = None, None, None
 
     if img_feats[0] is not None:
         ## image batches
@@ -165,6 +183,9 @@ def emocls_collate(inputs):
              'targets': targets,
              'txt_lens': txt_lens,
              'img_lens': num_bbs,
-             'img_frame_names': batch_frame_names
+             'img_frame_names': batch_frame_names,
+             'input_ids_pos': input_ids_pos, 
+             'input_ids_senti': input_ids_senti, 
+             'sentence_polarity_ids': sentence_polarity_ids
              }
     return batch

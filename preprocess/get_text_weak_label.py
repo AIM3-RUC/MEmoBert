@@ -55,6 +55,7 @@ def read_txt_db(txt_db_dir):
     txn = env.begin(buffers=True)
     return txn
 
+
 if __name__ == '__main__':
     # from transformers import BertTokenizer
     # tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
@@ -62,20 +63,27 @@ if __name__ == '__main__':
     # print(ids)
     # input()
     # cls 101 sep 102
+    
+    corpus_name = 'MSP'
+    setname = 'trn'  # only for IEMOCAP and MSP
     version = 3
     device = torch.device('cuda:0')
     model_dir = '/data10/lrc/movie_dataset/pretrained_model/bert_movie_model'
     model = BertClassifier.from_pretrained(model_dir, num_classes=5, embd_method='max')
     model.to(device)
     model.eval()
-    txt_db_dir = f'/data7/MEmoBert/emobert/txt_db/movies_v{version}_th0.5_emowords_sentiword_all.db'
+    if corpus_name == 'movies':
+        txt_db_dir = f'/data7/emobert/txt_db/movies_v{version}_th0.5_emowords_sentiword_all.db'
+        save_path = f'/data7/emobert/txt_pseudo_label/movie_txt_pseudo_label_v{version}.h5'
+    else:
+        corpus_name_low = corpus_name.lower()
+        txt_db_dir = f'/data7/emobert/exp/evaluation/{corpus_name}/txt_db/1/{setname}_emowords_sentiword.db/'
+        save_path = f'/data7/emobert/txt_pseudo_label/{corpus_name_low}_txt_pseudo_label_{setname}.h5'
     text2img_path = os.path.join(txt_db_dir, 'txt2img.json')
     txn = read_txt_db(txt_db_dir)
     text2img = json.load(open(text2img_path))
     print('total {} txts'.format(len(text2img)))
-    save_path = f'/data7/MEmoBert/emobert/txt_pseudo_label/movie_txt_pseudo_label_v{version}.h5'
     save_h5f = h5py.File(save_path, 'w')
-
     for key in tqdm(text2img.keys()):
         item = msgpack.loads(decompress(txn.get(key.encode('utf-8'))), raw=False)
         # {'neutral': 0, 'happiness': 1, 'surprise': 2, 'sadness': 3, 'anger': 4}
@@ -88,7 +96,6 @@ if __name__ == '__main__':
         with torch.no_grad():
             logits, _ = model.forward(input_ids, masks)
             pred = nn.functional.softmax(logits, dim=-1)
-        
         # print(item['toked_caption'])
         # print(logits)
         # print(pred)
