@@ -13,14 +13,14 @@ from code.uniter3m.data.data import (DetectFeatTxtTokDataset, TxtTokLmdb, \
                    pad_tensors, get_gather_index, get_gather_index_notxtdb)
                    
 class EmoClsDataset(DetectFeatTxtTokDataset):
-    def __init__(self, txt_db, img_db=None, speech_db=None, emocls_type='hard', use_text=True, use_lare=False):
+    def __init__(self, txt_db, img_db=None, speech_db=None, emocls_type='hard', use_text=True, use_emolare=False):
         assert isinstance(txt_db, TxtTokLmdb)
         super().__init__(txt_db, img_db, speech_db)
         # emocls_type: default is hard, use the hard label for downstream tasks
         self.img_shape = None
         self.emocls_type = emocls_type
         self.use_text = use_text
-        self.use_lare = use_lare
+        self.use_emolare = use_emolare
 
         if not self.use_text and speech_db is None and img_db is None:
             print('[Error] all modalities are None')
@@ -53,7 +53,7 @@ class EmoClsDataset(DetectFeatTxtTokDataset):
             input_ids = example['input_ids']
             input_ids = torch.tensor([self.txt_db.cls_] + input_ids + [self.txt_db.sep])
             attn_masks = torch.ones(len(input_ids), dtype=torch.long)
-            if self.use_lare:
+            if self.use_emolare:
                 # text pos 
                 input_ids_pos = torch.tensor([4] + example['pos_ids'] + [4])
                 input_ids_senti = torch.tensor([2] + example['word_senti_ids'] + [2])
