@@ -14,7 +14,7 @@ from apex.normalization.fused_layer_norm import FusedLayerNorm as LayerNorm
 from code.uniter3m.model.model import UniterModel, UniterPreTrainedModel
 from code.uniter3m.model.lare_layers import BertPostagHead, BertSentiHead, BertPolarityHead
 ## from uniter 
-from code.uniter.model.pretrain import RegionFeatureRegression, RegionClassification, EmoMelmClassification
+from code.uniter.model.pretrain import RegionFeatureRegression, RegionClassification
 from code.uniter.model.layer import GELU, BertOnlyMLMHead, BertPredictionHeadTransform
 
 class EmoClassification(nn.Module):
@@ -37,11 +37,12 @@ class EmoClassification(nn.Module):
                 nn.Linear(hidden_size*2, label_dim)
                 )
         elif cls_type == 'small_vqa':
-            self.output = nn.Sequential(nn.Linear(hidden_size, hidden_size),
-                                    GELU(),
-                                    LayerNorm(hidden_size, eps=1e-12),
-                                    nn.Linear(hidden_size, label_dim)
-                                    )
+            self.output = nn.Sequential(
+                nn.Linear(hidden_size, hidden_size),
+                GELU(),
+                LayerNorm(hidden_size, eps=1e-12),
+                nn.Linear(hidden_size, label_dim)
+                )
         else:
             print("------- [Error] classifier type {}".format(cls_type))
             exit(0)
@@ -79,10 +80,9 @@ class UniterForPretraining(UniterPreTrainedModel):
 
         # Jinming: add for melm multi-task
         if config.melm_multitask is True:
-            print("Use the melm multitask")
-            self.emomelm_classifier = EmoMelmClassification(
-                config.hidden_size, config.melm_emo_category_size
-            )
+            print("Use the melm multitask, default use the ")
+            self.emomelm_classifier = EmoClassification(
+                config.hidden_size, config.melm_emo_category_size, cls_type='vqa')
 
         if config.use_emolare:
             print("Use the emolare module")
@@ -92,7 +92,7 @@ class UniterForPretraining(UniterPreTrainedModel):
 
         # for emotion classification
         self.emo_classifier = EmoClassification(
-                config.hidden_size, config.weak_emo_category_size)
+                config.hidden_size, config.weak_emo_category_size, cls_type='vqa')
         # for image-text matching
         self.itm_output = nn.Linear(config.hidden_size, 2)
         self.apply(self.init_weights)
