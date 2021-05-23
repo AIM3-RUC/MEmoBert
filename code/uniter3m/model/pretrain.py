@@ -19,12 +19,12 @@ from code.uniter.model.layer import GELU, BertOnlyMLMHead, BertPredictionHeadTra
 
 class EmoClassification(nn.Module):
     " for the emotion classification, with kl-loss"
-    def __init__(self, hidden_size, label_dim, cls_type='small_vqa'):
+    def __init__(self, hidden_size, label_dim, cls_dropout=0.1, cls_type='small_vqa'):
         super().__init__()
         if cls_type == 'emocls':
             self.output = nn.Sequential(
                 nn.Dropout(cls_dropout),
-                nn.linear(hidden_size, hidden_size),
+                nn.Linear(hidden_size, hidden_size),
                 GELU(),
                 nn.Dropout(cls_dropout),
                 nn.Linear(hidden_size, label_dim)

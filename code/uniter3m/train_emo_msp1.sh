@@ -8,7 +8,7 @@ for lr in 2e-5 5e-5
 do
     for cvNo in $(seq 1 12)
     do
-        for clstype in vqa small_vqa emocls
+        for clstype in emocls
         do
         num_train_steps=1500
         valid_steps=100
@@ -39,7 +39,7 @@ for lr in 2e-5 5e-5
 do
     for cvNo in $(seq 1 12)
     do
-        for clstype in vqa small_vqa emocls
+        for clstype in emocls
         do
         num_train_steps=1500
         valid_steps=100
@@ -83,7 +83,7 @@ do
                 --model_config config/uniter-base-emoword_nomultitask_difftype_lare.json \
                 --corpus_name ${corpus_name} --cls_num 4 \
                 --config config/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_lare.json \
-                --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclslare0.2_withitm_vstype2_lr5e5_bs1024/ckpt/model_step_20000.pt \
+                --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclslare0.2_noitm_vstype2_lr5e5_bs1024/ckpt/model_step_20000.pt \
                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type ${clstype} --postfix none \
                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
                 --IMG_DIM 342 --Speech_DIM 768 \
@@ -114,7 +114,7 @@ do
                 --model_config config/uniter-base-emoword_nomultitask_difftype_lare.json \
                 --corpus_name ${corpus_name} --cls_num 4 \
                 --config config/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_lare.json \
-                --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclslare0.4_withitm_vstype2_lr5e5_bs1024/ckpt/model_step_20000.pt \
+                --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclslare0.4_noitm_vstype2_lr5e5_bs1024/ckpt/model_step_20000.pt \
                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type ${clstype} --postfix none \
                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
                 --IMG_DIM 342 --Speech_DIM 768 \

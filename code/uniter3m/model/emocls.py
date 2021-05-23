@@ -25,7 +25,7 @@ class UniterForEmoRecognition(UniterPreTrainedModel):
     """
     def __init__(self, config, img_dim, speech_dim, cls_num, frozen_en_layers, \
                         use_visual, use_speech, \
-                        cls_dropout=0.5, cls_type='vqa', use_emolare=False):
+                        cls_dropout=0.1, cls_type='vqa', use_emolare=False):
         '''
         cls_type: "emocls" is similar with  https://github.com/brightmart/roberta_zh/blob/master/run_classifier.py#L478
         and "vqa" is similar with official-uniter/model/vqa.py 
@@ -33,7 +33,7 @@ class UniterForEmoRecognition(UniterPreTrainedModel):
         super().__init__(config)
         self.uniter = UniterModel(config, img_dim, speech_dim, use_visual, use_speech)
         ## for paraphrase loss
-        self.output = EmoClassification(config.hidden_size, cls_num, cls_type=cls_type)
+        self.output = EmoClassification(config.hidden_size, cls_num, cls_dropout=cls_dropout, cls_type=cls_type)
         self.use_emolare = use_emolare
         self.frozen_en_layers = frozen_en_layers
         self.criterion = CrossEntropyLoss()
