@@ -91,14 +91,15 @@ def get_weak_lable_list(corpus_name):
     return imgId2target
 
 def modify_emotype_downstream(corpus_name, cvNo, setname):
+    # target 关键词是留给下游任务的真实标注的。
     txt_db_dir = f'/data7/emobert/exp/evaluation/{corpus_name.upper()}/txt_db/{cvNo}/{setname}_emowords_sentiword.db'
-    txt_db_dir_bak = f'/data7/emobert/exp/evaluation/{corpus_name.upper()}/txt_db/{cvNo}/{setname}_emowords_sentiword.db_back'
-    shutil.copytree(txt_db_dir, txt_db_dir_bak)
-    text2img_path = os.path.join(txt_db_dir_bak, 'txt2img.json')
-    txn = read_txt_db(txt_db_dir_bak)
+    txt_db_dir_new = f'/data7/emobert/exp/evaluation/{corpus_name.upper()}/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls.db'
+    shutil.copytree(txt_db_dir, txt_db_dir_new)
+    text2img_path = os.path.join(txt_db_dir, 'txt2img.json')
+    txn = read_txt_db(txt_db_dir)
     text2img = json.load(open(text2img_path))
     textIds = text2img.keys()
-    open_db = curry(open_lmdb, txt_db_dir, readonly=False)
+    open_db = curry(open_lmdb, txt_db_dir_new, readonly=False)
     with open_db() as db:
         for textId in tqdm(textIds, total=len(textIds)):
             example = msgpack.loads(decompress(txn.get(textId.encode('utf-8'))), raw=False)
@@ -107,11 +108,9 @@ def modify_emotype_downstream(corpus_name, cvNo, setname):
             emoinfo = imgId2target[img_fname]
             pred = emoinfo['pred'][0]
             logits = emoinfo['logits'][0]
-            target = np.argmax(pred)
             assert example['id'] == textId
             example['soft_labels'] = np.array(pred)
             example['logits'] = np.array(logits)
-            example['target'] = np.array(target)
             db[textId] = example
 
 # export PYTHONPATH=/data7/MEmoBert

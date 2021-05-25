@@ -34,7 +34,7 @@
         {
             "name": "msp_trn",
             "db": [
-                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/trn_emowords_sentiword.db"
+                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/trn_emowords_sentiword_emocls.db"
             ],
             "img": [
                 "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/"
@@ -62,7 +62,7 @@
         {
             "name": "msp_trnval",
             "db": [
-                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/val_emowords_sentiword.db"
+                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/val_emowords_sentiword_emocls.db"
             ],
             "img": [
                 "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/"
@@ -92,7 +92,7 @@
         {
             "name": "msp_val",
             "db": [
-                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/val_emowords_sentiword.db"
+                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/val_emowords_sentiword_emocls.db"
             ],
             "img": [
                 "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/"
@@ -112,7 +112,7 @@
         {
             "name": "msp_tst",
             "db": [
-                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/tst_emowords_sentiword.db"
+                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/tst_emowords_sentiword_emocls.db"
             ],
             "img": [
                 "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/"
