@@ -47,10 +47,12 @@
                 "mlm",
                 "melm",
                 "mrfr",
-                "mrckl"     
+                "mrckl",     
+                "emocls"     
             ],
             "mix_ratio": [
                 2,
+                1,
                 1,
                 1,
                 1,
@@ -73,10 +75,12 @@
                 "mlm",
                 "melm",
                 "mrfr",
-                "mrckl"     
+                "mrckl",
+                "emocls"     
             ],
             "mix_ratio": [
                 2,
+                1,
                 1,
                 1,
                 1,
@@ -101,7 +105,8 @@
                 "mlm",
                 "melm",
                 "mrfr",
-                "mrckl"             
+                "mrckl",             
+                "emocls"             
             ]
         },
         {
@@ -120,7 +125,8 @@
                 "mlm",
                 "melm",
                 "mrfr",
-                "mrckl"           
+                "mrckl",
+                "emocls"           
             ]
         }
     ]

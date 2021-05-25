@@ -63,7 +63,6 @@ if __name__ == '__main__':
     # print(ids)
     # input()
     # cls 101 sep 102
-    
     corpus_name = 'MSP'
     setname = 'trn'  # only for IEMOCAP and MSP
     version = 3

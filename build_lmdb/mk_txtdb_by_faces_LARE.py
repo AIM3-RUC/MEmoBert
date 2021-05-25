@@ -75,8 +75,8 @@ def bert_id2token(tokenizer, ids):
 
 def get_weak_lable_list(version):
     # version, v1, v2, or v3
-    all_text2img_path = f'/data7/MEmoBert/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all.db/txt2img.json'
-    all_targe_path = f'/data7/MEmoBert/emobert/txt_pseudo_label/movie_txt_pseudo_label_{version}.h5'
+    all_text2img_path = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all.db/txt2img.json'
+    all_targe_path = f'/data7/emobert/txt_pseudo_label/movie_txt_pseudo_label_{version}.h5'
     all_textId2target = h5py.File(all_targe_path, 'r')
     all_text2img = json.load(open(all_text2img_path))
     assert len(all_textId2target.keys()) == len(all_text2img)
