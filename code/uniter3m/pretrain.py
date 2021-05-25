@@ -613,10 +613,10 @@ def validate_emolare(model, val_loader):
     val_loss_wsenti  /= n_wsenti
     acc_wsenti = n_correct_wsenti / n_wsenti
     if n_utt == 0:
+        val_loss_usenti, acc_usenti =0, 0
+    else:
         val_loss_usenti /= n_utt
         acc_usenti =  n_correct_usenti / n_utt
-    else:
-        val_loss_usenti, acc_usenti =0, 0
     val_log = {'loss': val_loss,
                'acc': acc,
                'loss_pos': val_loss_pos,
