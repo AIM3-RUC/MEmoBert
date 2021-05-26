@@ -35,10 +35,12 @@ def open_lmdb(db_dir, readonly=False):
 
 class DetectFeatLmdb(object):
     def __init__(self, img_dir, conf_th=0.2, max_bb=100, min_bb=10, compress=False):
-        self.img_dir = img_dir
         # read the generated json file
-        db_name = f'feat_th{conf_th}_max{max_bb}_min{min_bb}'
-        nbb = f'nbb_th{conf_th}_max{max_bb}_min{min_bb}.json'
+        db_name = img_dir.split('/')[-1]
+        nbb = db_name.replace('feat', 'nbb') + '.json'
+        print(db_name, nbb)
+        img_dir = img_dir.replace(db_name, '')
+        print(img_dir)
         print("[Debug] Loading Image db {}".format(db_name))
         if not exists(f'{img_dir}/{nbb}'):
             print('[Error]: nbb is not pre-computed and the json-file may be error!')
@@ -185,31 +187,23 @@ def get_gather_index_notxtdb(num_bbs, num_frames, batch_size, max_bb, out_size):
     return gather_index
 
 class ImageLmdbGroup(object):
-    def __init__(self, conf_th, max_bb, min_bb, compress):
+    def __init__(self, compress):
         self.path2imgdb = {}
-        self.conf_th = conf_th
-        self.max_bb = max_bb
-        self.min_bb = min_bb
         self.compress = compress
 
     def __getitem__(self, path):
         img_db = self.path2imgdb.get(path, None)
         if img_db is None:
-            img_db = DetectFeatLmdb(path, self.conf_th, self.max_bb,
-                                    self.min_bb, self.compress)
+            img_db = DetectFeatLmdb(path, self.compress)
         return img_db
 
 class SpeechLmdbGroup(object):
-    def __init__(self, speech_conf_th, max_frames, min_frames, compress):
+    def __init__(self, compress):
         self.path2imgdb = {}
-        self.conf_th = speech_conf_th
-        self.max_bb = max_frames
-        self.min_bb = min_frames
         self.compress = compress
 
     def __getitem__(self, path):
         img_db = self.path2imgdb.get(path, None)
         if img_db is None:
-            img_db = DetectFeatLmdb(path, self.conf_th, self.max_bb,
-                                    self.min_bb, self.compress)
+            img_db = DetectFeatLmdb(path, self.compress)
         return img_db

@@ -77,11 +77,9 @@ def main(opts):
     LOGGER.info("Loading Train Dataset {} {}".format(opts.train_txt_dbs, opts.train_img_dbs,
                                                         opts.train_speech_dbs))
     if opts.use_visual:
-        train_all_img_dbs = ImageLmdbGroup(opts.conf_th, opts.max_bb, opts.min_bb, \
-                        compress=opts.compressed_db)
+        train_all_img_dbs = ImageLmdbGroup(compress=opts.compressed_db)
     if opts.use_speech:
-        train_speech_dbs = SpeechLmdbGroup(opts.speech_conf_th, opts.max_frames, opts.min_frames, \
-                        compress=opts.compressed_db)
+        train_speech_dbs = SpeechLmdbGroup(compress=opts.compressed_db)
     train_datasets = []
     for txt_path, img_path, speech_path in zip(opts.train_txt_dbs, opts.train_img_dbs, opts.train_speech_dbs):
         txt_path = txt_path.format(opts.cvNo)
@@ -100,11 +98,9 @@ def main(opts):
 
     LOGGER.info("Loading no image_data_augmentation for validation and testing")
     if opts.use_visual:
-        eval_all_img_dbs = ImageLmdbGroup(opts.conf_th, opts.max_bb, opts.min_bb, \
-                                        compress=opts.compressed_db)
+        eval_all_img_dbs = ImageLmdbGroup(compress=opts.compressed_db)
     if opts.use_speech:
-        eval_all_speech_dbs = SpeechLmdbGroup(opts.speech_conf_th, opts.max_frames, opts.min_frames, \
-                                    compress=opts.compressed_db)
+        eval_all_speech_dbs = SpeechLmdbGroup(compress=opts.compressed_db)
                                 
     # val
     LOGGER.info(f"Loading Val Dataset {opts.val_img_db}, {opts.val_txt_db}, {opts.val_speech_db}")

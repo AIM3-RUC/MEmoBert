@@ -159,6 +159,9 @@ def process_jsonl(jsonf, db, toker, max_tokens=100, dataset_name="", filter_path
             if len(input_ids) > max_tokens:
                 print('[Debug] inputs len {}'.format(len(input_ids)))
                 input_ids = input_ids[:max_tokens]
+            if len(input_ids) == 0:
+                # print(f'[Debug] {segmentId} inputs len {len(input_ids)}')
+                continue
             tokens = bert_id2token(toker, input_ids)
             txt2img[_id] = img_fname
             img2txt[img_fname].append(str(_id))

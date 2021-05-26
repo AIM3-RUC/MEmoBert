@@ -209,12 +209,11 @@ def build_eitm_dataset(txt_db, img_db, speech_db, emo2img_fname_path, is_train, 
 def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_dbs=None):
     if all_img_dbs is None and opts.use_visual:
         LOGGER.info('[Debug] Use ImageLmdbGroup')
-        all_img_dbs = ImageLmdbGroup(opts.conf_th, opts.max_bb, opts.min_bb, opts.compressed_db)
+        all_img_dbs = ImageLmdbGroup(opts.compressed_db)
     
     if all_speech_dbs is None and opts.use_speech:
         LOGGER.info('[Debug] Use SpeechLmdbGroup')
-        all_speech_dbs = SpeechLmdbGroup(opts.speech_conf_th, opts.max_frames, opts.min_frames,
-                                       opts.compressed_db)
+        all_speech_dbs = SpeechLmdbGroup(opts.compressed_db)
     dataloaders = {}
     for dset in datasets:
         if is_train:

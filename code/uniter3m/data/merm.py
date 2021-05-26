@@ -8,19 +8,25 @@ Train No Evil: Selective Masking for Task-Guided Pre-Training. 2020 EMNLP
 """
 
 import random
+import numpy as np
 import torch
 from torch.nn.utils.rnn import pad_sequence
 from toolz.sandbox import unzip
 from code.uniter3m.data.data import DetectFeatTxtTokDataset, pad_tensors, get_gather_index
-
 # from uniter 
 from code.uniter.data.mrm import _get_feat_target, _mask_img_feat, _get_targets
 
-def _get_emo_img_mask(mask_prob, num_bb):
+def _get_emo_img_mask(mask_prob, num_bb, soft_labels):
     '''
-    mask 情感显著帧--Going
+    # emo-list: ['neu', 'hap', 'sur', 'sad', 'ang', 'dis', 'fea', 'con']
+    mask 情感显著帧, 如果某帧的情感类别不是neu, 那么以50%的概率遮蔽, 
     '''
-    img_mask = [random.random() < mask_prob for _ in range(num_bb)]
+    for index in range(num_bb):
+        emo_cate = np.argmax(soft_labels[index])
+        if emo_cate > 0:
+            prob = random.
+            if prob < 0.3:
+                img_mask = [random.random() < mask_prob ]
     if not any(img_mask):
         # at least mask 1
         img_mask[random.choice(range(num_bb))] = True
@@ -74,7 +80,7 @@ class MermDataset(DetectFeatTxtTokDataset):
         else:
             speech_feat, num_frame = None, 0
 
-        img_mask = _get_img_mask(self.mask_prob, num_bb)
+        img_mask = _get_img_mask(self.mask_prob, num_bb, )
         img_mask_tgt = _get_img_tgt_mask(img_mask, len(input_ids), num_frame)
         return (input_ids, img_feat, speech_feat, attn_masks, img_mask, img_mask_tgt)
 
