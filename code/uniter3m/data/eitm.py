@@ -22,12 +22,14 @@ from code.uniter3m.data.data import (DetectFeatTxtTokDataset, DetectFeatLmdb, Tx
 # from uniter 
 from code.uniter.data.itm import TokenBucketSamplerForItm, sample_negative
 
-class EmDataset(DetectFeatTxtTokDataset):
+class EItmDataset(DetectFeatTxtTokDataset):
     """ NOTE this Dataset handles distributed training itself
-    (for more efficient negative sampling) """
-    def __init__(self, txt_db, img_db, speech_db, emo2img_frames_path, neg_sample_p=0.5,):
+    (for more efficient negative sampling)
+     """
+    def __init__(self, txt_db, img_db, speech_db, emo2img_fname_path, neg_sample_p=0.5,):
         '''
-        emo2img_frames_path: 需要提供一个根据文本情感来确定
+        相较与ITM来说，唯一的变化就是改变了负例的筛选策略
+        emo2img_fname_path: 需要提供一个根据文本情感来确定
         '''
         assert isinstance(txt_db, TxtTokLmdb)
         if img_db is not None:
@@ -42,9 +44,9 @@ class EmDataset(DetectFeatTxtTokDataset):
         self.img_shape = None
 
         self.txt_lens, self.ids = get_ids_and_lens(txt_db)
-
-        self.emo2img_frames = pkl.load(open(emo2img_frames_path, 'rb'))
-        self.emolist = list(emo2img_frames.keys())
+        print(emo2img_fname_path)
+        self.emo2img_fnames = pkl.load(open(emo2img_fname_path, 'rb'))
+        self.emolist = list(self.emo2img_fnames.keys())
 
         self.neg_sample_p = neg_sample_p
         self.new_epoch()
@@ -65,9 +67,12 @@ class EmDataset(DetectFeatTxtTokDataset):
             emo_category = super().__getitem__(i)['target']
             if self.labels[i] == 0:
                 # 随机选择一个除此类别之外的一个情感中的图片作为负面例子
-                neg_emo = random.sample(self.emolist.remove(emo_category))
-                img_fname = sample_negative(self.emo2img_frames[neg_emo], [img_fname], 1)[0]
-                self.emolist = list(emo2img_frames.keys())
+                # print(f'original img frame {img_fname}')
+                self.emolist.remove(emo_category)
+                neg_emo = random.sample(self.emolist, 1)[0]
+                img_fname = sample_negative(self.emo2img_fnames[neg_emo], [img_fname], 1)[0]
+                # print(f'[Debug in eimt] negative sample emo {neg_emo} and img_fname {img_fname}')
+                self.emolist = list(self.emo2img_fnames.keys())
 
             self.train_imgs.append(img_fname)
             if self.img_db is not None and self.speech_db is None:
@@ -109,7 +114,7 @@ class EmDataset(DetectFeatTxtTokDataset):
         return input_ids, img_feat, speech_feat, attn_masks, target
 
 
-def itm_collate(inputs):
+def eitm_collate(inputs):
     (input_ids, img_feats, speech_feats, attn_masks, targets) = map(list, unzip(inputs))
 
     txt_lens = [i.size(0) for i in input_ids]

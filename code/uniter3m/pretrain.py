@@ -30,7 +30,8 @@ from code.uniter3m.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   mlm_collate, melm_collate, mrfr_collate, mrc_collate,
                   ItmDataset, itm_collate, MsrfrDataset, msrfr_collate,
                   EmoClsDataset, emocls_collate,
-                  EmoLareDataset, emolare_collate)
+                  EmoLareDataset, emolare_collate,
+                  EItmDataset, eitm_collate)
 from code.uniter3m.model.pretrain import UniterForPretraining
 
 # from uniter
@@ -189,6 +190,22 @@ def build_stm_dataset(txt_db, speech_db, is_train, opts):
     collate_fn = itm_collate
     return dataset, collate_fn
 
+def build_eitm_dataset(txt_db, img_db, speech_db, emo2img_fname_path, is_train, opts):
+    if is_train:
+        if img_db is not None and speech_db is not None:
+            datasets = [EItmDataset(t, i, s, p, opts.itm_neg_prob) for t, i, s, p in zip(txt_db, img_db, speech_db, emo2img_fname_path)]
+        elif img_db is None and speech_db is not None:
+            datasets = [EItmDataset(t, None, s, p, opts.itm_neg_prob) for t, s, p in zip(txt_db, speech_db, emo2img_fname_path)]
+        elif img_db is not None and speech_db is None:
+            datasets = [EItmDataset(t, i, None, p, opts.itm_neg_prob) for t, i, p in zip(txt_db, img_db, emo2img_fname_path)]
+        else:
+            LOGGER.info('[Error] Error eitm datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = EItmDataset(txt_db, img_db, speech_db, emo2img_fname_path[0], opts.itm_neg_prob)
+    collate_fn = eitm_collate
+    return dataset, collate_fn
+
 def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_dbs=None):
     if all_img_dbs is None and opts.use_visual:
         LOGGER.info('[Debug] Use ImageLmdbGroup')
@@ -251,6 +268,10 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
                 dataset = build_stm_dataset(txt_db, speech_db, is_train, opts)
             elif task.startswith('vtm'):
                 dataset = build_vtm_dataset(txt_db, img_db, is_train, opts)
+            elif task.startswith('eitm'):
+                emo2img_fname_path = dset['emo2imgfname']
+                LOGGER.info(f'[Info] emo2img_fname_path {emo2img_fname_path}')
+                dataset = build_eitm_dataset(txt_db, img_db, speech_db, emo2img_fname_path, is_train, opts)
             elif task.startswith('emolare'):
                 dataset = build_emolare_dataset(txt_db, img_db, speech_db, is_train, opts)
             else:
@@ -261,10 +282,10 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
                 # itm handles distributed training in dset not sampler
                 loader = build_dataloader_itm(*dataset, is_train, opts)
             elif task.startswith('vtm'):
-                # itm handles distributed training in dset not sampler
                 loader = build_dataloader_itm(*dataset, is_train, opts)
             elif task.startswith('stm'):
-                # itm handles distributed training in dset not sampler
+                loader = build_dataloader_itm(*dataset, is_train, opts)
+            elif task.startswith('eitm'):
                 loader = build_dataloader_itm(*dataset, is_train, opts)
             else:
                 loader = build_dataloader(*dataset, is_train, opts)
@@ -378,15 +399,9 @@ def main(opts):
         n_in_units[name] += (batch['attn_masks'] == 1).sum().item()
         task = name.split('_')[0]
         loss = model(batch, task=task, compute_loss=True)
-        if task.startswith('itm') or task.startswith('vtm') or task.startswith('stm'):
-            itm_loss, ot_loss = loss
-            n_loss_units[name] += itm_loss.size(0)
-            itm_loss = itm_loss.mean()
-            loss = itm_loss
-        else:
-            n_loss_units[name] += loss.size(0)
-            loss = loss.mean()  # loss is not normalized in model
 
+        n_loss_units[name] += loss.size(0)
+        loss = loss.mean()  # loss is not normalized in model
         # backward pass
         delay_unscale = (step+1) % opts.gradient_accumulation_steps != 0
         with amp.scale_loss(loss, optimizer, delay_unscale=delay_unscale,
@@ -486,6 +501,9 @@ def validate(model, val_dataloaders):
             val_log = validate_itm(model, loader)
         elif task.startswith('stm') and args.use_speech:
             LOGGER.info("start running STM validation...")
+            val_log = validate_itm(model, loader)
+        elif task.startswith('eitm') and args.use_speech:
+            LOGGER.info("start running EITM validation...")
             val_log = validate_itm(model, loader)
         elif task.startswith('emolare'):
             LOGGER.info("start running EmoLare validation...")
@@ -820,7 +838,7 @@ def validate_itm(model, val_loader):
     n_ex = 0
     st = time()
     for i, batch in enumerate(val_loader):
-        scores, ot_loss = model(batch, task='itm', compute_loss=False)
+        scores = model(batch, task='itm', compute_loss=False)
         targets = batch['targets']
         loss = F.cross_entropy(scores, targets, reduction='sum')
         val_loss += loss.item()

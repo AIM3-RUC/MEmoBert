@@ -95,6 +95,7 @@ class UniterForPretraining(UniterPreTrainedModel):
                 config.hidden_size, config.weak_emo_category_size, cls_type='vqa')
         # for image-text matching
         self.itm_output = nn.Linear(config.hidden_size, 2)
+        self.eitm_output = nn.Linear(config.hidden_size, 2)
         self.apply(self.init_weights)
 
     def forward(self, batch, task, compute_loss=True):
@@ -133,10 +134,12 @@ class UniterForPretraining(UniterPreTrainedModel):
             msrfr_feat_target = batch['feat_targets']
             return self.forward_msrfr(batch, speech_masks, speech_mask_tgt,
                                      msrfr_feat_target, compute_loss=compute_loss)
-        elif task == 'itm' or task == 'vtm' or task == 'stm':
+        elif task == 'itm' or task == 'vtm' or task == 'stm' or task == 'eitm':
             targets = batch['targets']
-            ot_inputs = batch['ot_inputs']
-            return self.forward_itm(batch, targets, ot_inputs, compute_loss=compute_loss)
+            return self.forward_itm(batch, targets, compute_loss=compute_loss)
+        elif task == 'eitm':
+            targets = batch['targets']
+            return self.forward_eitm(batch, targets, compute_loss=compute_loss)
         elif task.startswith('mrc'):
             img_mask_tgt = batch['img_mask_tgt']
             img_masks = batch['img_masks']
@@ -322,19 +325,26 @@ class UniterForPretraining(UniterPreTrainedModel):
             return prediction_feat
 
 
-    def forward_itm(self, batch, targets, ot_inputs,
-                    compute_loss=True):
+    def forward_itm(self, batch, targets, compute_loss=True):
         sequence_output = self.uniter(batch, output_all_encoded_layers=False)
         pooled_output = self.uniter.pooler(sequence_output)
         itm_scores = self.itm_output(pooled_output)
 
-        ot_loss = None
-
         if compute_loss:
             itm_loss = F.cross_entropy(itm_scores, targets, reduction='none')
-            return itm_loss, ot_loss
+            return itm_loss
         else:
-            return itm_scores, ot_loss
+            return itm_scores
+    
+    def forward_eitm(self, batch, targets, compute_loss=True):
+        sequence_output = self.uniter(batch, output_all_encoded_layers=False)
+        pooled_output = self.uniter.pooler(sequence_output)
+        eitm_scores = self.eitm_output(pooled_output)
+        if compute_loss:
+            eitm_loss = F.cross_entropy(eitm_scores, targets, reduction='none')
+            return eitm_loss
+        else:
+            return eitm_scores
     
     def forward_emocls(self, batch, targets, compute_loss=True):
         '''

@@ -14,3 +14,4 @@ from .mrm import MrfrDataset, MrcDataset, mrfr_collate, mrc_collate
 from .emocls import EmoClsDataset, emocls_collate
 from .msrm import MsrfrDataset, msrfr_collate
 from .emolare import EmoLareDataset, emolare_collate
+from .eitm import EItmDataset, eitm_collate
