@@ -193,16 +193,16 @@ def build_stm_dataset(txt_db, speech_db, is_train, opts):
 def build_eitm_dataset(txt_db, img_db, speech_db, emo2img_fname_path, is_train, opts):
     if is_train:
         if img_db is not None and speech_db is not None:
-            datasets = [EItmDataset(t, i, s, p, opts.itm_neg_prob) for t, i, s, p in zip(txt_db, img_db, speech_db, emo2img_fname_path)]
+            datasets = [EItmDataset(t, i, s, p, opts.use_total_eitm, opts.itm_neg_prob) for t, i, s, p in zip(txt_db, img_db, speech_db, emo2img_fname_path)]
         elif img_db is None and speech_db is not None:
-            datasets = [EItmDataset(t, None, s, p, opts.itm_neg_prob) for t, s, p in zip(txt_db, speech_db, emo2img_fname_path)]
+            datasets = [EItmDataset(t, None, s, p, opts.use_total_eitm, opts.itm_neg_prob) for t, s, p in zip(txt_db, speech_db, emo2img_fname_path)]
         elif img_db is not None and speech_db is None:
-            datasets = [EItmDataset(t, i, None, p, opts.itm_neg_prob) for t, i, p in zip(txt_db, img_db, emo2img_fname_path)]
+            datasets = [EItmDataset(t, i, None, p, opts.use_total_eitm, opts.itm_neg_prob) for t, i, p in zip(txt_db, img_db, emo2img_fname_path)]
         else:
             LOGGER.info('[Error] Error eitm datasets')
         dataset = ConcatDatasetWithLens(datasets)
     else:
-        dataset = EItmDataset(txt_db, img_db, speech_db, emo2img_fname_path[0], opts.itm_neg_prob)
+        dataset = EItmDataset(txt_db, img_db, speech_db, emo2img_fname_path[0], opts.use_total_eitm, opts.itm_neg_prob)
     collate_fn = eitm_collate
     return dataset, collate_fn
 
@@ -924,6 +924,7 @@ if __name__ == "__main__":
     parser.add_argument("--emocls_type", default='soft', type=str, help='soft, hard, logits(means logits/temp)')
     parser.add_argument("--emocls_temperture", default=2.0, type=float, help='default is 2.0')
     parser.add_argument("--emolare_LStask_ratio", default=2.0, type=float, help='default is 0.2 LS and 0.8 EF, we can choice 0.2 0.4 0.6 0.8 and so on')
+    parser.add_argument("--use_total_eitm", action='store_true',  help='use random sample postive(same emo) and negative(diff emo) samples')
 
     # training parameters
     parser.add_argument("--train_batch_size", default=32, type=int,

@@ -26,10 +26,11 @@ class EItmDataset(DetectFeatTxtTokDataset):
     """ NOTE this Dataset handles distributed training itself
     (for more efficient negative sampling)
      """
-    def __init__(self, txt_db, img_db, speech_db, emo2img_fname_path, neg_sample_p=0.5,):
+    def __init__(self, txt_db, img_db, speech_db, emo2img_fname_path, use_total_eitm, neg_sample_p=0.5):
         '''
         相较与ITM来说，唯一的变化就是改变了负例的筛选策略
         emo2img_fname_path: 需要提供一个根据文本情感来确定
+        use_total_eitm: if True 正例也要随意任取
         '''
         assert isinstance(txt_db, TxtTokLmdb)
         if img_db is not None:
@@ -42,9 +43,9 @@ class EItmDataset(DetectFeatTxtTokDataset):
         self.img_db = img_db
         self.speech_db = speech_db
         self.img_shape = None
+        self.use_total_eitm = use_total_eitm
 
         self.txt_lens, self.ids = get_ids_and_lens(txt_db)
-        print(emo2img_fname_path)
         self.emo2img_fnames = pkl.load(open(emo2img_fname_path, 'rb'))
         self.emolist = list(self.emo2img_fnames.keys())
 
@@ -65,14 +66,23 @@ class EItmDataset(DetectFeatTxtTokDataset):
         for i, (id_, tl) in enumerate(zip(self.ids, self.txt_lens)):
             img_fname = super().__getitem__(i)['img_fname']
             emo_category = super().__getitem__(i)['target']
+            emo_category = int(emo_category)
             if self.labels[i] == 0:
                 # 随机选择一个除此类别之外的一个情感中的图片作为负面例子
                 # print(f'original img frame {img_fname}')
                 self.emolist.remove(emo_category)
+                # print(f'[Debug in eimt] current emolist {self.emolist}')
                 neg_emo = random.sample(self.emolist, 1)[0]
                 img_fname = sample_negative(self.emo2img_fnames[neg_emo], [img_fname], 1)[0]
                 # print(f'[Debug in eimt] negative sample emo {neg_emo} and img_fname {img_fname}')
                 self.emolist = list(self.emo2img_fnames.keys())
+
+            if self.use_total_eitm:
+                if self.labels[i] == 1:
+                    # 随机选择一个类别的一个情感中的图片作为正面例子
+                    # print(f'original postive img frame {img_fname}')
+                    img_fname = random.sample(list(self.emo2img_fnames[emo_category]), 1)[0]
+                    # print(f'[Debug in eimt] postive sample emo img_fname {img_fname}')
 
             self.train_imgs.append(img_fname)
             if self.img_db is not None and self.speech_db is None:
