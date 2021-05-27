@@ -287,6 +287,7 @@ class UniterTextEmbeddings(nn.Module):
 
         embeddings = self.LayerNorm(embeddings)
         embeddings = self.dropout(embeddings)
+        
         return embeddings
 
 class UniterSpeechEmbeddings(nn.Module):
@@ -297,6 +298,18 @@ class UniterSpeechEmbeddings(nn.Module):
         # 因此当不采用visual信息的时候,可以采用共享文本的token-type.
         '''
         self.speech_linear = nn.Linear(speech_dim, config.hidden_size)
+
+        if config.use_projs_av_modality:
+            logger.info('[Debug] add one more linear for speech modality')
+            self.projs_linear = nn.Sequential(
+                nn.Linear(config.hidden_size, config.hidden_size),
+                GELU(),
+                FusedLayerNorm(config.hidden_size, eps=1e-12),
+                nn.Dropout(config.hidden_dropout_prob)
+            )
+        else:
+            self.projs_linear = None
+            
         self.speech_layer_norm = FusedLayerNorm(config.hidden_size, eps=1e-12)
         self.position_embeddings = nn.Embedding(config.max_position_embeddings,
                                                 config.hidden_size)
@@ -323,10 +336,13 @@ class UniterSpeechEmbeddings(nn.Module):
 
         transformed_speech = self.speech_layer_norm(self.speech_linear(speech_feat))
         position_embeddings = self.position_embeddings(speech_position_ids)
-       
         embeddings = transformed_speech + position_embeddings + speech_type_embeddings
         embeddings = self.LayerNorm(embeddings)
         embeddings = self.dropout(embeddings)
+
+        if self.projs_linear is not None:
+            embeddings = self.projs_linear(embeddings)
+
         return embeddings
 
 class UniterEncoder(nn.Module):
