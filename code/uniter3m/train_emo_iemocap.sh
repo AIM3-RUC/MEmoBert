@@ -23,8 +23,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_wav2vec_text_3tasks_mlmitmmsrfr_train10w-lr${lr}_train${num_train_steps}_trnval_frozen${frozens}
@@ -52,8 +50,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_vstype2_train10w-lr${lr}_train${num_train_steps}_trnval_frozen${frozens}
@@ -80,8 +76,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_vstype2-lr${lr}_train${num_train_steps}_trnval
@@ -107,8 +101,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2-FinetuneAL-lr${lr}_train${num_train_steps}_trnval
@@ -134,8 +126,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2-FinetuneVL-lr${lr}_train${num_train_steps}_trnval
@@ -161,8 +151,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2-FinetuneL-lr${lr}_train${num_train_steps}_trnval
@@ -188,8 +176,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2-FinetuneA-lr${lr}_train${num_train_steps}_trnval
@@ -215,8 +201,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2-FinetuneV-lr${lr}_train${num_train_steps}_trnval
@@ -242,8 +226,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2-FinetuneAV-lr${lr}_train${num_train_steps}_trnval
@@ -269,8 +251,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-directTrain-uniter3m_wav2vec_text-lr${lr}_train${num_train_steps}_trnval
@@ -296,8 +276,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-directTrain-uniter3m_visual_wav2vec_text-lr${lr}_train${num_train_steps}_trnval
@@ -323,8 +301,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-directTrain-uniter3m_visual_wav2vec_text_vstype2-lr${lr}_train${num_train_steps}_trnval
@@ -351,8 +327,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_text_4tasks-lr${lr}_train${num_train_steps}_trnval
@@ -378,8 +352,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_text_4tasks_melmsentiword-lr${lr}_train${num_train_steps}_trnval
@@ -399,8 +371,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_wav2vec_text_3tasks_melmsentiword-lr${lr}_train${num_train_steps}_trnval
@@ -427,8 +397,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-taskpretrain-movies_v1v2v3_uniter3m_visual_text_4tasks-lr${lr}_train${num_train_steps}_trnval
@@ -454,8 +422,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_6tasks_vstype2-lr${lr}_train${num_train_steps}_trnval
@@ -482,8 +448,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_7tasks_vstype2_train10w-lr${lr}_train${num_train_steps}_trnval_frozen${frozens}
@@ -510,8 +474,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclslare0.2_vstype2_train2w-lr${lr}_train${num_train_steps}_trnval_nopos
@@ -537,8 +499,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclslare0.4_vstype2_train2w-lr${lr}_train${num_train_steps}_trnval_nopos
@@ -564,8 +524,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclslare0.2_vstype2_train2w-lr${lr}_train${num_train_steps}_trnval_nopos
@@ -591,8 +549,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclslare0.4_vstype2_train2w-lr${lr}_train${num_train_steps}_trnval_nopos
@@ -621,8 +577,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type ${clstype} --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclslare0.2_vstype2_train2w-lr${lr}_${clstype}_train${num_train_steps}_trnval_pos
@@ -652,8 +606,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type ${clstype} --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclslare0.4_vstype2_train2w-lr${lr}_${clstype}_train${num_train_steps}_trnval_pos
@@ -683,8 +635,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type ${clstype} --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclslare0.2_vstype2_train2w-lr${lr}_${clstype}_train${num_train_steps}_trnval_pos
@@ -714,8 +664,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type ${clstype} --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclslare0.4_vstype2_train2w-lr${lr}_${clstype}_train${num_train_steps}_trnval_pos
@@ -745,8 +693,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type ${clstype} --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclslare0.0_withitm_vstype2_train3w-lr${lr}_${clstype}_train${num_train_steps}_trnval_pos
@@ -776,8 +722,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type ${clstype} --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_emoclslare1.0_withitm_vstype2_train3w-lr${lr}_${clstype}_train${num_train_steps}_trnval_pos
@@ -804,8 +748,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_nomlm_withmelm_nomultitask_vstype2-FinetuneAVL-lr${lr}_train${num_train_steps}_trnval
@@ -831,8 +773,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-taskpretrain-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2-4tasks_emoclsSoft_noitm_trnval-lr${lr}_trnval
@@ -858,8 +798,6 @@ corpus_name='iemocap'
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
 #                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --conf_th 0.0 --max_bb 36 --min_bb 10 \
-#                 --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-taskpretrain-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2-5tasks_emoclsSoft_withitm_trnval-lr${lr}_trnval
@@ -885,8 +823,6 @@ do
                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
                 --IMG_DIM 342 --Speech_DIM 768 \
-                --conf_th 0.0 --max_bb 36 --min_bb 10 \
-                --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclsSoft_eitm_vstype2-lr${lr}_trnval
@@ -912,8 +848,6 @@ do
                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
                 --IMG_DIM 342 --Speech_DIM 768 \
-                --conf_th 0.0 --max_bb 36 --min_bb 10 \
-                --speech_conf_th 1.0 --max_frames 64 --min_frames 10 \
                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_eitm_vstype2-lr${lr}_trnval
