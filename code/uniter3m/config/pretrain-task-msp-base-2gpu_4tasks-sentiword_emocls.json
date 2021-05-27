@@ -63,10 +63,10 @@
                 "/data7/emobert/exp/evaluation/MSP/txt_db/{}/val_emowords_sentiword_emocls.db"
             ],
             "img": [
-                "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/"
+                "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/feat_th0.0_max36_min10"
             ],
             "speech": [
-                "/data7/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/"
+                "/data7/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10"
             ],
             "tasks": [
                 "mlm",
@@ -91,10 +91,10 @@
                 "/data7/emobert/exp/evaluation/MSP/txt_db/{}/val_emowords_sentiword_emocls.db"
             ],
             "img": [
-                "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/"
+                "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/feat_th0.0_max36_min10"
             ],
             "speech": [
-                "/data7/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/"
+                "/data7/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10"
             ],
             "tasks": [
                 "mlm",
@@ -110,10 +110,10 @@
                 "/data7/emobert/exp/evaluation/MSP/txt_db/{}/tst_emowords_sentiword_emocls.db"
             ],
             "img": [
-                "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/"
+                "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/feat_th0.0_max36_min10"
             ],
             "speech": [
-                "/data7/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/"
+                "/data7/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10"
             ],
             "tasks": [
                 "mlm",
