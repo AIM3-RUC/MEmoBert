@@ -63,7 +63,7 @@ if __name__ == '__main__':
     # print(ids)
     # input()
     # cls 101 sep 102
-    corpus_name = 'MSP'
+    corpus_name = 'voxceleb'
     setname = 'trn'  # only for IEMOCAP and MSP
     version = 3
     device = torch.device('cuda:0')
@@ -74,6 +74,9 @@ if __name__ == '__main__':
     if corpus_name == 'movies':
         txt_db_dir = f'/data7/emobert/txt_db/movies_v{version}_th0.5_emowords_sentiword_all.db'
         save_path = f'/data7/emobert/txt_pseudo_label/movie_txt_pseudo_label_v{version}.h5'
+    elif corpus_name == 'voxceleb':
+        txt_db_dir = f'/data7/emobert/txt_db/voxceleb2_v1_th1.0_emowords_sentiword_all.db'
+        save_path = f'/data7/emobert/txt_pseudo_label/voxceleb2_txt_pseudo_label_v1.h5'
     else:
         corpus_name_low = corpus_name.lower()
         txt_db_dir = f'/data7/emobert/exp/evaluation/{corpus_name}/txt_db/1/{setname}_emowords_sentiword.db/'
@@ -98,9 +101,7 @@ if __name__ == '__main__':
         # print(item['toked_caption'])
         # print(logits)
         # print(pred)
-        # input()
         group = save_h5f.create_group(key)
         group['logits'] = logits.cpu().numpy()
         group['pred'] = pred.cpu().numpy()
-    
     save_h5f.close()
