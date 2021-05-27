@@ -302,6 +302,7 @@ class UniterSpeechEmbeddings(nn.Module):
         if config.use_projs_av_modality:
             logger.info('[Debug] add one more linear for speech modality')
             self.projs_linear = nn.Sequential(
+                nn.Dropout(config.hidden_dropout_prob),
                 nn.Linear(config.hidden_size, config.hidden_size),
                 GELU(),
                 FusedLayerNorm(config.hidden_size, eps=1e-12),
@@ -335,13 +336,13 @@ class UniterSpeechEmbeddings(nn.Module):
             speech_type_embeddings = self.token_type_embeddings(speech_type_ids)
 
         transformed_speech = self.speech_layer_norm(self.speech_linear(speech_feat))
+        if self.projs_linear is not None:
+            transformed_speech = self.projs_linear(transformed_speech)
+
         position_embeddings = self.position_embeddings(speech_position_ids)
         embeddings = transformed_speech + position_embeddings + speech_type_embeddings
         embeddings = self.LayerNorm(embeddings)
         embeddings = self.dropout(embeddings)
-
-        if self.projs_linear is not None:
-            embeddings = self.projs_linear(embeddings)
 
         return embeddings
 

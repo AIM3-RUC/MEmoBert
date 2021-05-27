@@ -15,7 +15,7 @@ import torch
 from torch import nn
 from apex.normalization.fused_layer_norm import FusedLayerNorm
 
-from code.uniter.model.layer import BertLayer, BertPooler
+from code.uniter.model.layer import BertLayer, BertPooler, GELU
 
 logger = logging.getLogger(__name__)
 
@@ -265,6 +265,19 @@ class UniterImageEmbeddings(nn.Module):
     def __init__(self, config, img_dim):
         super().__init__()
         self.img_linear = nn.Linear(img_dim, config.hidden_size)
+
+        if config.use_projs_av_modality:
+            logger.info('[Debug] add one more linear for visual modality')
+            self.projs_linear = nn.Sequential(
+                nn.Dropout(config.hidden_dropout_prob),
+                nn.Linear(config.hidden_size, config.hidden_size),
+                GELU(),
+                FusedLayerNorm(config.hidden_size, eps=1e-12),
+                nn.Dropout(config.hidden_dropout_prob)
+            )
+        else:
+            self.projs_linear = None
+
         self.img_layer_norm = FusedLayerNorm(config.hidden_size, eps=1e-12)
         self.position_embeddings = nn.Embedding(config.max_position_embeddings,
                                                 config.hidden_size)
@@ -274,6 +287,7 @@ class UniterImageEmbeddings(nn.Module):
         self.LayerNorm = FusedLayerNorm(config.hidden_size, eps=1e-12)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
+
     def forward(self, img_feat, img_position_ids, img_type_embeddings, img_masks=None):
         if img_masks is not None:
             self.mask_embedding.weight.data[0, :].fill_(0)
@@ -281,6 +295,9 @@ class UniterImageEmbeddings(nn.Module):
             img_feat = img_feat + mask
 
         transformed_im = self.img_layer_norm(self.img_linear(img_feat))
+        if self.projs_linear is not None:
+            transformed_im = self.projs_linear(transformed_im)
+
         position_embeddings = self.position_embeddings(img_position_ids)
         # print('transformed_im {} position_embeddings {} img_type_embeddings {}'.format(
         #     transformed_im.size(), position_embeddings.size(), img_type_embeddings.size()
