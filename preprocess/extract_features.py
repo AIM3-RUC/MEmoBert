@@ -141,7 +141,7 @@ if __name__ == '__main__':
     extact_face_features = False
     extact_audio_features = True
     audio_features_type = 'rawwav'
-    use_asr_based_model=True
+    use_asr_based_model=False
     feature_audio_root = path_config.feature_audio_wav2vec_dir
 
     transcripts_dir = path_config.transcript_json_dir

@@ -122,7 +122,7 @@ class UniterForPretraining(UniterPreTrainedModel):
                 txt_emo_labels = None
             # print('[Debug in MELM forward] the txt_emo_labels {}'.format(txt_emo_labels))
             return self.forward_melm(batch, txt_labels, txt_emo_labels, compute_loss=compute_loss)
-        elif task == 'mrfr':
+        elif task == 'mrfr' or task == 'merfr':
             img_mask_tgt = batch['img_mask_tgt']
             img_masks = batch['img_masks']
             mrfr_feat_target = batch['feat_targets']
@@ -140,7 +140,7 @@ class UniterForPretraining(UniterPreTrainedModel):
         elif task == 'eitm':
             targets = batch['targets']
             return self.forward_eitm(batch, targets, compute_loss=compute_loss)
-        elif task.startswith('mrc'):
+        elif task.startswith('mrc') or task.startswith('merc'):
             img_mask_tgt = batch['img_mask_tgt']
             img_masks = batch['img_masks']
             mrc_label_target = batch['label_targets']

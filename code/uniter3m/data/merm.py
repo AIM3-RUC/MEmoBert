@@ -3,8 +3,11 @@ Copyright (c) Microsoft Corporation.
 Licensed under the MIT license.
 
 MERM Datasets, 根据论文挑选一些重要的部分进行Mask效果对于下游任务可能会好一些。类似与 Mask Emotion Words.
-然后添加两个multi-task任务，同时做预测情感帧 以及 情感帧的类别预测。
+然后添加两个multi-task任务，预测情感帧 以及 情感帧的类别预测。
 Train No Evil: Selective Masking for Task-Guided Pre-Training. 2020 EMNLP
+
+Note: 跟MRM的唯一的区别是遮蔽的时候只遮蔽情感帧.
+use the collect funtions in mrm.py
 """
 
 import random
@@ -16,17 +19,24 @@ from code.uniter3m.data.data import DetectFeatTxtTokDataset, pad_tensors, get_ga
 # from uniter 
 from code.uniter.data.mrm import _get_feat_target, _mask_img_feat, _get_targets
 
-def _get_emo_img_mask(mask_prob, num_bb, soft_labels):
+def _get_emo_img_mask(num_bb, soft_labels):
     '''
+    soft_labels: (numbbs, 5)
     # emo-list: ['neu', 'hap', 'sur', 'sad', 'ang', 'dis', 'fea', 'con']
-    mask 情感显著帧, 如果某帧的情感类别不是neu, 那么以50%的概率遮蔽, 
+    mask 情感显著帧, 如果某帧的情感类别不是neu, 那么以30%的概率遮蔽.
     '''
+    img_mask = []
     for index in range(num_bb):
         emo_cate = np.argmax(soft_labels[index])
         if emo_cate > 0:
-            prob = random.
+            prob = random.random()
             if prob < 0.3:
-                img_mask = [random.random() < mask_prob ]
+                img_mask.append(True)
+            else:
+                img_mask.append(False)
+        else:
+            img_mask.append(False)
+    # print(f'[Debug in MERM] img_mask {img_mask}')
     if not any(img_mask):
         # at least mask 1
         img_mask[random.choice(range(num_bb))] = True
@@ -46,13 +56,12 @@ def _get_img_tgt_mask(img_mask, txt_len, speech_len):
         img_mask_tgt = torch.cat([z, img_mask], dim=0)
     return img_mask_tgt
 
-class MermDataset(DetectFeatTxtTokDataset):
-    def __init__(self, mask_prob, *args, **kwargs):
+class MerfrDataset(DetectFeatTxtTokDataset):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         '''
         only for visual feature modeling
         '''
-        self.mask_prob = mask_prob
         self.img_shape = None
 
     def __getitem__(self, i):
@@ -80,80 +89,18 @@ class MermDataset(DetectFeatTxtTokDataset):
         else:
             speech_feat, num_frame = None, 0
 
-        img_mask = _get_img_mask(self.mask_prob, num_bb, )
+        soft_labels = self.img_db.get_dump(example['img_fname'])['soft_labels']
+        # print(f'[Debug in merm] soft_labels {soft_labels.shape} nbb {num_bb}')
+        img_mask = _get_emo_img_mask(num_bb, soft_labels)
         img_mask_tgt = _get_img_tgt_mask(img_mask, len(input_ids), num_frame)
         return (input_ids, img_feat, speech_feat, attn_masks, img_mask, img_mask_tgt)
 
-
-def mrfr_collate(inputs):
-    """
-    Return:
-    - input_ids    : (n, max_L), i.e., [cls, wd, wd, ..., sep, 0, 0], 0s padded
-    - position_ids : (n, max_L)
-    - txt_lens     : list of [input_len]
-    - img_feat     : (n, max_num_bb, d)
-    - img_position_ids : (n, max_num_bb)
-    - num_bbs      : list of [num_bb]
-    - attn_masks   : (n, max_{L + num_bb}), ie., [1, 1, ..., 0, 0, 1, 1]
-    - img_masks    : (n, max_num_bb) between {0, 1}
-    """
-    (input_ids, img_feats, speech_feats, attn_masks, img_masks, img_mask_tgts,
-     ) = map(list, unzip(inputs))
-
-    txt_lens = [i.size(0) for i in input_ids]
-
-    input_ids = pad_sequence(input_ids, batch_first=True, padding_value=0)
-    position_ids = torch.arange(0, input_ids.size(1), dtype=torch.long
-                                ).unsqueeze(0)
-
-    num_bbs = [f.size(0) for f in img_feats]
-    img_feat = pad_tensors(img_feats, num_bbs)
-    img_position_ids = torch.arange(0, img_feat.size(1), dtype=torch.long
-                                ).unsqueeze(0)
-
-    # mask features
-    img_masks = pad_sequence(img_masks, batch_first=True, padding_value=0)
-    feat_targets = _get_feat_target(img_feat, img_masks)
-    img_feat = _mask_img_feat(img_feat, img_masks)
-    img_mask_tgt = pad_sequence(img_mask_tgts,
-                                batch_first=True, padding_value=0)
-
-    attn_masks = pad_sequence(attn_masks, batch_first=True, padding_value=0)
-
-    if speech_feats[0] is not None:
-        ## speech batches
-        num_frames = [f.size(0) for f in speech_feats]
-        speech_feat = pad_tensors(speech_feats, num_frames)
-        # print('[Debug] the batch input {}'.format(img_feat.shape)) # (n, max_num_nbb, dim)
-        speech_position_ids = torch.arange(0, speech_feat.size(1), dtype=torch.long).unsqueeze(0)    
-    else:
-        speech_feat, num_frames, speech_position_ids = None, None, None
-
-    bs, max_tl = input_ids.size()
-    out_size = attn_masks.size(1)
-    # set number-frames to None
-    gather_index = get_gather_index(txt_lens, num_bbs, num_frames, bs, max_tl, out_size)
-
-    batch = {'input_ids': input_ids,
-             'position_ids': position_ids,
-             'img_feat': img_feat,
-             'img_position_ids': img_position_ids,
-             'speech_feat': speech_feat,
-             'speech_position_ids': speech_position_ids,
-             'attn_masks': attn_masks,
-             'gather_index': gather_index,
-             'feat_targets': feat_targets,
-             'img_masks': img_masks,
-             'img_mask_tgt': img_mask_tgt}
-    return batch
-
-class MrcDataset(DetectFeatTxtTokDataset):
-    def __init__(self, mask_prob, *args, **kwargs):
+class MercDataset(DetectFeatTxtTokDataset):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         '''
         only for visual feature modeling
         '''
-        self.mask_prob = mask_prob
         self.img_shape = None
 
     def _get_img_feat(self, fname, img_shape):
@@ -178,7 +125,7 @@ class MrcDataset(DetectFeatTxtTokDataset):
         self.img_shape = img_feat.shape[1:]
 
         # image input features
-        img_mask = _get_img_mask(self.mask_prob, num_bb)
+        img_mask = _get_emo_img_mask(num_bb, img_soft_labels)
 
         # text input
         input_ids = example['input_ids']
@@ -195,55 +142,3 @@ class MrcDataset(DetectFeatTxtTokDataset):
         img_mask_tgt = _get_img_tgt_mask(img_mask, len(input_ids), speech_len=num_frame)
         return (input_ids, img_feat, speech_feat,
                 img_soft_labels, attn_masks, img_mask, img_mask_tgt)
-
-
-def mrc_collate(inputs):
-    (input_ids, img_feats, speech_feats, img_soft_labels,
-     attn_masks, img_masks, img_mask_tgts) = map(list, unzip(inputs))
-
-    txt_lens = [i.size(0) for i in input_ids]
-    num_bbs = [f.size(0) for f in img_feats]
-
-    input_ids = pad_sequence(input_ids, batch_first=True, padding_value=0)
-    position_ids = torch.arange(0, input_ids.size(1), dtype=torch.long
-                                ).unsqueeze(0)
-
-    img_feat = pad_tensors(img_feats, num_bbs)
-    img_position_ids = torch.arange(0, img_feat.size(1), dtype=torch.long
-                                ).unsqueeze(0)
-    img_soft_label = pad_tensors(img_soft_labels, num_bbs)
-    img_masks = pad_sequence(img_masks, batch_first=True, padding_value=0)
-    label_targets = _get_targets(img_masks, img_soft_label)
-
-    img_feat = _mask_img_feat(img_feat, img_masks)
-    img_mask_tgt = pad_sequence(img_mask_tgts,
-                                batch_first=True, padding_value=0)
-        
-    attn_masks = pad_sequence(attn_masks, batch_first=True, padding_value=0)
-
-    if speech_feats[0] is not None:
-        ## speech batches
-        num_frames = [f.size(0) for f in speech_feats]
-        speech_feat = pad_tensors(speech_feats, num_frames)
-        # print('[Debug] the batch input {}'.format(img_feat.shape)) # (n, max_num_nbb, dim)
-        speech_position_ids = torch.arange(0, speech_feat.size(1), dtype=torch.long).unsqueeze(0)    
-    else:
-        speech_feat, num_frames, speech_position_ids = None, None, None
-
-    bs, max_tl = input_ids.size()
-    out_size = attn_masks.size(1)
-    # set number-frames to None
-    gather_index = get_gather_index(txt_lens, num_bbs, num_frames, bs, max_tl, out_size)
-
-    batch = {'input_ids': input_ids,
-             'position_ids': position_ids,
-             'img_feat': img_feat,
-             'img_position_ids': img_position_ids,
-             'speech_feat': speech_feat,
-             'speech_position_ids': speech_position_ids,
-             'attn_masks': attn_masks,
-             'gather_index': gather_index,
-             'img_masks': img_masks,
-             'img_mask_tgt': img_mask_tgt,
-             'label_targets': label_targets}
-    return batch

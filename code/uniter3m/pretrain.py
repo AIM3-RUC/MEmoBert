@@ -31,7 +31,8 @@ from code.uniter3m.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   ItmDataset, itm_collate, MsrfrDataset, msrfr_collate,
                   EmoClsDataset, emocls_collate,
                   EmoLareDataset, emolare_collate,
-                  EItmDataset, eitm_collate)
+                  EItmDataset, eitm_collate,
+                  MerfrDataset, MercDataset)
 from code.uniter3m.model.pretrain import UniterForPretraining
 
 # from uniter
@@ -106,6 +107,22 @@ def build_mrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
 
     return dataset, mrfr_collate
 
+def build_merfr_dataset(txt_db, img_db, speech_db, is_train, opts):
+    # use the mrfr collection function
+    assert img_db != None
+    if is_train:
+        if speech_db is not None:
+            datasets = [MerfrDataset(t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif speech_db is None:
+            datasets = [MerfrDataset(t, i, None) for t, i in zip(txt_db, img_db)]
+        else:
+            LOGGER.info('[Error] Error merfr datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = MerfrDataset(txt_db, img_db, speech_db)
+
+    return dataset, mrfr_collate
+
 def build_msrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
     assert speech_db != None
     if is_train:
@@ -134,6 +151,21 @@ def build_mrc_dataset(txt_db, img_db, speech_db, is_train, opts):
     else:
         dataset = MrcDataset(opts.mrm_prob, txt_db, img_db, speech_db)
 
+    return dataset, mrc_collate
+
+
+def build_merc_dataset(txt_db, img_db, speech_db, is_train, opts):
+    assert img_db != None
+    if is_train:
+        if speech_db is not None:
+            datasets = [MercDataset(t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif speech_db is None:
+            datasets = [MercDataset(t, i, None) for t, i in zip(txt_db, img_db)]
+        else:
+            LOGGER.info('[Error] Error merc datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = MercDataset(txt_db, img_db, speech_db)
     return dataset, mrc_collate
 
 def build_emocls_dataset(txt_db, img_db, speech_db, is_train, opts):
@@ -259,6 +291,10 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
                 dataset = build_msrfr_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('mrc'):
                 dataset = build_mrc_dataset(txt_db, img_db, speech_db, is_train, opts)
+            elif task.startswith('merfr'):
+                dataset = build_merfr_dataset(txt_db, img_db, speech_db, is_train, opts)
+            elif task.startswith('merc'):
+                dataset = build_merc_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('emocls'):
                 dataset = build_emocls_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('itm'):
@@ -486,24 +522,26 @@ def validate(model, val_dataloaders):
         elif task.startswith('melm'):
             val_log = validate_melm(model, loader)
         elif task.startswith('mrfr') and args.use_visual:
-            val_log = validate_mrfr(model, loader)
+            val_log = validate_mrfr(model, loader, task)
+        elif task.startswith('merfr') and args.use_visual:
+            val_log = validate_mrfr(model, loader, task)
         elif task.startswith('msrfr') and args.use_speech:
             val_log = validate_msrfr(model, loader)
         elif task.startswith('mrc') and args.use_visual:
             val_log = validate_mrc(model, loader, task)
+        elif task.startswith('merc') and args.use_visual:
+            LOGGER.info("start running MERCKL validation...")
+            val_log = validate_mrc(model, loader, task)
         elif task.startswith('emocls'):
             val_log = validate_emocls(model, loader, emocls_type=args.emocls_type)
         elif task.startswith('itm'):
-            val_log = validate_itm(model, loader)
+            val_log = validate_itm(model, loader, task)
+        elif task.startswith('eitm'):
+            val_log = validate_itm(model, loader, task)
         elif task.startswith('vtm') and args.use_visual:
-            LOGGER.info("start running VTM validation...")
-            val_log = validate_itm(model, loader)
+            val_log = validate_itm(model, loader, task)
         elif task.startswith('stm') and args.use_speech:
-            LOGGER.info("start running STM validation...")
-            val_log = validate_itm(model, loader)
-        elif task.startswith('eitm') and args.use_speech:
-            LOGGER.info("start running EITM validation...")
-            val_log = validate_itm(model, loader)
+            val_log = validate_itm(model, loader, task)
         elif task.startswith('emolare'):
             LOGGER.info("start running EmoLare validation...")
             val_log = validate_emolare(model, loader)
@@ -706,13 +744,19 @@ def accuracy_count(out, labels):
 
 
 @torch.no_grad()
-def validate_mrfr(model, val_loader):
-    LOGGER.info("start running MRFR validation...")
+def validate_mrfr(model, val_loader, task):
+    # task: mrfr or merfr
+    LOGGER.info(f"start running {task.upper()} validation...")
     val_loss = 0
     n_feat = 0
     st = time()
     for i, batch in enumerate(val_loader):
-        loss = model(batch, task='mrfr', compute_loss=True)
+        if task.startswith('mrfr'):
+            loss = model(batch, task='mrfr', compute_loss=True)
+        elif task.startswith('merfr'):
+            loss = model(batch, task='merfr', compute_loss=True)
+        else:
+            LOGGER.info(f'[Error in valid_mrfr] Error task name {task}')
         val_loss += loss.sum().item() / IMG_DIM
         n_feat += batch['img_mask_tgt'].sum().item()
     val_loss = sum(all_gather_list(val_loss))
@@ -747,14 +791,19 @@ def validate_msrfr(model, val_loader):
 
 @torch.no_grad()
 def validate_mrc(model, val_loader, task):
-    LOGGER.info("start running MRC validation...")
+    # task: mrfr or merfr
+    LOGGER.info(f"start running {task.upper()} validation...")
     val_loss = 0
     n_feat = 0
     st = time()
     tot_score = 0
     for i, batch in enumerate(val_loader):
-        prediction_soft_label = model(
-            batch, task=task, compute_loss=False)
+        if task.startswith('mrc'):
+            prediction_soft_label = model(batch, task='mrckl', compute_loss=False)     
+        elif task.startswith('merc'):
+            prediction_soft_label = model(batch, task='merckl', compute_loss=False)   
+        else:
+            LOGGER.info(f'[Error in valid_mrc] error task name {task}')
         # default use "kl" in task:
         prediction_soft_label = F.log_softmax(
             prediction_soft_label, dim=-1)
@@ -830,14 +879,23 @@ def compute_accuracy_for_soft_targets(out, labels):
 
 
 @torch.no_grad()
-def validate_itm(model, val_loader):
+def validate_itm(model, val_loader, task):
     LOGGER.info("start running ITM validation...")
     val_loss = 0
     tot_score = 0
     n_ex = 0
     st = time()
     for i, batch in enumerate(val_loader):
-        scores = model(batch, task='itm', compute_loss=False)
+        if task.startswith('itm'):
+            scores = model(batch, task='itm', compute_loss=False)
+        elif task.startswith('eitm'):
+            scores = model(batch, task='eitm', compute_loss=False)
+        elif task.startswith('vtm'):
+            scores = model(batch, task='vtm', compute_loss=False)
+        elif task.startswith('stm'):
+            scores = model(batch, task='stm', compute_loss=False)
+        else:
+            LOGGER.info(f'[Error in valid_itm] Error task name {task}')
         targets = batch['targets']
         loss = F.cross_entropy(scores, targets, reduction='sum')
         val_loss += loss.item()

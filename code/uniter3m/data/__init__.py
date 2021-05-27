@@ -15,3 +15,4 @@ from .emocls import EmoClsDataset, emocls_collate
 from .msrm import MsrfrDataset, msrfr_collate
 from .emolare import EmoLareDataset, emolare_collate
 from .eitm import EItmDataset, eitm_collate
+from .merm import MerfrDataset, MercDataset
