@@ -23,5 +23,6 @@
   "use_emolare": false,
   "use_word_senti_embedding": false,
   "use_pos_tag_embedding": false,
-  "use_utt_senti_embedding": false
+  "use_utt_senti_embedding": false,
+  "use_projs_av_modality": false
 }
