@@ -9,14 +9,20 @@ import json
 movies_v1: emo 0 and fnames 29406 emo 2 and fnames 7657 emo 1 and fnames 8382 emo 4 and fnames 8439 emo 3 and fnames 7000
 movies_v2: emo 1 and fnames 3408  emo 0 and fnames 17375 emo 4 and fnames 3839 emo 3 and fnames 3706 emo 2 and fnames 3820
 movies_v3: emo 0 and fnames 46707 emo 1 and fnames 11848 emo 3 and fnames 9700 emo 4 and fnames 12349 emo 2 and fnames 11558
+voxceleb2_v1 emo 0 and fnames 369921 emo 1 and fnames 9000 emo 4 and fnames 852 emo 2 and fnames 100 emo 3 and fnames 3341
 '''
 
 # version, v1, v2, or v3
-version = 'v3'
-all_emo2img_fname = f'/data7/emobert/txt_pseudo_label/movie_{version}_emo2img_fname.pkl'
+# version = 'v3'
+# all_emo2img_fname = f'/data7/emobert/txt_pseudo_label/movie_{version}_emo2img_fname.pkl'
+# all_emo2img_fname_dict = {}
+# all_text2img_path = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all.db/txt2img.json'
+# all_targe_path = f'/data7/emobert/txt_pseudo_label/movie_txt_pseudo_label_{version}.h5'
+
+all_emo2img_fname = '/data7/emobert/txt_pseudo_label/voxceleb2_v1_emo2img_fname.pkl'
 all_emo2img_fname_dict = {}
-all_text2img_path = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all.db/txt2img.json'
-all_targe_path = f'/data7/emobert/txt_pseudo_label/movie_txt_pseudo_label_{version}.h5'
+all_text2img_path = '/data7/emobert/txt_db/voxceleb2_v1_th1.0_emowords_sentiword_all.db//txt2img.json'
+all_targe_path = '/data7/emobert/txt_pseudo_label/voxceleb2_txt_pseudo_label_v1.h5'
 all_textId2target = h5py.File(all_targe_path, 'r')
 all_text2img = json.load(open(all_text2img_path))
 assert len(all_textId2target.keys()) == len(all_text2img)

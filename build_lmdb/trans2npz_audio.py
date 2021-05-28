@@ -98,7 +98,7 @@ if __name__ == "__main__":
         # print(mean_std['std'].shape)
     elif feat_type == 'wav2vec':
         # 20ms/frame
-        use_mean_pooling = True # 连续的5帧进行平均
+        use_mean_pooling = True # 连续的3帧进行平均
         use_asr_based_model = True
         pooling_num_frames = 3
         hdf5_dir = '/data7/emobert/wav2vec_feature/movies_v1'

@@ -43,6 +43,9 @@
             "speech": [
                 "/data7/emobert/wav2vec_db/movies_v1_3mean/feat_th1.0_max64_min10"
             ],
+            "emo2imgfname": [
+                "/data7/emobert/txt_pseudo_label/movie_v1_emo2img_fname.pkl"
+            ],
             "tasks": [
                 "eitm",
                 "emocls"
@@ -62,6 +65,9 @@
             ],
             "speech": [
                 "/data7/emobert/wav2vec_db/movies_v2_3mean/feat_th1.0_max64_min10"
+            ],
+            "emo2imgfname": [
+                "/data7/emobert/txt_pseudo_label/movie_v2_emo2img_fname.pkl"
             ],
             "tasks": [
                 "eitm",
@@ -83,6 +89,9 @@
             "speech": [
                 "/data7/emobert/wav2vec_db/movies_v3_3mean/feat_th1.0_max64_min10"
             ],
+            "emo2imgfname": [
+                "/data7/emobert/txt_pseudo_label/movie_v3_emo2img_fname.pkl"
+            ],
             "tasks": [
                 "eitm",
                 "emocls"
@@ -99,6 +108,9 @@
             ],
             "img": [
                 "/data7/emobert/img_db_nomask/voxceleb2_v1/fc/feat_th1.0_max64_min10"
+            ],
+            "emo2imgfname": [
+                "/data7/emobert/txt_pseudo_label/voxceleb2_v1_emo2img_fname.pkl"
             ],
             "tasks": [
                 "eitm",
@@ -122,6 +134,9 @@
             "speech": [
                 "/data7/emobert/wav2vec_db/movies_v1_3mean/feat_th1.0_max64_min10"
             ],
+            "emo2imgfname": [
+                "/data7/emobert/txt_pseudo_label/movie_v1_emo2img_fname.pkl"
+            ],
             "tasks": [
                 "eitm",
                 "emocls"
@@ -137,6 +152,9 @@
             ],
             "speech": [
                 "/data7/emobert/wav2vec_db/movies_v1_3mean/feat_th1.0_max64_min10"
+            ],
+            "emo2imgfname": [
+                "/data7/emobert/txt_pseudo_label/movie_v1_emo2img_fname.pkl"
             ],
             "tasks": [
                 "eitm",
@@ -154,6 +172,9 @@
             "speech": [
                 "/data7/emobert/wav2vec_db/movies_v2_3mean/feat_th1.0_max64_min10"
             ],
+            "emo2imgfname": [
+                "/data7/emobert/txt_pseudo_label/movie_v2_emo2img_fname.pkl"
+            ],
             "tasks": [
                 "eitm",
                 "emocls"
@@ -169,6 +190,9 @@
             ],
             "speech": [
                 "/data7/emobert/wav2vec_db/movies_v2_3mean/feat_th1.0_max64_min10"
+            ],
+            "emo2imgfname": [
+                "/data7/emobert/txt_pseudo_label/movie_v2_emo2img_fname.pkl"
             ],
             "tasks": [
                 "eitm",
@@ -186,6 +210,9 @@
             "speech": [
                 "/data7/emobert/wav2vec_db/movies_v3_3mean/feat_th1.0_max64_min10"
             ],
+            "emo2imgfname": [
+                "/data7/emobert/txt_pseudo_label/movie_v3_emo2img_fname.pkl"
+            ],
             "tasks": [
                 "eitm",
                 "emocls"
@@ -202,6 +229,9 @@
             "speech": [
                 "/data7/emobert/wav2vec_db/movies_v3_3mean/feat_th1.0_max64_min10"
             ],
+            "emo2imgfname": [
+                "/data7/emobert/txt_pseudo_label/movie_v3_emo2img_fname.pkl"
+            ],
             "tasks": [
                 "eitm",
                 "emocls"
@@ -215,6 +245,9 @@
             "img": [
                 "/data7/emobert/img_db_nomask/voxceleb2_v1/fc/feat_th1.0_max64_min10"
             ],
+            "emo2imgfname": [
+                "/data7/emobert/txt_pseudo_label/voxceleb2_v1_emo2img_fname.pkl"
+            ],
             "tasks": [
                 "eitm",
                 "emocls"            
@@ -227,6 +260,9 @@
             ],
             "img": [
                 "/data7/emobert/img_db_nomask/voxceleb2_v1/fc/feat_th1.0_max64_min10"
+            ],
+            "emo2imgfname": [
+                "/data7/emobert/txt_pseudo_label/voxceleb2_v1_emo2img_fname.pkl"
             ],
             "tasks": [
                 "eitm",
