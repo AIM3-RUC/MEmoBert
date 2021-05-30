@@ -63,7 +63,7 @@ def get_emo_type_ids(input_ids, emo_input_ids, emo_input_ids_labels):
     return emo_type_ids
 
 def process_jsonl(jsonf, db, toker, max_tokens=100, dataset_name="", filter_path=None, filter_path_val=None, \
-                include_path=None, num_samples=0, use_emo=False):
+                include_path=None, num_samples=0):
     '''
     {
         "segmentId": [
@@ -71,13 +71,10 @@ def process_jsonl(jsonf, db, toker, max_tokens=100, dataset_name="", filter_path
         ]
     }
     '''
-    if use_emo == True:
-        print("*********** Use Emo Words ************")
-        bert_vocab_filepath = '/data2/zjm/tools/LMs/bert_base_en/vocab.txt'
-        word2score_path = '/data2/zjm/tools/EmoLexicons/sentiword2score.pkl'
-        emol = EmoSentiWordLexicon(word2score_path, bert_vocab_filepath)
-    else:
-        emol = None
+    print("*********** Use Emo Words ************")
+    bert_vocab_filepath = '/data2/zjm/tools/LMs/bert_base_en/vocab.txt'
+    word2score_path = '/data2/zjm/tools/EmoLexicons/sentiword2score.pkl'
+    emol = EmoSentiWordLexicon(word2score_path, bert_vocab_filepath)
 
     if filter_path is not None:
         filter_dict = json.load(open(filter_path))
@@ -137,20 +134,20 @@ def process_jsonl(jsonf, db, toker, max_tokens=100, dataset_name="", filter_path
             example['toked_caption'] = tokens
             example['input_ids'] = input_ids
             example['img_fname'] = img_fname
-            if emol is not None:
-                emo_input_ids, emo_input_ids_labels = get_emo_words(emol, input_ids, tokens)
-                example['emo_input_ids'] = emo_input_ids  # 存储对应的情感词的id
-                example['emo_labels'] = emo_input_ids_labels # 存储对应的情感类别
-                if len(emo_input_ids) > 0:
-                    count_emo_utts += 1
-                    count_emo_words += len(emo_input_ids)
-                # print(tokens)
-                # print(input_ids)
-                # print(emo_input_ids, emo_input_ids_labels)
-                emo_type_ids = get_emo_type_ids(input_ids, emo_input_ids, emo_input_ids_labels)
-                example['emo_type_ids'] = emo_type_ids
-                assert len(emo_type_ids) == len(input_ids)
-                # print(emo_type_ids)  
+            # for emo words
+            emo_input_ids, emo_input_ids_labels = get_emo_words(emol, input_ids, tokens)
+            example['emo_input_ids'] = emo_input_ids  # 存储对应的情感词的id
+            example['emo_labels'] = emo_input_ids_labels # 存储对应的情感类别
+            if len(emo_input_ids) > 0:
+                count_emo_utts += 1
+                count_emo_words += len(emo_input_ids)
+            # print(tokens)
+            # print(input_ids)
+            # print(emo_input_ids, emo_input_ids_labels)
+            emo_type_ids = get_emo_type_ids(input_ids, emo_input_ids, emo_input_ids_labels)
+            example['emo_type_ids'] = emo_type_ids
+            assert len(emo_type_ids) == len(input_ids)
+            # print(emo_type_ids)  
             # emo_map = {0:neu, 1:pos, 2:neg}
             if 1 in emo_type_ids:
                 count_posemo_utts += 1
@@ -189,8 +186,7 @@ def main(opts):
     with open_db() as db:
         id2lens, txt2img, img2txt = process_jsonl(opts.input, db, toker, dataset_name=opts.dataset_name, \
                                 filter_path=opts.filter_path, filter_path_val=opts.filter_path_val, \
-                                include_path=opts.include_path, num_samples=opts.num_samples, \
-                                use_emo=opts.use_emo)
+                                include_path=opts.include_path, num_samples=opts.num_samples)
     print('generate id2lens {} txt2img {} img2txt {}'.format(len(id2lens), len(txt2img), len(img2txt)))
     with open(f'{opts.output}/id2len.json', 'w') as f:
         json.dump(id2lens, f)
@@ -219,7 +215,5 @@ if __name__ == '__main__':
                         help='which BERT tokenizer to used')
     parser.add_argument('--dataset_name', default='movies_v1',
                         help='which dataset to be processed')
-    parser.add_argument('--use_emo',  action='store_true',
-                        help='store the emotion words and corresding labels')
     args = parser.parse_args()
     main(args)

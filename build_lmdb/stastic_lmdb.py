@@ -40,9 +40,9 @@ def compute_stastic_info(lens):
 if __name__ == '__main__':
 
     ## for img or speech db 
-    if False:
+    if True:
         lmdb_name = 'voxceleb2_v1'
-        filepath = '/data7/emobert/img_db_nomask/{}/fc/nbb_th1.0_max96_min10.json'.format(lmdb_name)
+        filepath = '/data7/emobert/wav2vec_db/{}_3mean/nbb_th1.0_max96_min10.json'.format(lmdb_name)
         # filepath = '/data7/emobert/img_db_nomask/{}/nbb_th0.5_max36_min10.json'.format(lmdb_name)
         # filepath = '/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/{}/nbb_th0.1_max64_min10.json'.format(lmdb_name)
         # filepath = '/data7/emobert/norm_comparE_db/{}/nbb_th1.0_max500_min10.json'.format(lmdb_name)
@@ -54,7 +54,7 @@ if __name__ == '__main__':
                 movie_faces_lens.append(_len)
             avg_len, min_len, m80_len = compute_stastic_info(movie_faces_lens)
             print('\t Face {} Avg {:.2f} Mid {:.2f} Mid80 {:.2f}'.format(len(movie_faces_lens), avg_len, min_len, m80_len) + '\n')
-        
+
         if False:
             lmdb_name_dir = '/data4/MEmoBert/emobert/exp/evaluation/MELD/feature/denseface_openface_meld_mean_std_torch/img_db/fc/feat_th0.1_max36_min10'
             img_dump = read_img_lmdb(lmdb_name_dir)
@@ -63,7 +63,7 @@ if __name__ == '__main__':
             # meld 的 soft-label 不对
     
     # for txt db
-    if True:
+    if False:
         lmdb_name = 'voxceleb2_v1_th1.0_emowords_sentiword_all.db'
         filepath = '/data7/emobert/txt_db/{}/id2len.json'.format(lmdb_name)
         video2lens = json.load(open(filepath))
