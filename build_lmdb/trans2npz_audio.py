@@ -87,6 +87,20 @@ def convert_hdf5_to_npz_vox(hdf5_dir, output_dir, movie_names_path, use_mean_poo
     for movie_name in tqdm(valid_movie_names[start:end]):        
         splits = movie_name.split('#')
         videoId_dir = os.path.join(hdf5_dir, splits[0], splits[1])
+
+        # 语音有些不存在，那么根据视觉的信息全都设置为0向量
+        if not os.path.exists(videoId_dir):
+            vis_videoId_dir = os.path.join('/data13/voxceleb2/denseface_feature', splits[0], splits[1])
+            for segment_id in os.listdir(vis_videoId_dir):
+                outputfilename = movie_name + '#' + segment_id.replace('h5', 'npz')
+                outputfile = os.path.join(output_dir, outputfilename)
+                print(f'{outputfile} audio is None')
+                feat = np.zeros((1, 768))
+                frame_indexs = np.array(list(range(0, len(feat))))
+                np.savez_compressed(outputfile,
+                    frame_idxs=frame_indexs.astype(np.float16),
+                    features=feat.astype(np.float16))
+            continue
         for segment_id in os.listdir(videoId_dir):
             ft_path = os.path.join(videoId_dir, segment_id)
             audio_ft = h5py.File(ft_path, mode='r')
@@ -94,7 +108,11 @@ def convert_hdf5_to_npz_vox(hdf5_dir, output_dir, movie_names_path, use_mean_poo
             outputfile = os.path.join(output_dir, outputfilename)
             if os.path.exists(outputfile):
                 continue
-            feat = np.array(audio_ft['feat'])
+            if audio_ft.get('feat') is None:
+                print(f'{outputfile} feat is None')
+                feat = np.zeros((1, 768))
+            else:
+                feat = np.array(audio_ft['feat'])
             if len(feat) == 0:
                 print('segment {} have no frames'.format(segment_index))
             if mean is not None and std is not None:
@@ -167,8 +185,8 @@ if __name__ == "__main__":
     pooling_num_frames = 3
     feat_type = 'wav2vec'
     hdf5_dir = '/data13/voxceleb2/wav2vec_feature'
-    movie_names_path = '/data7/emobert/data_nomask_new/voxceleb2_v1/movie_names.npy'
-    npzs_dir = '/data7/emobert/wav2vec_feature_npzs/voxceleb2_v1_3mean' 
+    movie_names_path = '/data7/emobert/data_nomask_new/voxceleb2_v2/movie_names.npy'
+    npzs_dir = '/data7/emobert/wav2vec_feature_npzs/voxceleb2_v2_3mean' 
     mean, std = None, None
     print(f'Current start {start} end {end}')
     convert_hdf5_to_npz_vox(hdf5_dir, npzs_dir, movie_names_path, use_mean_pooling, pooling_num_frames, start=start, end=end)

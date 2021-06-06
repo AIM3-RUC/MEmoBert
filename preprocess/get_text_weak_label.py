@@ -75,8 +75,8 @@ if __name__ == '__main__':
         txt_db_dir = f'/data7/emobert/txt_db/movies_v{version}_th0.5_emowords_sentiword_all.db'
         save_path = f'/data7/emobert/txt_pseudo_label/movie_txt_pseudo_label_v{version}.h5'
     elif corpus_name == 'voxceleb':
-        txt_db_dir = f'/data7/emobert/txt_db/voxceleb2_v1_th1.0_emowords_sentiword_all.db'
-        save_path = f'/data7/emobert/txt_pseudo_label/voxceleb2_txt_pseudo_label_v1.h5'
+        txt_db_dir = f'/data7/emobert/txt_db/voxceleb2_v2_th1.0_emowords_sentiword_all.db'
+        save_path = f'/data7/emobert/txt_pseudo_label/voxceleb2_txt_pseudo_label_v2.h5'
     else:
         corpus_name_low = corpus_name.lower()
         txt_db_dir = f'/data7/emobert/exp/evaluation/{corpus_name}/txt_db/1/{setname}_emowords_sentiword.db/'

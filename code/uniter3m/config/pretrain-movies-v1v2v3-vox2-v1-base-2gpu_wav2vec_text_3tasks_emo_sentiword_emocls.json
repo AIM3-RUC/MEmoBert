@@ -1,0 +1,280 @@
+{
+    "output_dir": "/data7/emobert/exp/pretrain/xxx",
+    "model_config": "config/xxx",
+    "checkpoint": "/data7/emobert/resources/pretrained/uniter-base-uncased-init.pt",
+    "melm_prob": 0.5,
+    "mlm_prob": 0.15,
+    "mrm_prob": 0.15,
+    "itm_neg_prob": 0.5,
+    "itm_ot_lambda": 0.1,
+    "max_txt_len": 30,
+    "conf_th": 0.5,
+    "max_bb": 36,
+    "min_bb": 10,
+    "num_bb": 36,
+    "IMG_DIM": 342,
+    "Speech_DIM": 768,
+    "train_batch_size": 256,
+    "val_batch_size": 256,
+    "gradient_accumulation_steps": 2,
+    "learning_rate": 5e-05,
+    "valid_steps": 500,
+    "warmup_steps": 400,
+    "num_train_steps": 5000,
+    "optim": "adamw",
+    "betas": [
+        0.9,
+        0.98
+    ],
+    "dropout": 0.1,
+    "weight_decay": 0.01,
+    "grad_norm": 5.0,
+    "seed": 1234,
+    "fp16": true,
+    "n_workers": 4,
+    "pin_mem": true,
+    "train_datasets": [
+        {
+            "name": "movies_v1",
+            "db": [
+                "/data7/emobert/txt_db/movies_v1_th0.5_emowords_sentiword_emocls_all_trn.db/"
+            ],
+            "img": [
+                "/data7/emobert/img_db_nomask/movies_v1/fc/feat_th0.5_max36_min10"
+            ],
+            "speech": [
+                "/data7/emobert/wav2vec_db/movies_v1_3mean/feat_th1.0_max64_min10"
+            ],
+            "tasks": [
+                "itm",
+                "mlm",
+                "msrfr",
+                "emocls"
+            ],
+            "mix_ratio": [
+                2,
+                2,
+                1,
+                1
+            ]
+        },
+        {
+            "name": "movies_v2",
+            "db": [
+                "/data7/emobert/txt_db/movies_v2_th0.5_emowords_sentiword_emocls_all_trn.db/"
+            ],
+            "img": [
+                "/data7/emobert/img_db_nomask/movies_v2/fc/feat_th0.5_max36_min10"
+            ],
+            "speech": [
+                "/data7/emobert/wav2vec_db/movies_v2_3mean/feat_th1.0_max64_min10"
+            ],
+            "tasks": [
+                "itm",
+                "mlm",
+                "msrfr",
+                "emocls"
+            ],
+            "mix_ratio": [
+                2,
+                2,
+                1,
+                1
+            ]
+        },
+        {
+            "name": "movies_v3",
+            "db": [
+                "/data7/emobert/txt_db/movies_v3_th0.5_emowords_sentiword_emocls_all_trn.db/"
+            ],
+            "img": [
+                "/data7/emobert/img_db_nomask/movies_v3/fc/feat_th0.5_max36_min10"
+            ],
+            "speech": [
+                "/data7/emobert/wav2vec_db/movies_v3_3mean/feat_th1.0_max64_min10"
+            ],
+            "tasks": [
+                "itm",
+                "mlm",
+                "msrfr",
+                "emocls"
+            ],
+            "mix_ratio": [
+                2,
+                2,
+                1,
+                1
+            ]
+        },
+        {
+            "name": "voxceleb2_v1",
+            "db": [
+                "/data7/emobert/txt_db/voxceleb2_v1_th1.0_emowords_sentiword_emocls_all_trn.db"
+            ],
+            "img": [
+                "/data7/emobert/img_db_nomask/voxceleb2_v1/fc/feat_th1.0_max64_min10"
+            ],
+            "speech": [
+                "/data7/emobert/wav2vec_db/voxceleb2_v1_3mean/feat_th1.0_max96_min10"
+            ],
+            "tasks": [
+                "itm",
+                "mlm",
+                "msrfr",
+                "emocls"
+            ],
+            "mix_ratio": [
+                2,
+                2,
+                1,
+                1
+            ]
+        }
+    ],
+    "val_datasets": [
+        {
+            "name": "movies_v1_val3k",
+            "db": [
+                "/data7/emobert/txt_db/movies_v1_th0.5_emowords_sentiword_emocls_all_val3k.db/"            
+            ],
+            "img": [
+                "/data7/emobert/img_db_nomask/movies_v1/fc/feat_th0.5_max36_min10"
+            ],
+            "speech": [
+                "/data7/emobert/wav2vec_db/movies_v1_3mean/feat_th1.0_max64_min10"
+            ],
+            "tasks": [
+                "itm",
+                "mlm",
+                "msrfr",
+                "emocls"
+            ]
+        },
+        {
+            "name": "movies_v1_trn_val3k",
+            "db": [
+                "/data7/emobert/txt_db/movies_v1_th0.5_emowords_sentiword_emocls_all_trn3k.db/"            
+            ],
+            "img": [
+                "/data7/emobert/img_db_nomask/movies_v1/fc/feat_th0.5_max36_min10"
+            ],
+            "speech": [
+                "/data7/emobert/wav2vec_db/movies_v1_3mean/feat_th1.0_max64_min10"
+            ],
+            "tasks": [
+                "itm",
+                "mlm",
+                "msrfr",
+                "emocls"
+            ]
+        },
+        {
+            "name": "movies_v2_val3k",
+            "db": [
+                "/data7/emobert/txt_db/movies_v2_th0.5_emowords_sentiword_emocls_all_val3k.db/"            
+            ],
+            "img": [
+                "/data7/emobert/img_db_nomask/movies_v2/fc/feat_th0.5_max36_min10"
+            ],
+            "speech": [
+                "/data7/emobert/wav2vec_db/movies_v2_3mean/feat_th1.0_max64_min10"
+            ],
+            "tasks": [
+                "itm",
+                "mlm",
+                "msrfr",
+                "emocls"
+            ]
+        },
+        {
+            "name": "movies_v2_trn3k",
+            "db": [
+                "/data7/emobert/txt_db/movies_v2_th0.5_emowords_sentiword_emocls_all_trn3k.db/"            
+            ],
+            "img": [
+                "/data7/emobert/img_db_nomask/movies_v2/fc/feat_th0.5_max36_min10"
+            ],
+            "speech": [
+                "/data7/emobert/wav2vec_db/movies_v2_3mean/feat_th1.0_max64_min10"
+            ],
+            "tasks": [
+                "itm",
+                "mlm",
+                "msrfr",
+                "emocls"
+            ]
+        },
+        {
+            "name": "movies_v3_val3k",
+            "db": [
+                "/data7/emobert/txt_db/movies_v3_th0.5_emowords_sentiword_emocls_all_val3k.db/"            
+            ],
+            "img": [
+                "/data7/emobert/img_db_nomask/movies_v3/fc/feat_th0.5_max36_min10"
+            ],
+            "speech": [
+                "/data7/emobert/wav2vec_db/movies_v3_3mean/feat_th1.0_max64_min10"
+            ],
+            "tasks": [
+                "itm",
+                "mlm",
+                "msrfr",
+                "emocls"
+            ]
+        },
+        {
+            "name": "movies_v3_trn3k",
+            "db": [
+                "/data7/emobert/txt_db/movies_v3_th0.5_emowords_sentiword_emocls_all_trn3k.db/"            
+            ],
+            "img": [
+                "/data7/emobert/img_db_nomask/movies_v3/fc/feat_th0.5_max36_min10"
+            ],
+            "speech": [
+                "/data7/emobert/wav2vec_db/movies_v3_3mean/feat_th1.0_max64_min10"
+            ],
+            "tasks": [
+                "itm",
+                "mlm",
+                "msrfr",
+                "emocls"
+            ]
+        },
+        {
+            "name": "voxceleb2_v1_val3k",
+            "db": [
+                "/data7/emobert/txt_db/voxceleb2_v1_th1.0_emowords_sentiword_emocls_all_val3k.db/"            
+            ],
+            "img": [
+                "/data7/emobert/img_db_nomask/voxceleb2_v1/fc/feat_th1.0_max64_min10"
+            ],
+            "speech": [
+                "/data7/emobert/wav2vec_db/voxceleb2_v1_3mean/feat_th1.0_max96_min10"
+            ],
+            "tasks": [
+                "itm",
+                "mlm",
+                "msrfr",
+                "emocls"
+            ]
+        },
+        {
+            "name": "voxceleb2_v1_trn3k",
+            "db": [
+                "/data7/emobert/txt_db/voxceleb2_v1_th1.0_emowords_sentiword_emocls_all_trn3k.db/"            
+            ],
+            "img": [
+                "/data7/emobert/img_db_nomask/voxceleb2_v1/fc/feat_th1.0_max64_min10"
+            ],
+            "speech": [
+                "/data7/emobert/wav2vec_db/voxceleb2_v1_3mean/feat_th1.0_max96_min10"
+            ],
+            "tasks": [
+                "itm",
+                "mlm",
+                "msrfr",
+                "emocls"
+            ]
+        }
+    ]
+}

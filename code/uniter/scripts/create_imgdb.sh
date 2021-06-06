@@ -7,8 +7,8 @@ set -e
 # output_dir=/data7/emobert/rawimg_db_nomask/movies_v3
 # img_dir=/data7/emobert/ft_trans2_npzs_nomask/movies_v1
 # output_dir=/data7/emobert/img_db_nomask/movies_v1_trans2
-img_dir=/data7/emobert/ft_npzs_nomask/voxceleb2_v1/fc
-output_dir=/data7/emobert/img_db_nomask/voxceleb2_v1/fc
+img_dir=/data7/emobert/ft_npzs_nomask/voxceleb2_v2/fc
+output_dir=/data7/emobert/img_db_nomask/voxceleb2_v2/fc
 # img_dir=/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/ft_npzs/fc
 # output_dir=/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc
 # img_dir=/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/ft_npzs/fc
@@ -20,5 +20,5 @@ output_dir=/data7/emobert/img_db_nomask/voxceleb2_v1/fc
 # img_dir=/data7/emobert/exp/evaluation/MSP/feature/openface_iemocap_raw_img/raw_img_npzs
 # output_dir=/data7/emobert/exp/evaluation/MSP/feature/openface_iemocap_raw_img/raw_img_db
 echo "convrting image features ..."
-python convert_imgdir.py --img_dir $img_dir --output $output_dir --conf_th 0.0 --max_bb 96 --nproc 16
+python convert_imgdir.py --img_dir $img_dir --output $output_dir --conf_th 1.0 --max_bb 64 --nproc 16
 echo "done"

@@ -76,3 +76,15 @@ export PYTHONPATH=/data7/MEmoBert
 #         --train_batch_size 200 --val_batch_size 200 \
 #         --num_train_steps 40000 --warmup_steps 1000 --valid_steps 5000 \
 #         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_emotasks_melm_merm_eitm_emocls_lr3e5
+
+# ### case6: Only MERM + MELM, based on nomask_moviesv1v2v3_vox2_v1_uniter3m_visual_text_4tasks_lr5e5_bs800_faceth0.5
+# CUDA_VISIBLE_DEVICES=7 horovodrun -np 1 python pretrain.py \
+#         --cvNo 0 --n_workers 4 --use_visual \
+#         --config config/pretrain-movies-v1v2v3-vox2-v1-base-2gpu_speechwav2vec_emotasks_melm_merm.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --checkpoint /data7/emobert/exp/pretrain/nomask_moviesv1v2v3_vox2_v1_uniter3m_visual_text_4tasks_lr5e5_bs800_faceth0.5/ckpt/model_step_40000.pt \
+#         --learning_rate 3e-5 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 768 --max_txt_len 60 \
+#         --train_batch_size 80 --val_batch_size 80 \
+#         --num_train_steps 30000 --warmup_steps 1000 --valid_steps 5000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_3tasks_emotasks_melm_merm_lr3e5

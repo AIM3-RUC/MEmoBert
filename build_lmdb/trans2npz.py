@@ -105,8 +105,8 @@ if __name__ == "__main__":
     if True:
         ## for voxcelebs voxceleb2_v1: 5w多
         hdf5_dir = '/data13/voxceleb2/denseface_feature'
-        movie_names_path = '/data7/emobert/data_nomask_new/voxceleb2_v1/movie_names.npy'
-        npzs_dir = '/data7/emobert/ft_npzs_nomask/voxceleb2_v1/fc' 
+        movie_names_path = '/data7/emobert/data_nomask_new/voxceleb2_v2/movie_names.npy'
+        npzs_dir = '/data7/emobert/ft_npzs_nomask/voxceleb2_v2/fc'
         if not os.path.exists(npzs_dir):
             os.makedirs(npzs_dir)
         convert_hdf5_to_npz_voxceleb2(hdf5_dir, npzs_dir, movie_names_path, start=start, end=end)

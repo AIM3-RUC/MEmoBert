@@ -499,6 +499,25 @@ class FaceSelector(BaseWorker):
             )
         return ans
 
+class AffectiveNetExtractor():
+    '''
+    A face person recognition model to extract more general visual features.
+    '''
+    def __init__(self, mean=63.987095, std=43.00519, model_path=None, cfg=None, gpu_id=0):
+        if cfg is None:
+            cfg = model_cfg
+        if model_path is None:
+            model_path = "/data7/MEmoBert/emobert/exp/face_model/densenet100_adam0.001_0.0/ckpts/model_step_43.pt"
+        self.device = torch.device("cuda:{}".format(gpu_id))
+        self.extractor = DenseNet(gpu_id, **cfg)
+        self.extractor.to(self.device)
+        state_dict = torch.load(model_path)
+        self.extractor.load_state_dict(state_dict)
+        self.extractor.eval()
+        self.dim = 342
+        self.mean = mean
+        self.std = std
+
 if __name__ == '__main__':
     # get_frame = Video2Frame()
     # frame_dir = get_frame('../resources/output1.mkv')

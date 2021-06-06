@@ -114,12 +114,12 @@ def modify_emotype_downstream(corpus_name, cvNo, setname):
             db[textId] = example
 
 def modify_emotype_vox(setname):
-    txt_db_dir = f'/data7/emobert/txt_db/voxceleb2_v1_th1.0_emowords_sentiword_all_{setname}.db/'
-    output_txt_db_dir = f'/data7/emobert/txt_db/voxceleb2_v1_th1.0_emowords_sentiword_emocls_all_{setname}.db/'
+    txt_db_dir = f'/data7/emobert/txt_db/voxceleb2_v2_th1.0_emowords_sentiword_all_{setname}.db/'
+    output_txt_db_dir = f'/data7/emobert/txt_db/voxceleb2_v2_th1.0_emowords_sentiword_emocls_all_{setname}.db/'
     text2img_path = os.path.join(txt_db_dir, 'txt2img.json')
 
-    all_text2img_path = f'/data7/emobert/txt_db/voxceleb2_v1_th1.0_emowords_sentiword_all.db/txt2img.json'
-    all_targe_path = '/data7/emobert/txt_pseudo_label/voxceleb2_txt_pseudo_label_v1.h5'
+    all_text2img_path = f'/data7/emobert/txt_db/voxceleb2_v2_th1.0_emowords_sentiword_all.db/txt2img.json'
+    all_targe_path = '/data7/emobert/txt_pseudo_label/voxceleb2_txt_pseudo_label_v2.h5'
     all_textId2target = h5py.File(all_targe_path, 'r')
     all_text2img = json.load(open(all_text2img_path))
     print('total {} txts'.format(len(all_text2img)))

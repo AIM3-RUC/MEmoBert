@@ -1,0 +1,5 @@
+https://github.com/timesler/facenet-pytorch
+基于人脸识别数据训练的模型
+
+采用人脸的特征，而不是人脸表情的特征，看看效果咋样。
+https://github.com/timesler/facenet-pytorch/blob/master/examples/infer.ipynb
