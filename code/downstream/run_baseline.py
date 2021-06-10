@@ -20,7 +20,8 @@ def clean_chekpoints(ckpt_dir, store_epoch):
     # model_step_number.pt
     for checkpoint in os.listdir(ckpt_dir):
         if not checkpoint.endswith('_{}.pt'.format(store_epoch)):
-            os.remove(os.path.join(ckpt_dir, checkpoint))
+            if 'model_step' in checkpoint:
+                os.remove(os.path.join(ckpt_dir, checkpoint))
 
 def parse_with_config(main_args):
     '''

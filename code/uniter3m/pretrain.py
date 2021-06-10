@@ -8,6 +8,7 @@ import argparse
 from collections import defaultdict
 from io import BufferedIOBase
 import json
+from logging import Logger
 import os
 from os.path import exists, join
 from time import time
@@ -54,6 +55,9 @@ def build_mlm_dataset(txt_db, img_db, speech_db, is_train, opts):
             datasets = [MlmDataset(t, None, s) for t, s in zip(txt_db, speech_db)]
         elif img_db is not None and speech_db is None:
             datasets = [MlmDataset(t, i, None) for t, i in zip(txt_db, img_db)]
+        elif img_db is None and speech_db is None:
+            LOGGER.info('[Debug in mlm dataset] the img and speech modality are None!')
+            datasets = [MlmDataset(t, None, None) for t in txt_db]
         else:
             LOGGER.info('[Error] Error mlm datasets')
         dataset = ConcatDatasetWithLens(datasets)
@@ -69,6 +73,9 @@ def build_melm_dataset(txt_db, img_db, speech_db, is_train, opts):
             datasets = [MelmDataset(opts.melm_prob, t, None, s) for t, s in zip(txt_db, speech_db)]
         elif img_db is not None and speech_db is None:
             datasets = [MelmDataset(opts.melm_prob, t, i, None) for t, i in zip(txt_db, img_db)]
+        elif img_db is None and speech_db is None:
+            # LOGGER.info('[Debug in melm dataset] the img and speech modality are None!')
+            datasets = [MelmDataset(opts.melm_prob, t, None, None) for t in txt_db]
         else:
             LOGGER.info('[Error] Error melm datasets')
         dataset = ConcatDatasetWithLens(datasets)
@@ -99,6 +106,9 @@ def build_mrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
             datasets = [MrfrDataset(opts.mrm_prob, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
         elif speech_db is None:
             datasets = [MrfrDataset(opts.mrm_prob, t, i, None) for t, i in zip(txt_db, img_db)]
+        elif txt_db is None and speech_db is None:
+            LOGGER.info('[Debug in mrfr dataset] the text and speech modality are None!')
+            datasets = [MrfrDataset(opts.mrm_prob, None, i, None) for i in img_db]
         else:
             LOGGER.info('[Error] Error mrfr datasets')
         dataset = ConcatDatasetWithLens(datasets)
@@ -115,6 +125,9 @@ def build_merfr_dataset(txt_db, img_db, speech_db, is_train, opts):
             datasets = [MerfrDataset(t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
         elif speech_db is None:
             datasets = [MerfrDataset(t, i, None) for t, i in zip(txt_db, img_db)]
+        elif txt_db is None and speech_db is None:
+            LOGGER.info('[Debug in merfr dataset] the text and speech modality are None!')
+            datasets = [MerfrDataset(None, i, None) for i in img_db]
         else:
             LOGGER.info('[Error] Error merfr datasets')
         dataset = ConcatDatasetWithLens(datasets)
@@ -130,6 +143,9 @@ def build_msrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
             datasets = [MsrfrDataset(opts.msrm_prob, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
         elif img_db is None:
             datasets = [MsrfrDataset(opts.msrm_prob, t, None, s) for t, s in zip(txt_db, speech_db)]
+        elif txt_db is None and img_db is None:
+            LOGGER.info('[Debug in msrfr dataset] the text and img modality are None!')
+            datasets = [MrfrDataset(opts.msrm_prob, None, None, s) for s in speech_db]
         else:
             LOGGER.info('[Error] Error mrfr datasets')
         dataset = ConcatDatasetWithLens(datasets)
@@ -145,6 +161,9 @@ def build_mrc_dataset(txt_db, img_db, speech_db, is_train, opts):
             datasets = [MrcDataset(opts.mrm_prob, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
         elif speech_db is None:
             datasets = [MrcDataset(opts.mrm_prob, t, i, None) for t, i in zip(txt_db, img_db)]
+        elif txt_db is None and speech_db is None:
+            LOGGER.info('[Debug in mrckl dataset] the text and speech modality are None!')
+            datasets = [MrfrDataset(opts.mrm_prob, None, i, None) for i in img_db]
         else:
             LOGGER.info('[Error] Error mrc datasets')
         dataset = ConcatDatasetWithLens(datasets)
@@ -161,6 +180,9 @@ def build_merc_dataset(txt_db, img_db, speech_db, is_train, opts):
             datasets = [MercDataset(t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
         elif speech_db is None:
             datasets = [MercDataset(t, i, None) for t, i in zip(txt_db, img_db)]
+        elif txt_db is None and speech_db is None:
+            LOGGER.info('[Debug in merckl dataset] the text and speech modality are None!')
+            datasets = [MrfrDataset(None, i, None) for i in img_db]
         else:
             LOGGER.info('[Error] Error merc datasets')
         dataset = ConcatDatasetWithLens(datasets)
@@ -177,6 +199,7 @@ def build_emocls_dataset(txt_db, img_db, speech_db, is_train, opts):
         elif img_db is not None and speech_db is None:
             datasets = [EmoClsDataset(t, i, None, opts.emocls_type) for t, i in zip(txt_db, img_db)]
         elif img_db is None and speech_db is None:
+            LOGGER.info('[Debug in emocls dataset] the img and speech modality are None!')
             datasets = [EmoClsDataset(t, None, None, opts.emocls_type) for t in txt_db]
         else:
             LOGGER.info('[Error] Error itm datasets')
@@ -386,6 +409,11 @@ def main(opts):
     if opts.checkpoint:
         LOGGER.info('[Info] Loading from pretrained model {}'.format(opts.checkpoint))
         checkpoint = torch.load(opts.checkpoint)
+        new_checkpoint = {}
+        for k, v in checkpoint.items():
+            if 'classifier' not in k:
+                new_checkpoint[k] = v
+        checkpoint = new_checkpoint
     else:
         checkpoint = {}
     model = UniterForPretraining.from_pretrained(

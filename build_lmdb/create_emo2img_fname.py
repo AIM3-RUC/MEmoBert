@@ -1,3 +1,4 @@
+from os import posix_fadvise
 import pickle as pkl
 import numpy as np
 import h5py
@@ -11,19 +12,30 @@ movies_v2: emo 1 and fnames 3408  emo 0 and fnames 17375 emo 4 and fnames 3839 e
 movies_v3: emo 0 and fnames 46707 emo 1 and fnames 11848 emo 3 and fnames 9700 emo 4 and fnames 12349 emo 2 and fnames 11558
 voxceleb2_v1 emo 0 and fnames 369921 emo 1 and fnames 9000 emo 4 and fnames 852 emo 2 and fnames 100 emo 3 and fnames 3341
 voxceleb2_v2  emo 0 and fnames 218885 emo 1 and fnames 5488 emo 3 and fnames 1981 emo 4 and fnames 528 emo 2 and fnames 56
+
+all_5corpus_emo5:
+
+all_5corpus_emo4: {0: 'anger', 1: 'happy', 2: 'neutral', 3: 'sadness'}  比较符合真实分布。
+movies_v1: emo 2 and fnames 39207 emo 1 and fnames 11115 emo 0 and fnames 6829  emo 3 and fnames 3733
+movies_v2: emo 1 and fnames 4564 emo 2 and fnames 22358 emo 0 and fnames 3076 emo 3 and fnames 2150
+movies_v3: emo 2 and fnames 59815 emo 1 and fnames 16321 emo 3 and fnames 5588 emo 0 and fnames 10438
+
+all_5corpus_emo7:
 '''
 
 # version, v1, v2, or v3
-# version = 'v3'
-# all_emo2img_fname = f'/data7/emobert/txt_pseudo_label/movie_{version}_emo2img_fname.pkl'
-# all_emo2img_fname_dict = {}
-# all_text2img_path = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all.db/txt2img.json'
-# all_targe_path = f'/data7/emobert/txt_pseudo_label/movie_txt_pseudo_label_{version}.h5'
-
-all_emo2img_fname = '/data7/emobert/txt_pseudo_label/voxceleb2_v2_emo2img_fname.pkl'
+version = 'v3'
+postfix = 'all_5corpus_emo4'
+all_emo2img_fname = f'/data7/emobert/txt_pseudo_label/movie_{version}_emo2img_fname_{postfix}.pkl'
 all_emo2img_fname_dict = {}
-all_text2img_path = '/data7/emobert/txt_db/voxceleb2_v2_th1.0_emowords_sentiword_all.db//txt2img.json'
-all_targe_path = '/data7/emobert/txt_pseudo_label/voxceleb2_txt_pseudo_label_v2.h5'
+all_text2img_path = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all.db/txt2img.json'
+all_targe_path = f'/data7/emobert/txt_pseudo_label/movie_txt_pseudo_label_{version}_{postfix}.h5'
+
+# all_emo2img_fname = '/data7/emobert/txt_pseudo_label/voxceleb2_v2_emo2img_fname.pkl'
+# all_emo2img_fname_dict = {}
+# all_text2img_path = '/data7/emobert/txt_db/voxceleb2_v2_th1.0_emowords_sentiword_all.db//txt2img.json'
+# all_targe_path = '/data7/emobert/txt_pseudo_label/voxceleb2_txt_pseudo_label_v2.h5'
+
 all_textId2target = h5py.File(all_targe_path, 'r')
 all_text2img = json.load(open(all_text2img_path))
 assert len(all_textId2target.keys()) == len(all_text2img)

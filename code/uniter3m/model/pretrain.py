@@ -71,7 +71,7 @@ class UniterForPretraining(UniterPreTrainedModel):
                 self.uniter.img_embeddings.img_linear.weight)
             self.region_classifier = RegionClassification(
                 config.hidden_size, img_label_dim)
-        
+
         if self.use_speech:
             print('[Debug] use speech feature regression!!!')
             self.speech_feat_regress = RegionFeatureRegression(

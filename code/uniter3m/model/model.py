@@ -543,7 +543,7 @@ class UniterModel(UniterPreTrainedModel):
                 if input_ids is not None:
                     # logger.info('[Debug] the txt modality is Not None')
                     if img_feat is not None and speech_feat is None:
-                        # logger.info('\t[Debug] Only the img feat Avaiable')
+                        # logger.info('\t[Debug] the img feat Avaiable')
                         embedding_output = self._compute_img_txt_embeddings(
                             input_ids, position_ids,
                             img_feat, img_position_ids,
@@ -551,7 +551,7 @@ class UniterModel(UniterPreTrainedModel):
                             img_type_ids, token_pos_tag_ids, 
                             token_senti_ids, token_utt_senti_ids)
                     elif speech_feat is not None and img_feat is None:
-                        # logger.info('\t[Debug] Only the speech feat Avaiable')
+                        # logger.info('\t[Debug] the speech feat Avaiable')
                         embedding_output = self._compute_speech_txt_embeddings(
                             input_ids, position_ids,
                             speech_feat, speech_position_ids,
@@ -571,7 +571,7 @@ class UniterModel(UniterPreTrainedModel):
                                 token_senti_ids, token_utt_senti_ids)
                     elif speech_feat is None and img_feat is None:
                         # 如果只包含一个模态，那么不需要gather
-                        # logger.info('\t[Debug] the text feat Avaiable')
+                        # logger.info('\t[Debug] Only the text feat Avaiable')
                         embedding_output = self._compute_txt_embeddings(
                             input_ids, position_ids, txt_type_ids,
                             token_pos_tag_ids, token_senti_ids, token_utt_senti_ids)
@@ -607,7 +607,7 @@ class UniterModel(UniterPreTrainedModel):
             if input_ids is not None:
                 # logger.info('[Debug] the txt modality is Not None')
                 if img_feat is not None and speech_feat is None:
-                    # logger.info('[Debug] Only the img feat Avaiable')
+                    # logger.info('[Debug] the img feat Avaiable')
                     embedding_output = self._compute_img_txt_embeddings(
                         input_ids, position_ids,
                         img_feat, img_position_ids,
@@ -635,6 +635,7 @@ class UniterModel(UniterPreTrainedModel):
                             speech_type_ids, token_pos_tag_ids, 
                             token_senti_ids, token_utt_senti_ids)
                 elif speech_feat is None and img_feat is None:
+                    # logger.info('\t[Debug] Only the text feat Avaiable')
                     embedding_output = self._compute_txt_embeddings(
                             input_ids, position_ids, txt_type_ids,
                             token_pos_tag_ids, token_senti_ids, token_utt_senti_ids)

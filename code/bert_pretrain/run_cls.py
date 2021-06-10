@@ -17,7 +17,7 @@ from datasets import load_dataset
 import torch
 from torch.utils.data.dataloader import DataLoader
 from tqdm.auto import tqdm
-from sklearn.metrics import accuracy_score, recall_score, f1_score
+from sklearn.metrics import accuracy_score, recall_score, f1_score, confusion_matrix
 
 from code.uniter.utils.save import ModelSaver
 from code.downstream.utils.logger import get_logger
@@ -47,6 +47,12 @@ def parse_args():
     parser.add_argument(
         "--test_file", type=str, default=None, help="A csv or a json file containing the testing data."
     )
+    parser.add_argument(
+        "--validation_pred_path", type=str, default=None, help="A npy results savepath."
+    )
+    parser.add_argument(
+        "--test_pred_path", type=str, default=None, help="A npy resutls savepath."
+    )
     parser.add_argument("--patience", type=int, default=3)
     parser.add_argument(
         "--max_length",
@@ -62,6 +68,12 @@ def parse_args():
         type=str,
         help="Path to pretrained model or model identifier from huggingface.co/models.",
         required=True,
+    )
+    parser.add_argument(
+        "--restore_pt_checkpoint",
+        default=None,
+        type=str,
+        help="",
     )
     parser.add_argument(
         "--use_slow_tokenizer",
@@ -116,10 +128,13 @@ def parse_args():
 
     if args.train_file is not None:
         extension = args.train_file.split(".")[-1]
-        assert extension in ["csv", "json"], "`train_file` should be a csv or a json file."
+        assert extension in ["csv", "json", "tsv"], "`train_file` should be a csv or a json file."
     if args.validation_file is not None:
         extension = args.validation_file.split(".")[-1]
-        assert extension in ["csv", "json"], "`validation_file` should be a csv or a json file."
+        assert extension in ["csv", "json", "tsv"], "`validation_file` should be a csv or a json file."
+    if args.test_file is not None:
+        extension = args.test_file.split(".")[-1]
+        assert extension in ["csv", "json", "tsv"], "`validation_file` should be a csv or a json file."
 
     if args.output_dir is not None:
         os.makedirs(args.output_dir, exist_ok=True)
@@ -132,7 +147,8 @@ def compute_metrics(preds, label_ids):
     wuar = recall_score(label_ids, preds, average='weighted')
     wf1 = f1_score(label_ids, preds, average='weighted')
     uwf1 = f1_score(label_ids, preds, average='macro')
-    return {'total':len(preds), "acc": acc, "wuar": wuar, "wf1": wf1, 'uwf1': uwf1}
+    cm = confusion_matrix(label_ids, preds)
+    return {'total':len(preds), "acc": acc, "wuar": wuar, "wf1": wf1, 'uwf1': uwf1, 'cm': cm}
 
 def main():
     args = parse_args()
@@ -157,7 +173,10 @@ def main():
     if args.test_file is not None:
         data_files["test"] = args.test_file
     raw_datasets = load_dataset('csv', data_files=data_files)
-    label_list = raw_datasets["train"].unique("label")
+    if args.train_file is not None:
+        label_list = raw_datasets["train"].unique("label")
+    else:
+        label_list = raw_datasets["validation"].unique("label")
     label_list.sort()  # Let's sort it for determinism
     num_labels = len(label_list)
 
@@ -167,11 +186,22 @@ def main():
     config = AutoConfig.from_pretrained(args.model_name_or_path, num_labels=num_labels)
     #print('config', config)
     tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
+
+    # 如何获取 state_dict 呢？只加载模型层，不加载分类层. 只可能出现在训练阶段
+    if args.restore_pt_checkpoint is not None and args.train_file is not None:
+        print('restore from {}'.format(args.restore_pt_checkpoint))
+        checkpoint = torch.load(args.restore_pt_checkpoint)
+        new_state_dict = {}
+        for k, v in checkpoint.items():
+            if 'classifier' not in k and 'cls_layer' not in k:
+                new_state_dict[k] = v
+    else:
+        new_state_dict = None
     model = AutoModelForSequenceClassification.from_pretrained(
         args.model_name_or_path,
         from_tf=bool(".ckpt" in args.model_name_or_path),
         config=config,
-    )
+        state_dict=new_state_dict)
 
     # Preprocessing the datasets
     sentence1_key, sentence2_key = 'sentence1', None
@@ -188,15 +218,17 @@ def main():
         return result
 
     processed_datasets = raw_datasets.map(
-        preprocess_function, batched=True, remove_columns=raw_datasets["train"].column_names
+        preprocess_function, batched=True, remove_columns=raw_datasets["validation"].column_names
     )
-    train_dataset = processed_datasets["train"]
+    if args.train_file is not None:
+        train_dataset = processed_datasets["train"]
+    
     eval_dataset = processed_datasets["validation"]
     test_dataset = processed_datasets["test"]
 
     # Log a few random samples from the training set:
-    for index in random.sample(range(len(train_dataset)), 2):
-        logger.info(f"Sample {index} of the training set: {train_dataset[index]}.")
+    for index in random.sample(range(len(eval_dataset)), 2):
+        logger.info(f"Sample {index} of the training set: {eval_dataset[index]}.")
 
     if not exists(join(args.output_dir, 'ckpt')):
         os.makedirs(join(args.output_dir, 'ckpt'))
@@ -204,11 +236,13 @@ def main():
     # DataLoaders creation:
     data_collator = DataCollatorWithPadding(tokenizer, pad_to_multiple_of=None)
 
-    train_dataloader = DataLoader(
-        train_dataset, shuffle=True, collate_fn=data_collator, batch_size=args.per_device_train_batch_size
-    )
+    if args.train_file is not None:
+        train_dataloader = DataLoader(
+            train_dataset, shuffle=True, collate_fn=data_collator, batch_size=args.per_device_train_batch_size
+        )
     eval_dataloader = DataLoader(eval_dataset, collate_fn=data_collator, batch_size=args.per_device_eval_batch_size)
     test_dataloader = DataLoader(test_dataset, collate_fn=data_collator, batch_size=args.per_device_eval_batch_size)
+
 
     no_decay = ["bias", "LayerNorm.weight"]
     optimizer_grouped_parameters = [
@@ -222,97 +256,119 @@ def main():
         },
     ]
     optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate)
-    model, optimizer, train_dataloader, eval_dataloader, test_dataloader = accelerator.prepare(
-        model, optimizer, train_dataloader, eval_dataloader, test_dataloader
-    )
-
-    # Scheduler and math around the number of training steps.
-    num_update_steps_per_epoch = math.ceil(len(train_dataloader) / args.gradient_accumulation_steps)
-    if args.max_train_steps is None:
-        args.max_train_steps = args.num_train_epochs *  num_update_steps_per_epoch
+    if args.train_file is not None:
+        model, optimizer, train_dataloader, eval_dataloader, test_dataloader = accelerator.prepare(
+            model, optimizer, train_dataloader, eval_dataloader, test_dataloader
+        )
     else:
-        args.num_train_epochs = math.ceil(args.max_train_steps / num_update_steps_per_epoch)
+        model, optimizer, eval_dataloader, test_dataloader = accelerator.prepare(
+            model, optimizer, eval_dataloader, test_dataloader
+        )
 
-    lr_scheduler = get_scheduler(
-        name=args.lr_scheduler_type,
-        optimizer=optimizer,
-        num_warmup_steps=args.num_warmup_steps,
-        num_training_steps=args.max_train_steps,
-    )
-
-    # Train!
-    total_batch_size = args.per_device_train_batch_size * accelerator.num_processes * args.gradient_accumulation_steps
-    logger.info("***** Running training *****")
-    logger.info(f"  Num examples = {len(train_dataset)}")
-    logger.info(f"  Num Epochs = {args.num_train_epochs}")
-    logger.info(f"  Instantaneous batch size per device = {args.per_device_train_batch_size}")
-    logger.info(f"  Total train batch size (w. parallel, distributed & accumulation) = {total_batch_size}")
-    logger.info(f"  Gradient Accumulation steps = {args.gradient_accumulation_steps}")
-    logger.info(f"  Total optimization steps = {args.max_train_steps}")
-    # Only show the progress bar once on each machine.
-    progress_bar = tqdm(range(args.max_train_steps), disable=not accelerator.is_local_main_process)
-    completed_steps = 0
-    best_eval_acc = 0
-    best_eval_epoch = -1
-
-    for epoch in range(args.num_train_epochs):
-        lr = optimizer.state_dict()['param_groups'][0]['lr']
-        logger.info(f'\t[LR] current {epoch} learning rate {lr}')
-        model.train()
-        for step, batch in enumerate(train_dataloader):
-            outputs = model(**batch)
-            loss = outputs.loss
-            loss = loss / args.gradient_accumulation_steps
-            accelerator.backward(loss)
-            if step % args.gradient_accumulation_steps == 0 or step == len(train_dataloader) - 1:
-                optimizer.step()
-                lr_scheduler.step()
-                optimizer.zero_grad()
-                progress_bar.update(1)
-                completed_steps += 1
-
-            if completed_steps >= args.max_train_steps:
-                break
-        # evaluation at every epoch
-        model.eval()
-        logger.info('[Evaluation]  on validation')
-        eval_results = evaluation(accelerator, model, eval_dataloader)
-        logger.info('\t Epoch {}: {}'.format(epoch, eval_results))
-        logger.info('[Evaluation]  on testing')
-        test_reuslts = evaluation(accelerator, model, test_dataloader)
-        logger.info('\t Epoch {}: {}'.format(epoch, test_reuslts))
-        # choose the best epoch
-        if eval_results['acc'] > best_eval_acc:
-            best_eval_epoch = epoch
-            best_eval_acc = eval_results['acc']
-            patience = args.patience
-            # save the model
-            model_saver.save(model, epoch)
-        # for early stop
-        if patience <= 0:
-            break
+    if args.train_file is not None:
+        logger.info('In the training stage')
+        # Scheduler and math around the number of training steps.
+        num_update_steps_per_epoch = math.ceil(len(train_dataloader) / args.gradient_accumulation_steps)
+        if args.max_train_steps is None:
+            args.max_train_steps = args.num_train_epochs *  num_update_steps_per_epoch
         else:
-            patience -= 1
-    # print best eval result and clean the other models
-    logger.info('Loading best model found on val set: epoch-%d' % best_eval_epoch)
-    checkpoint_path = join(args.output_dir, 'ckpt', 'model_step_{}.pt'.format(best_eval_epoch))
-    if not os.path.exists(checkpoint_path):
-        logger.error("Load checkpoint error, not exist such file")
-        exit(0)
-    ck = torch.load(checkpoint_path)
-    model.load_state_dict(ck)
-    model.eval()
-    logger.info('[Final Evaluation]  on validation')
-    eval_results = evaluation(accelerator, model, eval_dataloader)
-    logger.info('Epoch {}: {}'.format(best_eval_epoch, eval_results))
-    logger.info('[Final Evaluation]  on testing')
-    test_reuslts = evaluation(accelerator, model, test_dataloader)
-    logger.info('Epoch {}: {}'.format(best_eval_epoch, test_reuslts))
-    clean_chekpoints(join(args.output_dir, 'ckpt'), best_eval_epoch)
-    output_tsv = join(os.path.split(args.output_dir)[0], 'result.csv')
-    if not os.path.exists(output_tsv):
-        open(output_tsv, 'w').close()  # touch output_csv
-    write_result_to_tsv(output_tsv, test_reuslts, args.cvNo)
+            args.num_train_epochs = math.ceil(args.max_train_steps / num_update_steps_per_epoch)
+
+        lr_scheduler = get_scheduler(
+            name=args.lr_scheduler_type,
+            optimizer=optimizer,
+            num_warmup_steps=args.num_warmup_steps,
+            num_training_steps=args.max_train_steps,
+        )
+        
+        # Train!
+        total_batch_size = args.per_device_train_batch_size * accelerator.num_processes * args.gradient_accumulation_steps
+        logger.info("***** Running training *****")
+        logger.info(f"  Num examples = {len(train_dataset)}")
+        logger.info(f"  Num Epochs = {args.num_train_epochs}")
+        logger.info(f"  Instantaneous batch size per device = {args.per_device_train_batch_size}")
+        logger.info(f"  Total train batch size (w. parallel, distributed & accumulation) = {total_batch_size}")
+        logger.info(f"  Gradient Accumulation steps = {args.gradient_accumulation_steps}")
+        logger.info(f"  Total optimization steps = {args.max_train_steps}")
+        # Only show the progress bar once on each machine.
+        progress_bar = tqdm(range(args.max_train_steps), disable=not accelerator.is_local_main_process)
+        completed_steps = 0
+        best_eval_acc = 0
+        best_eval_epoch = -1
+
+        for epoch in range(args.num_train_epochs):
+            lr = optimizer.state_dict()['param_groups'][0]['lr']
+            logger.info(f'\t[LR] current {epoch} learning rate {lr}')
+            model.train()
+            for step, batch in enumerate(train_dataloader):
+                outputs = model(**batch)
+                loss = outputs.loss
+                loss = loss / args.gradient_accumulation_steps
+                accelerator.backward(loss)
+                if step % args.gradient_accumulation_steps == 0 or step == len(train_dataloader) - 1:
+                    optimizer.step()
+                    lr_scheduler.step()
+                    optimizer.zero_grad()
+                    progress_bar.update(1)
+                    completed_steps += 1
+
+                if completed_steps >= args.max_train_steps:
+                    break
+            # evaluation at every epoch
+            model.eval()
+            logger.info('[Evaluation]  on validation')
+            eval_results = evaluation(accelerator, model, eval_dataloader)
+            logger.info('\t Epoch {}: {}'.format(epoch, eval_results))
+            logger.info('[Evaluation]  on testing')
+            test_reuslts = evaluation(accelerator, model, test_dataloader)
+            logger.info('\t Epoch {}: {}'.format(epoch, test_reuslts))
+            # choose the best epoch
+            if eval_results['wf1'] > best_eval_acc:
+                best_eval_epoch = epoch
+                best_eval_acc = eval_results['wf1']
+                patience = args.patience
+                # save the model
+                model_saver.save(model, epoch)
+                # 保存为 Hugging-face 的格式
+                model.save_pretrained(join(args.output_dir, 'ckpt', 'epoch-{}'.format(epoch)))
+            # for early stop
+            if patience <= 0:
+                break
+            else:
+                patience -= 1
+        # print best eval result and clean the other models
+        logger.info('Loading best model found on val set: epoch-%d' % best_eval_epoch)
+        checkpoint_path = join(args.output_dir, 'ckpt', 'model_step_{}.pt'.format(best_eval_epoch))
+        if not os.path.exists(checkpoint_path):
+            logger.error("Load checkpoint error, not exist such file")
+            exit(0)
+        ck = torch.load(checkpoint_path)
+        model.load_state_dict(ck)    
+        model.eval()
+        logger.info('[Final Evaluation]  on validation')
+        eval_results = evaluation(accelerator, model, eval_dataloader)
+        logger.info('Epoch {}: {}'.format(best_eval_epoch, eval_results))
+        logger.info('[Final Evaluation]  on testing')
+        test_reuslts = evaluation(accelerator, model, test_dataloader)
+        logger.info('Epoch {}: {}'.format(best_eval_epoch, test_reuslts))
+        clean_chekpoints(join(args.output_dir, 'ckpt'), best_eval_epoch)
+        output_tsv = join(os.path.split(args.output_dir)[0], 'result.csv')
+        if not os.path.exists(output_tsv):
+            open(output_tsv, 'w').close()  # touch output_csv
+        write_result_to_tsv(output_tsv, test_reuslts, args.cvNo)
+    else:
+        logger.info('In the Evaluation stage')
+        model.eval()
+        logger.info('[Final Evaluation]  on validation')
+        eval_results, eval_preds = evaluation(accelerator, model, eval_dataloader, return_pred=True)
+        np.save(args.validation_pred_path, eval_preds)
+        logger.info(f'total {len(eval_preds)} samples ')
+        print(eval_results)
+        logger.info('[Final Evaluation]  on testing')
+        test_reuslts, test_preds = evaluation(accelerator, model, test_dataloader, return_pred=True)
+        np.save(args.test_pred_path, test_preds)
+        logger.info(f'total {len(test_preds)} samples ')
+        print(test_reuslts)
 
 def write_result_to_tsv(file_path, tst_log, cvNo):
     # 使用fcntl对文件加锁,避免多个不同进程同时操作同一个文件
@@ -327,9 +383,10 @@ def write_result_to_tsv(file_path, tst_log, cvNo):
     f_out.close()
     f_in.close()
 
-def evaluation(accelerator, model, set_dataloader):
+def evaluation(accelerator, model, set_dataloader, return_pred=False):
     total_preds = []
     total_labels = []
+    total_logits = []
     for step, batch in enumerate(set_dataloader):
         outputs = model(**batch)
         predictions = outputs.logits.argmax(dim=-1)
@@ -337,11 +394,18 @@ def evaluation(accelerator, model, set_dataloader):
         temp_labels = accelerator.gather(batch["labels"]).detach().cpu().numpy()
         total_preds.append(temp_preds)
         total_labels.append(temp_labels)
+        temp_logits = accelerator.gather(outputs.logits).detach().cpu().numpy()
+        total_logits.append(temp_logits)
     total_preds = np.concatenate(total_preds)
     total_labels = np.concatenate(total_labels)
     # set early stop and save the best models
     eval_metric = compute_metrics(total_preds, total_labels)
-    return eval_metric
+    if return_pred:
+        total_logits = np.concatenate(total_logits)
+        print('total logits shape {}'.format(total_logits.shape))
+        return eval_metric, total_logits
+    else:
+        return eval_metric
 
 if __name__ == "__main__":
     main()

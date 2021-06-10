@@ -252,3 +252,31 @@ Late Supervised 在EF的基础上加了一个句子分类层,
 1. 目前的txt=30, img=64, max-token=10240, 得到的batch-size大约100～120左右。
 共有20w训练数据，200,000/100 = 2000 iters. 2000 * 20 = 4w steps..
 
+## 高质量的情感样本筛选 --Done
+在EmoClsTask中，只把那些质量比较高的数据，并且保持类别均衡，拿来出做EmoCls。
+挑选策略，如果之后一个词，那么去掉；如果类别是Neutral，那么要求概率大约 pneu=80%； 如果类别是其他的情感类别，那么概率大于 pohter=40% 才可以。
+以上两个阈值，可以根据最终的数据分布进行确定。 pohter=30% 35% 40% pneu=70% 75% 80%
+/data7/MEmoBert/build_lmdb/modify_text_db.py
+
+BertMovies的数据都比较平衡，但是不符合常理啊，数据集中怎么可能分布那么均衡呢？
+
+all_5corpus_emo4: 
+movies_v2: emo 1 and count 4062 emo 2 and count 19959 emo 3 and count 1791 emo 0 and count 836
+movies_v1: emo 2 and count 36642 emo 1 and count 10335 emo 3 and count 3247 emo 0 and count 2675
+movies_v3: emo 1 and count 15395 emo 2 and count 56741 emo 3 and count 4939 emo 0 and count 3876
+类别不均衡咋办？ 再均衡就没了，先这么做的。
+
+## UNIMO 单模态训练 --Going
+可以同时利用单模态，或者任意模态的组合进行训练，--use_visual --use_speech 用来初始化模型。
+而构建db的时候不能根据 --use_visual 来进行判断，而是config中每个db模态信息是否存在.
+
+1. 可以直接加入有标注的文本数据单独做 MLM and EmoCls 的任务。--Done
+
+2. 比如利用 opensubtitle 的数据进行文本的训练, MLM 情感分类模型 和 EmoCLs 情感分类.
+整理基于 opensubtitle 500w 的文本数据，构建均衡的文本分类模型
+需要确认模型，采用几分类的模型，为了下游任务，最好是选用7分类的，可以使用不同的任务。 
+但是为了验证方法有效性，跟目前的下游任务匹配，先采用emo4的。
+
+## 在论文MOCKINGJAY中提到语音用 sinusoidal 编码 --Going
+sinusoidal positional encoding instead of learnable positional embeddings because acoustic features can be arbitrarily long with high variance.
+在三模态的baseline上进行测试。

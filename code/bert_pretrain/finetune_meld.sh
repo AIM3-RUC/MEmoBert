@@ -8,27 +8,94 @@ gpuid=$1
 pretrain_model_dir=/data7/MEmoBert/emobert/exp/mlm_pretrain/results/
 output_dir=/data7/emobert/exp/finetune/onlytext
 
-for cvNo in `seq 1 1`;
+# for cvNo in `seq 1 1`;
+# do
+#     for lr in 2e-5  3e-5
+#     do
+#         bert_data_dir=/data7/emobert/exp/evaluation/MELD/bert_data
+#         CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
+#             --model_name_or_path /data7/emobert/exp/text_emo_model/all_5corpus_emo4_bert_base_lr2e-5_bs32/ckpt/  \
+#             --restore_pt_checkpoint /data7/emobert/exp/text_emo_model/all_5corpus_emo4_bert_base_lr2e-5_bs32/ckpt/model_step_0.pt \
+#             --train_file ${bert_data_dir}/train_val.csv \
+#             --validation_file ${bert_data_dir}/test.csv \
+#             --test_file ${bert_data_dir}/test.csv \
+#             --max_length 50 \
+#             --per_device_train_batch_size 32 \
+#             --per_device_eval_batch_size 32 \
+#             --num_train_epochs 6 \
+#             --patience 2 \
+#             --learning_rate ${lr} \
+#             --lr_scheduler_type 'linear' \
+#             --output_dir ${output_dir}/meld_all_5corpus_emo4_bert_base_lr${lr}_bs32_trnval/${cvNo}
+#     done
+# done
+
+# for cvNo in `seq 1 1`;
+# do
+#     for lr in 2e-5 3e-5
+#     do
+#         bert_data_dir=/data7/emobert/exp/evaluation/MELD/bert_data
+#         CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
+#             --model_name_or_path /data7/emobert/exp/text_emo_model/all_5corpus_emo5_bert_base_lr2e-5_bs32/ckpt/  \
+#             --restore_pt_checkpoint /data7/emobert/exp/text_emo_model/all_5corpus_emo5_bert_base_lr2e-5_bs32/ckpt/model_step_0.pt \
+#             --train_file ${bert_data_dir}/train_val.csv \
+#             --validation_file ${bert_data_dir}/test.csv \
+#             --test_file ${bert_data_dir}/test.csv \
+#             --max_length 50 \
+#             --per_device_train_batch_size 32 \
+#             --per_device_eval_batch_size 32 \
+#             --num_train_epochs 6 \
+#             --patience 2 \
+#             --learning_rate ${lr} \
+#             --lr_scheduler_type 'linear' \
+#             --output_dir ${output_dir}/meld_all_5corpus_emo5_bert_base_lr${lr}_bs32_trnval/${cvNo}
+#     done
+# done
+
+# for cvNo in `seq 1 1`;
+# do
+#     for lr in 2e-5  3e-5
+#     do
+#         bert_data_dir=/data7/emobert/exp/evaluation/MELD/bert_data
+#         CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
+#             --model_name_or_path /data7/emobert/exp/text_emo_model/all_5corpus_emo7_bert_base_lr2e-5_bs32/ckpt/  \
+#             --restore_pt_checkpoint /data7/emobert/exp/text_emo_model/all_5corpus_emo7_bert_base_lr2e-5_bs32/ckpt/model_step_1.pt \
+#             --train_file ${bert_data_dir}/train_val.csv \
+#             --validation_file ${bert_data_dir}/test.csv \
+#             --test_file ${bert_data_dir}/test.csv \
+#             --max_length 50 \
+#             --per_device_train_batch_size 32 \
+#             --per_device_eval_batch_size 32 \
+#             --num_train_epochs 6 \
+#             --patience 2 \
+#             --learning_rate ${lr} \
+#             --lr_scheduler_type 'linear' \
+#             --output_dir ${output_dir}/meld_all_5corpus_emo7_bert_base_lr${lr}_bs32_trnval/${cvNo}
+#     done
+# done
+
+for cvNo in `seq 1 1`
 do
-    for lr in 1e-5
+    for lr in 2e-5 5e-5
     do
-        bert_data_dir=/data7/emobert/exp/evaluation/MELD/bert_data
-        CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
-            --model_name_or_path roberta-base \
-            --train_file ${bert_data_dir}/train_val.csv \
-            --validation_file ${bert_data_dir}/test.csv \
-            --test_file ${bert_data_dir}/test.csv \
-            --max_length 50 \
-            --per_device_train_batch_size 32 \
-            --per_device_eval_batch_size 32 \
-            --num_train_epochs 8 \
-            --patience 2 \
-            --learning_rate ${lr} \
-            --lr_scheduler_type 'linear' \
-            --output_dir ${output_dir}/meld_roberta_base_lr${lr}_bs32_trnval_m1/${cvNo}
+    bert_data_dir=/data7/emobert/exp/evaluation/MELD/bert_data
+    CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
+        --model_name_or_path /data7/emobert/exp/text_emo_model/bert_movie_model/ \
+        --restore_pt_checkpoint /data7/emobert/exp/text_emo_model/bert_movie_model/model_step_0.pt \
+        --cvNo ${cvNo} \
+        --train_file ${bert_data_dir}/train_val.csv \
+        --validation_file ${bert_data_dir}/test.csv \
+        --test_file ${bert_data_dir}/test.csv \
+        --max_length 50 \
+        --per_device_train_batch_size 32 \
+        --per_device_eval_batch_size 32 \
+        --num_train_epochs 6 \
+        --patience 2 \
+        --learning_rate ${lr} \
+        --lr_scheduler_type 'linear' \
+        --output_dir ${output_dir}/meld_bert_movie_lr${lr}_bs32_trnval/${cvNo}
     done
 done
-
 
 # pretrained dir = /data7/MEmoBert/emobert/exp/mlm_pretrain/results/
 # ${pretrain_model_dir}/meld/bert_base_uncased_2e5_epoch10_bs64/

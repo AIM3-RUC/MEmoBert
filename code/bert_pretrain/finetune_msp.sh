@@ -7,12 +7,12 @@ gpuid=$1
 pretrain_model_dir=/data7/MEmoBert/emobert/exp/mlm_pretrain/results
 output_dir=/data7/emobert/exp/finetune/onlytext
 
-corpus_name='iemocap'
-corpus_name_L='IEMOCAP'
+corpus_name='msp'
+corpus_name_L='MSP'
 
-# for cvNo in `seq 1 10`
+# for cvNo in `seq 1 12`;
 # do
-#     for lr in 2e-5 3e-5 5e-5
+#     for lr in 2e-5 3e-5 5e-5; 
 #     do
 #     bert_data_dir=/data7/emobert/exp/evaluation/${corpus_name_L}/bert_data/${cvNo}
 #     CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
@@ -33,9 +33,9 @@ corpus_name_L='IEMOCAP'
 #     done
 # done
 
-# for cvNo in `seq 1 10`
+# for cvNo in `seq 1 12`;
 # do
-#     for lr in 2e-5 3e-5 5e-5
+#     for lr in 2e-5 3e-5  5e-5; 
 #     do
 #     bert_data_dir=/data7/emobert/exp/evaluation/${corpus_name_L}/bert_data/${cvNo}
 #     CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
@@ -56,9 +56,9 @@ corpus_name_L='IEMOCAP'
 #     done
 # done
 
-# for cvNo in `seq 1 10`
+# for cvNo in `seq 1 12`;
 # do
-#     for lr in 2e-5 3e-5 5e-5
+#     for lr in 2e-5 3e-5 5e-5; 
 #     do
 #     bert_data_dir=/data7/emobert/exp/evaluation/${corpus_name_L}/bert_data/${cvNo}
 #     CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
@@ -79,7 +79,7 @@ corpus_name_L='IEMOCAP'
 #     done
 # done
 
-for cvNo in `seq 1 10`
+for cvNo in `seq 1 12`
 do
     for lr in 2e-5 5e-5
     do
@@ -108,10 +108,9 @@ done
 # ${pretrain_model_dir}/${corpus_name}/${cvNo}/bert_taskpretain_on_opensub1000w_base_uncased_2e5_epoch10_bs64/
 
 ## supervised-pretrain
-# /data7/emobert/exp/text_emo_model/all_5corpus_emo4_bert_base_lr2e-5_bs32/ckpt/
+# /data7/emobert/exp/text_emo_model/all_5corpus_emo7_bert_base_lr2e-5_bs32/ckpt/
 # /data7/emobert/exp/text_emo_model/all_5corpus_emo5_bert_base_lr2e-5_bs32/ckpt/
 # /data7/emobert/exp/text_emo_model/all_5corpus_emo7_bert_base_lr2e-5_bs32/ckpt/
-# /data7/emobert/exp/text_emo_model/bert_movie_model/
 
 ## openpretain
 ##for opensubtile 1000w
