@@ -8,7 +8,7 @@ from tqdm import tqdm
 from functools import partial
 from toolz.sandbox import unzip
 from preprocess.utils import get_basename, mkdir
-from preprocess.tasks.audio import ComParEExtractor, Wav2VecExtractor, RawWavExtractor
+from preprocess.tasks.audio import ComParEExtractor, Wav2VecExtractor, RawWavExtractor, Wav2VecCNNExtractor
 from preprocess.tasks.vision import DensefaceExtractor, FaceSelector
 from preprocess.tasks.text import *
 from preprocess.tools.get_emo_words import EmoLexicon
@@ -140,9 +140,13 @@ if __name__ == '__main__':
 
     extact_face_features = False
     extact_audio_features = True
-    audio_features_type = 'rawwav'
+    audio_features_type = 'wav2vec-cnn'
     use_asr_based_model=False
-    feature_audio_root = path_config.feature_audio_wav2vec_dir
+    # feature_audio_root = path_config.feature_audio_wav2vec_dir # should modify
+    if audio_features_type == 'wav2vec-cnn':
+        feature_audio_root = path_config.feature_audio_wav2vec_cnn_dir
+    elif audio_features_type == 'wav2vec':
+        feature_audio_root = path_config.feature_audio_wav2vec_dir
 
     transcripts_dir = path_config.transcript_json_dir
     video_clip_dir = path_config.video_clip_dir
@@ -172,6 +176,9 @@ if __name__ == '__main__':
     if audio_features_type == 'comparE':
         comparE_model = ComParEExtractor()
         extract_comparE = partial(extract_comparE_file, extractor_model=comparE_model)
+    elif audio_features_type == 'wav2vec-cnn':
+        wav2vec_model = Wav2VecCNNExtractor(gpu=0, use_asr_based_model=use_asr_based_model)
+        extract_wav2vec = partial(extract_wav2vec_file, extractor_model=wav2vec_model)
     elif audio_features_type == 'wav2vec':
         wav2vec_model = Wav2VecExtractor(downsample=-1, gpu=0, use_asr_based_model=use_asr_based_model)
         extract_wav2vec = partial(extract_wav2vec_file, extractor_model=wav2vec_model)
@@ -222,7 +229,7 @@ if __name__ == '__main__':
             print(save_path)
             extract_features_h5(extract_comparE, lambda x: os.path.join(audio_dir, x),  utt_ids, save_path)
 
-        ## for extracting ComparE feature 
+        ## for extracting wav2vec feature 
         if extact_audio_features and audio_features_type=='wav2vec':
             print("[INFO] Extracing Wav2vec Audio features!")
             audio_feature_dir = os.path.join(feature_audio_root, movie_name)
@@ -234,6 +241,15 @@ if __name__ == '__main__':
             print(save_path)
             extract_features_h5(extract_wav2vec, lambda x: os.path.join(audio_dir, x),  utt_ids, save_path)
         
+        ## for extracting wav2vec-cnn feature 
+        if extact_audio_features and audio_features_type=='wav2vec-cnn':
+            print("[INFO] Extracing Wav2vec cnn part Audio features!")
+            audio_feature_dir = os.path.join(feature_audio_root, movie_name)
+            mkdir(audio_feature_dir)
+            save_path = os.path.join(audio_feature_dir, f'{utt_file_name}_wav2vec_cnn.h5')
+            print(save_path)
+            extract_features_h5(extract_wav2vec, lambda x: os.path.join(audio_dir, x),  utt_ids, save_path)
+
         ## for extracting ComparE feature 
         if extact_audio_features and audio_features_type=='rawwav':
             print("[INFO] Extracing Raw Processed Audio features!")

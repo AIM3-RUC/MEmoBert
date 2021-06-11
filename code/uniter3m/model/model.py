@@ -10,12 +10,12 @@ import copy
 import json
 import logging
 from io import open
+import numpy as np
 
 import torch
 from torch import nn
 from apex.normalization.fused_layer_norm import FusedLayerNorm
 from code.uniter.model.layer import BertLayer, BertPooler
-from code.uniter.model.model import UniterImageEmbeddings
 
 logger = logging.getLogger(__name__)
 
@@ -211,6 +211,35 @@ class UniterPreTrainedModel(nn.Module):
                                    "\n\t".join(error_msgs)))
         return model
 
+# 定义 Sinusoid 的位置编码方式
+def sinusoid_position_encoding(seq_len, hidden_size, batch_size=None, padding_idx=None):
+    ''' Sinusoid position encoding table 
+    seq_len: sequence length
+    hidden_size: hidden size of the text embedding
+    batch_size: batch-size
+    padding_idx: padding_idx~seq_len are padding indexs
+    '''
+    def cal_angle(position, hid_idx):
+        return position / np.power(10000, 2 * (hid_idx // 2) / hidden_size)
+    
+    def get_posi_angle_vec(position):
+        return [cal_angle(position, hid_j) for hid_j in range(hidden_size)]
+
+    sinusoid_table = np.array([get_posi_angle_vec(pos_i) for pos_i in range(seq_len)])
+
+    sinusoid_table[:, 0::2] = np.sin(sinusoid_table[:, 0::2])  # dim 2i
+    sinusoid_table[:, 1::2] = np.cos(sinusoid_table[:, 1::2])  # dim 2i+1
+
+    if padding_idx is not None:
+        sinusoid_table[padding_idx:] = 0. # zero vector for padding dimension
+
+    if batch_size is not None:
+        batch_sinusoid_table = np.repeat(sinusoid_table[np.newaxis,...], batch_size, axis=0)
+        return batch_sinusoid_table # (batch_size, seq_len, hidden_size)
+    else:
+        return sinusoid_table  # (seq_len, hidden_size)
+
+
 class UniterTextEmbeddings(nn.Module):
     def __init__(self, config):
         super().__init__()
@@ -290,6 +319,60 @@ class UniterTextEmbeddings(nn.Module):
         
         return embeddings
 
+class UniterImageEmbeddings(nn.Module):
+    def __init__(self, config, img_dim):
+        super().__init__()
+        self.config = config
+        self.img_linear = nn.Linear(img_dim, config.hidden_size)
+
+        if config.use_projs_av_modality:
+            logger.info('[Debug] add one more linear for visual modality')
+            self.projs_linear = nn.Sequential(
+                nn.Dropout(config.hidden_dropout_prob),
+                nn.Linear(config.hidden_size, config.hidden_size),
+                GELU(),
+                FusedLayerNorm(config.hidden_size, eps=1e-12),
+                nn.Dropout(config.hidden_dropout_prob)
+            )
+        else:
+            self.projs_linear = None
+
+        self.img_layer_norm = FusedLayerNorm(config.hidden_size, eps=1e-12)
+        self.mask_embedding = nn.Embedding(2, img_dim, padding_idx=0)
+
+        if not config.use_sinusoid_position_embedding:
+            self.position_embeddings = nn.Embedding(config.max_position_embeddings,
+                                                config.hidden_size)
+        else:
+            logger.info('[Debug in UniterImageEmbeddings] use sinusoid_position_embedding')
+            self.position_embeddings  = None 
+
+        # tf naming convention for layer norm
+        self.LayerNorm = FusedLayerNorm(config.hidden_size, eps=1e-12)
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
+
+    def forward(self, img_feat, img_position_ids, img_type_embeddings, img_masks=None):
+        if img_masks is not None:
+            self.mask_embedding.weight.data[0, :].fill_(0)
+            mask = self.mask_embedding(img_masks.long())
+            img_feat = img_feat + mask
+
+        transformed_im = self.img_layer_norm(self.img_linear(img_feat))
+        if self.projs_linear is not None:
+            transformed_im = self.projs_linear(transformed_im)
+
+        if self.position_embeddings is None:
+            position_embeddings = sinusoid_position_encoding(img_position_ids.size(1), self.config.hidden_size, \
+                                                batch_size=img_position_ids.size(0))
+            position_embeddings = torch.from_numpy(position_embeddings).to(dtype=transformed_im.dtype, device=transformed_im.device)
+        else:
+            position_embeddings = self.position_embeddings(img_position_ids)
+
+        embeddings = transformed_im + position_embeddings + img_type_embeddings
+        embeddings = self.LayerNorm(embeddings)
+        embeddings = self.dropout(embeddings)
+        return embeddings
+
 class UniterSpeechEmbeddings(nn.Module):
     def __init__(self, config, speech_dim):
         super().__init__()
@@ -297,6 +380,7 @@ class UniterSpeechEmbeddings(nn.Module):
         # Jinming: 因为prtrained的bert只有两个token-type, 
         # 因此当不采用visual信息的时候,可以采用共享文本的token-type.
         '''
+        self.config = config
         self.speech_linear = nn.Linear(speech_dim, config.hidden_size)
 
         if config.use_projs_av_modality:
@@ -312,8 +396,13 @@ class UniterSpeechEmbeddings(nn.Module):
             self.projs_linear = None
             
         self.speech_layer_norm = FusedLayerNorm(config.hidden_size, eps=1e-12)
-        self.position_embeddings = nn.Embedding(config.max_position_embeddings,
+
+        if not config.use_sinusoid_position_embedding:
+            self.position_embeddings = nn.Embedding(config.max_position_embeddings,
                                                 config.hidden_size)
+        else:
+            logger.info('[Debug in UniterSpeechEmbeddings] use sinusoid_position_embedding')
+            self.position_embeddings  = None 
         self.mask_embedding = nn.Embedding(2, speech_dim, padding_idx=0)
 
         if config.speech_visual_use_same_type:
@@ -339,7 +428,12 @@ class UniterSpeechEmbeddings(nn.Module):
         if self.projs_linear is not None:
             transformed_speech = self.projs_linear(transformed_speech)
 
-        position_embeddings = self.position_embeddings(speech_position_ids)
+        if self.position_embeddings is None:
+            position_embeddings = sinusoid_position_encoding(speech_position_ids.size(1), self.config.hidden_size, \
+                                                batch_size=speech_position_ids.size(0))
+            position_embeddings =  torch.from_numpy(position_embeddings).to(dtype=transformed_speech.dtype, device=transformed_speech.device)
+        else:
+            position_embeddings = self.position_embeddings(speech_position_ids)
         embeddings = transformed_speech + position_embeddings + speech_type_embeddings
         embeddings = self.LayerNorm(embeddings)
         embeddings = self.dropout(embeddings)
@@ -676,3 +770,7 @@ class UniterModel(UniterPreTrainedModel):
         if not output_all_encoded_layers:
             encoded_layers = encoded_layers[-1]
         return encoded_layers
+
+if __name__ == "__main__":
+    sinusoid_table = position_encoding(10, 768, batch_size=None, padding_idx=None)
+    print(sinusoid_table.shape) # (10, 768)

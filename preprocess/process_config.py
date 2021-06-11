@@ -36,7 +36,7 @@ moive_names_path = '/data7/emobert/data_nomask_new/movies_v1/movie_names.npy'
 feature_face_dir = '/data7/emobert/denseface_feature_nomask_torch/movies_v1'
 feature_audio_comparE_dir = '/data7/emobert/comparE_feature/movies_v1'
 feature_audio_wav2vec_dir = '/data7/emobert/wav2vec_feature/movies_v1'
-
+feature_audio_wav2vec_cnn_dir = '/data7/emobert/wav2vec_cnn_feature/movies_v1'
 # tools path, all in avec2230 docker
 openface_dir='/root/tools/openface_tool/OpenFace/build/bin'
 opensmile_path = '/root/opensmile-2.3.0' # avec2230 docker

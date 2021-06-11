@@ -259,14 +259,14 @@ Late Supervised 在EF的基础上加了一个句子分类层,
 /data7/MEmoBert/build_lmdb/modify_text_db.py
 
 BertMovies的数据都比较平衡，但是不符合常理啊，数据集中怎么可能分布那么均衡呢？
-
 all_5corpus_emo4: 
 movies_v2: emo 1 and count 4062 emo 2 and count 19959 emo 3 and count 1791 emo 0 and count 836
 movies_v1: emo 2 and count 36642 emo 1 and count 10335 emo 3 and count 3247 emo 0 and count 2675
 movies_v3: emo 1 and count 15395 emo 2 and count 56741 emo 3 and count 4939 emo 0 and count 3876
-类别不均衡咋办？ 再均衡就没了，先这么做的。
+按理说类别的分布本身就是不均衡的～
 
-## UNIMO 单模态训练 --Going
+
+## UNIMO 单模态训练 --Done
 可以同时利用单模态，或者任意模态的组合进行训练，--use_visual --use_speech 用来初始化模型。
 而构建db的时候不能根据 --use_visual 来进行判断，而是config中每个db模态信息是否存在.
 
@@ -275,8 +275,25 @@ movies_v3: emo 1 and count 15395 emo 2 and count 56741 emo 3 and count 4939 emo 
 2. 比如利用 opensubtitle 的数据进行文本的训练, MLM 情感分类模型 和 EmoCLs 情感分类.
 整理基于 opensubtitle 500w 的文本数据，构建均衡的文本分类模型
 需要确认模型，采用几分类的模型，为了下游任务，最好是选用7分类的，可以使用不同的任务。 
-但是为了验证方法有效性，跟目前的下游任务匹配，先采用emo4的。
+最后确认模型选择 ----
 
-## 在论文MOCKINGJAY中提到语音用 sinusoidal 编码 --Going
+问一下XED的测试集合如何构建的？ 如果是多标签，如何处理的？
+/data6/lrc/EmotionXED/combined  5分类。
+
+## 在论文MOCKINGJAY中提到语音用 sinusoidal 编码 --Done
 sinusoidal positional encoding instead of learnable positional embeddings because acoustic features can be arbitrarily long with high variance.
 在三模态的baseline上进行测试。
+本文保持原有的编码方式不变，语音和人脸采用位置 Sinusoid 编码方式。 试试吧，感觉用处不大。
+
+## 语音和视觉的mask机制修改为中间的 Span 的Mask. --Going
+由于视觉和音频信息的local smoothness特性，需要改成 Span Mask.
+参考: https://github.com/andi611/Mockingjay-Speech-Representation/blob/9377bf2585c020b4d217b35f0d27963eb45274ef/utility/mam.py#L92
+code/uniter/data/mrm.py _get_consecutive_img_mask()
+语音方面，这里采用的 transformer的输出，而不是 cnn 部分的输出，这里采用 span 的作用可能不大，先试试吧。
+
+这里有两种策略：
+1. Mockingjay 中采用跟 Bert 一样的策略，15% 的概率选中，然后80%的概率遮蔽并预测，10%的概率随机替换，其他的输入保持不变，即没有Mask操作，
+为了验证时刻全序列输入，避免Train和Infer的Gap问题。
+2. 很简单的一种方式, 在原来的mrfr的基础，只是将随机帧的Mask修改为中间 span frames 的 mask.
+
+还是直接一步到位，采用方案1吧。 视觉和语音都可以直接用。

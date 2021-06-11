@@ -22,23 +22,23 @@ output_dir=/data7/emobert/exp/text_emo_model/
 #     --per_device_eval_batch_size 32 \
 #     --output_dir ${output_dir}/all_5corpus_emo7_bert_base_lr2e-5_bs32/
 
-for lr in 2e-5
-do
-    bert_data_dir=/data7/emobert/text_emo_corpus/all_5corpus/emo7_bert_data/
-    CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
-        --model_name_or_path bert-base-uncased \
-        --train_file ${bert_data_dir}/train.csv \
-        --validation_file ${bert_data_dir}/train.csv \
-        --test_file ${bert_data_dir}/val.csv \
-        --max_length 64 \
-        --per_device_train_batch_size 32 \
-        --per_device_eval_batch_size 32 \
-        --num_train_epochs 5 \
-        --patience 3 \
-        --learning_rate ${lr} \
-        --lr_scheduler_type 'linear' \
-        --output_dir ${output_dir}/all_5corpus_emo7_bert_base_lr${lr}_bs32_debug/
-done
+# for lr in 2e-5
+# do
+#     bert_data_dir=/data7/emobert/text_emo_corpus/all_5corpus/emo7_bert_data/
+#     CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
+#         --model_name_or_path bert-base-uncased \
+#         --train_file ${bert_data_dir}/train.csv \
+#         --validation_file ${bert_data_dir}/train.csv \
+#         --test_file ${bert_data_dir}/val.csv \
+#         --max_length 64 \
+#         --per_device_train_batch_size 32 \
+#         --per_device_eval_batch_size 32 \
+#         --num_train_epochs 5 \
+#         --patience 3 \
+#         --learning_rate ${lr} \
+#         --lr_scheduler_type 'linear' \
+#         --output_dir ${output_dir}/all_5corpus_emo7_bert_base_lr${lr}_bs32_debug/
+# done
 
 # for lr in 4e-5
 # do
@@ -59,23 +59,23 @@ done
 # done
 
 
-for lr in 2e-5
-do
-    bert_data_dir=/data7/emobert/text_emo_corpus/all_5corpus/emo5_bert_data/
-    CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
-        --model_name_or_path bert-base-uncased \
-        --train_file ${bert_data_dir}/train.csv \
-        --validation_file ${bert_data_dir}/train.csv \
-        --test_file ${bert_data_dir}/val.csv \
-        --max_length 64 \
-        --per_device_train_batch_size 32 \
-        --per_device_eval_batch_size 32 \
-        --num_train_epochs 6 \
-        --patience 3 \
-        --learning_rate ${lr} \
-        --lr_scheduler_type 'linear' \
-        --output_dir ${output_dir}/all_5corpus_emo5_bert_base_lr${lr}_bs32_debug/
-done
+# for lr in 2e-5
+# do
+#     bert_data_dir=/data7/emobert/text_emo_corpus/all_5corpus/emo5_bert_data/
+#     CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
+#         --model_name_or_path bert-base-uncased \
+#         --train_file ${bert_data_dir}/train.csv \
+#         --validation_file ${bert_data_dir}/train.csv \
+#         --test_file ${bert_data_dir}/val.csv \
+#         --max_length 64 \
+#         --per_device_train_batch_size 32 \
+#         --per_device_eval_batch_size 32 \
+#         --num_train_epochs 6 \
+#         --patience 3 \
+#         --learning_rate ${lr} \
+#         --lr_scheduler_type 'linear' \
+#         --output_dir ${output_dir}/all_5corpus_emo5_bert_base_lr${lr}_bs32_debug/
+# done
 
 
 # for lr in 2e-5 4e-5
@@ -95,20 +95,20 @@ done
 #         --output_dir ${output_dir}/all_5corpus_emo5_opensub1000w_pretrained_bert_lr${lr}_bs32/
 # done
 
-for lr in 2e-5
-do
-    bert_data_dir=/data7/emobert/text_emo_corpus/all_5corpus/emo4_bert_data/
-    CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
-        --model_name_or_path bert-base-uncased \
-        --train_file ${bert_data_dir}/train.csv \
-        --validation_file ${bert_data_dir}/train.csv \
-        --test_file ${bert_data_dir}/val.csv \
-        --max_length 64 \
-        --per_device_train_batch_size 32 \
-        --per_device_eval_batch_size 32 \
-        --num_train_epochs 6 \
-        --patience 3 \
-        --learning_rate ${lr} \
-        --lr_scheduler_type 'linear' \
-        --output_dir ${output_dir}/all_5corpus_emo4_bert_base_lr${lr}_bs32_debug/
-done
+# for lr in 2e-5
+# do
+#     bert_data_dir=/data7/emobert/text_emo_corpus/all_5corpus/emo4_bert_data/
+#     CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
+#         --model_name_or_path bert-base-uncased \
+#         --train_file ${bert_data_dir}/train.csv \
+#         --validation_file ${bert_data_dir}/train.csv \
+#         --test_file ${bert_data_dir}/val.csv \
+#         --max_length 64 \
+#         --per_device_train_batch_size 32 \
+#         --per_device_eval_batch_size 32 \
+#         --num_train_epochs 6 \
+#         --patience 3 \
+#         --learning_rate ${lr} \
+#         --lr_scheduler_type 'linear' \
+#         --output_dir ${output_dir}/all_5corpus_emo4_bert_base_lr${lr}_bs32_debug/
+# done

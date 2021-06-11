@@ -10,7 +10,6 @@ import torch
 from torch.nn.utils.rnn import pad_sequence
 from toolz.sandbox import unzip
 from code.uniter3m.data.data import DetectFeatTxtTokDataset, pad_tensors, get_gather_index
-
 # from uniter 
 from code.uniter.data.mrm import _get_img_mask, _get_feat_target, _mask_img_feat, _get_targets
 

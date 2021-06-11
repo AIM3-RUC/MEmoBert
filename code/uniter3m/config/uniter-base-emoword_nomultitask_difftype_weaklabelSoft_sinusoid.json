@@ -25,5 +25,5 @@
   "use_pos_tag_embedding": false,
   "use_utt_senti_embedding": false,
   "use_projs_av_modality": false,
-  "use_sinusoid_position_embedding": false
+  "use_sinusoid_position_embedding": true
 }

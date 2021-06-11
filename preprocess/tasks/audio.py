@@ -8,7 +8,7 @@ from preprocess.utils import get_basename, mkdir
 import librosa
 import scipy.signal as spsig
 from transformers import Wav2Vec2Processor, Wav2Vec2Model
-
+from preprocess.tools.hook import MultiLayerFeatureExtractor
 from preprocess.tasks.base_worker import BaseWorker
 
 class AudioSplitor(BaseWorker):
@@ -184,6 +184,44 @@ class Wav2VecExtractor(object):
                 torch.mean(ft[:, i:i+self.downsample], dim=1) for i in range(0, ft.shape[1], self.downsample)
             ], dim=0)
         return ft.cpu().numpy()
+
+class Wav2VecCNNExtractor(object):
+    ''' 抽取comparE特征, 输入音频路径, 输出npy数组, 每帧768d
+    '''
+    def __init__(self, gpu=0, use_asr_based_model=False):
+        self.device = torch.device('cuda:{}'.format(gpu))
+        
+        if use_asr_based_model:
+            print('[INFO] use asr based model')
+            self.processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
+            self.model = Wav2Vec2Model.from_pretrained("facebook/wav2vec2-base-960h").to(self.device)
+        else:
+            print('[INFO] use vanilla based model')
+            self.processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base")
+            self.model = Wav2Vec2Model.from_pretrained("facebook/wav2vec2-base").to(self.device)
+
+        self.mid_extractor = MultiLayerFeatureExtractor(self.model, ["feature_extractor"]) # feature_projection
+        
+    @staticmethod
+    def read_audio(wav_path):
+        speech, sr = sf.read(wav_path)
+        if sr != 16000:
+            speech = librosa.resample(speech, sr, 16000)
+            sr = 16000
+        if sr * 10 < len(speech):
+            print(f'{wav_path} long than 10 seconds and clip {speech.shape}')
+            speech = speech[:int(sr * 10)]
+        return speech, sr
+
+    def __call__(self, wav):
+        input_values, sr = Wav2VecExtractor.read_audio(wav)
+        input_values = self.processor(input_values, return_tensors="pt", sampling_rate=sr).input_values.to(self.device)
+        with torch.no_grad():
+            _ = self.model(input_values).last_hidden_state
+            ft = self.mid_extractor.extract()
+        local_cnn_ft = ft[0][0].transpose(-1, -2).cpu().numpy()
+        # print(local_cnn_ft.shape)
+        return local_cnn_ft
 
 class RawWavExtractor(object):
     ''' 抽取comparE特征, 输入音频路径, 输出npy数组, 每帧768d
