@@ -266,12 +266,11 @@ movies_v3: emo 1 and count 15395 emo 2 and count 56741 emo 3 and count 4939 emo 
 按理说类别的分布本身就是不均衡的～
 
 
-## UNIMO 单模态训练 --Done
+## UNIMO 单模态训练 --Going
 可以同时利用单模态，或者任意模态的组合进行训练，--use_visual --use_speech 用来初始化模型。
 而构建db的时候不能根据 --use_visual 来进行判断，而是config中每个db模态信息是否存在.
 
 1. 可以直接加入有标注的文本数据单独做 MLM and EmoCls 的任务。--Done
-
 2. 比如利用 opensubtitle 的数据进行文本的训练, MLM 情感分类模型 和 EmoCLs 情感分类.
 整理基于 opensubtitle 500w 的文本数据，构建均衡的文本分类模型
 需要确认模型，采用几分类的模型，为了下游任务，最好是选用7分类的，可以使用不同的任务。 
@@ -279,6 +278,9 @@ movies_v3: emo 1 and count 15395 emo 2 and count 56741 emo 3 and count 4939 emo 
 
 问一下XED的测试集合如何构建的？ 如果是多标签，如何处理的？
 /data6/lrc/EmotionXED/combined  5分类。
+BertMovie模型的结果是69.4% 
+all_corpus_emo5
+
 
 ## 在论文MOCKINGJAY中提到语音用 sinusoidal 编码 --Done
 sinusoidal positional encoding instead of learnable positional embeddings because acoustic features can be arbitrarily long with high variance.

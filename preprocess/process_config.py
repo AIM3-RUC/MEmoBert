@@ -31,12 +31,11 @@ meta_root = '/data7/emobert/data_nomask_new/meta'
 check_data_dir = '/data7/emobert/data_nomask_new/check_data'
 tmp_dir = '/data7/emobert/data_nomask_new/tmp'
 
-#
-moive_names_path = '/data7/emobert/data_nomask_new/movies_v1/movie_names.npy'
-feature_face_dir = '/data7/emobert/denseface_feature_nomask_torch/movies_v1'
-feature_audio_comparE_dir = '/data7/emobert/comparE_feature/movies_v1'
-feature_audio_wav2vec_dir = '/data7/emobert/wav2vec_feature/movies_v1'
-feature_audio_wav2vec_cnn_dir = '/data7/emobert/wav2vec_cnn_feature/movies_v1'
+moive_names_path = '/data7/emobert/data_nomask_new/movies_v3/movie_names.npy'
+feature_face_dir = '/data7/emobert/denseface_feature_nomask_torch/movies_v3'
+feature_audio_comparE_dir = '/data7/emobert/comparE_feature/movies_v3'
+feature_audio_wav2vec_dir = '/data7/emobert/wav2vec_feature/movies_v3'
+feature_audio_wav2vec_cnn_dir = '/data7/emobert/wav2vec_cnn_feature/movies_v3'
 # tools path, all in avec2230 docker
 openface_dir='/root/tools/openface_tool/OpenFace/build/bin'
 opensmile_path = '/root/opensmile-2.3.0' # avec2230 docker

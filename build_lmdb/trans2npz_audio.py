@@ -35,6 +35,8 @@ def convert_hdf5_to_npz(hdf5_dir, output_dir, meta_data_dir, movie_names_path, u
             ft_path = os.path.join(hdf5_dir, movie_name, 'has_active_spk_comparE.h5')
         elif feat_type == 'rawwav':
             ft_path = os.path.join(hdf5_dir, movie_name, 'has_active_spk_rawwav.h5')
+        elif feat_type == 'wav2vec-cnn':
+            ft_path = os.path.join(hdf5_dir, movie_name, 'has_active_spk_wav2vec_cnn.h5')
         else:
             if use_asr_based_model:
                 ft_path = os.path.join(hdf5_dir, movie_name, 'has_active_spk_wav2vec_asr.h5')
@@ -140,53 +142,63 @@ if __name__ == "__main__":
     start = int(sys.argv[1])  # 0
     end =  int(sys.argv[2]) # 100
 
-    # feat_type = 'rawwav'
-    # if feat_type == 'comaprE':
-    #     # 10ms/frame
-    #     use_mean_pooling = True # 连续的5帧进行平均
-    #     pooling_num_frames = 5
-    #     hdf5_dir = '/data7/emobert/comparE_feature/movies_v2'
-    #     meta_data_dir = '/data7/emobert/data_nomask_new/meta'
-    #     movie_names_path = '/data7/emobert/data_nomask_new/movies_v2/movie_names.npy'
-    #     npzs_dir = '/data7/emobert/norm_comparE_npzs/movies_v2_5mean' 
-    #     mean_std_path = '/data7/MEmoBert/emobert/comparE_feature/mean_std.npz'
-    #     mean_std = np.load(mean_std_path, allow_pickle=True)
-    #     mean = mean_std['mean']
-    #     std = mean_std['std']
-    #     # print(mean_std['mean'].shape)
-    #     # print(mean_std['std'].shape)
-    # elif feat_type == 'wav2vec':
-    #     # 20ms/frame
-    #     use_mean_pooling = True # 连续的3帧进行平均
-    #     use_asr_based_model = True
-    #     pooling_num_frames = 3
-    #     hdf5_dir = '/data7/emobert/wav2vec_feature/movies_v1'
-    #     meta_data_dir = '/data7/emobert/data_nomask_new/meta'
-    #     movie_names_path = '/data7/emobert/data_nomask_new/movies_v1/movie_names.npy'
-    #     if use_asr_based_model:
-    #         npzs_dir = '/data7/emobert/wav2vec_feature_npzs/movies_v1_asr_3mean' 
-    #     else:
-    #         npzs_dir = '/data7/emobert/wav2vec_feature_npzs/movies_v1_3mean' 
-    #     mean, std = None, None
-    # else:
-    #     hdf5_dir = '/data7/emobert/wav2vec_feature/movies_v3'
-    #     meta_data_dir = '/data7/emobert/data_nomask_new/meta'
-    #     movie_names_path = '/data7/emobert/data_nomask_new/movies_v3/movie_names.npy'
-    #     npzs_dir = '/data7/emobert/wav2vec_feature_npzs/movies_v3_rawwav' 
-    #     mean, std = None, None
-    #     use_mean_pooling = False
-    #     pooling_num_frames = None
+    feat_type = 'wav2vec-cnn'
+    if feat_type == 'comaprE':
+        # 10ms/frame
+        use_mean_pooling = True # 连续的5帧进行平均
+        pooling_num_frames = 5
+        hdf5_dir = '/data7/emobert/comparE_feature/movies_v3'
+        meta_data_dir = '/data7/emobert/data_nomask_new/meta'
+        movie_names_path = '/data7/emobert/data_nomask_new/movies_v3/movie_names.npy'
+        npzs_dir = '/data7/emobert/norm_comparE_npzs/movies_v3_5mean' 
+        mean_std_path = '/data7/MEmoBert/emobert/comparE_feature/mean_std.npz'
+        mean_std = np.load(mean_std_path, allow_pickle=True)
+        mean = mean_std['mean']
+        std = mean_std['std']
+        # print(mean_std['mean'].shape)
+        # print(mean_std['std'].shape)
+    elif feat_type == 'wav2vec':
+        # 20ms/frame
+        use_mean_pooling = True # 连续的3帧进行平均
+        use_asr_based_model = True
+        pooling_num_frames = 3
+        hdf5_dir = '/data7/emobert/wav2vec_feature/movies_v3'
+        meta_data_dir = '/data7/emobert/data_nomask_new/meta'
+        movie_names_path = '/data7/emobert/data_nomask_new/movies_v3/movie_names.npy'
+        if use_asr_based_model:
+            npzs_dir = '/data7/emobert/wav2vec_feature_npzs/movies_v3_asr_3mean' 
+        else:
+            npzs_dir = '/data7/emobert/wav2vec_feature_npzs/movies_v3_3mean' 
+        mean, std = None, None
+    elif feat_type == 'wav2vec-cnn':
+        # 20ms/frame
+        use_mean_pooling = True # 连续的3帧进行平均
+        use_asr_based_model = True
+        pooling_num_frames = 3
+        hdf5_dir = '/data7/emobert/wav2vec_cnn_feature/movies_v3'
+        meta_data_dir = '/data7/emobert/data_nomask_new/meta'
+        movie_names_path = '/data7/emobert/data_nomask_new/movies_v3/movie_names.npy'
+        npzs_dir = '/data7/emobert/wav2vec_feature_npzs/movies_v3_cnn_3mean' 
+        mean, std = None, None
+    else:
+        hdf5_dir = '/data7/emobert/wav2vec_feature/movies_v3'
+        meta_data_dir = '/data7/emobert/data_nomask_new/meta'
+        movie_names_path = '/data7/emobert/data_nomask_new/movies_v3/movie_names.npy'
+        npzs_dir = '/data7/emobert/wav2vec_feature_npzs/movies_v3_rawwav' 
+        mean, std = None, None
+        use_mean_pooling = False
+        pooling_num_frames = None
 
-    # if not os.path.exists(npzs_dir):
-    #     os.makedirs(npzs_dir)
-    # convert_hdf5_to_npz(hdf5_dir, npzs_dir, meta_data_dir, movie_names_path, use_mean_pooling, pooling_num_frames, start=start, end=end)
+    if not os.path.exists(npzs_dir):
+        os.makedirs(npzs_dir)
+    convert_hdf5_to_npz(hdf5_dir, npzs_dir, meta_data_dir, movie_names_path, use_mean_pooling, pooling_num_frames, start=start, end=end)
 
-    use_mean_pooling = True # 连续的3帧进行平均
-    pooling_num_frames = 3
-    feat_type = 'wav2vec'
-    hdf5_dir = '/data13/voxceleb2/wav2vec_feature'
-    movie_names_path = '/data7/emobert/data_nomask_new/voxceleb2_v2/movie_names.npy'
-    npzs_dir = '/data7/emobert/wav2vec_feature_npzs/voxceleb2_v2_3mean' 
-    mean, std = None, None
-    print(f'Current start {start} end {end}')
-    convert_hdf5_to_npz_vox(hdf5_dir, npzs_dir, movie_names_path, use_mean_pooling, pooling_num_frames, start=start, end=end)
+    # use_mean_pooling = True # 连续的3帧进行平均
+    # pooling_num_frames = 3
+    # feat_type = 'wav2vec'
+    # hdf5_dir = '/data13/voxceleb2/wav2vec_feature'
+    # movie_names_path = '/data7/emobert/data_nomask_new/voxceleb2_v2/movie_names.npy'
+    # npzs_dir = '/data7/emobert/wav2vec_feature_npzs/voxceleb2_v2_3mean' 
+    # mean, std = None, None
+    # print(f'Current start {start} end {end}')
+    # convert_hdf5_to_npz_vox(hdf5_dir, npzs_dir, movie_names_path, use_mean_pooling, pooling_num_frames, start=start, end=end)

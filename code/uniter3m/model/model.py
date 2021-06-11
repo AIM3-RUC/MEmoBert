@@ -381,6 +381,7 @@ class UniterSpeechEmbeddings(nn.Module):
         # 因此当不采用visual信息的时候,可以采用共享文本的token-type.
         '''
         self.config = config
+        # print('[Debug] speech dim {} and hidden size {}'.format(speech_dim, config.hidden_size))
         self.speech_linear = nn.Linear(speech_dim, config.hidden_size)
 
         if config.use_projs_av_modality:
@@ -423,7 +424,8 @@ class UniterSpeechEmbeddings(nn.Module):
         if speech_type_embeddings is None:
             speech_type_ids = torch.zeros_like(speech_feat[:, :, 0].long())
             speech_type_embeddings = self.token_type_embeddings(speech_type_ids)
-
+        
+        # print('[Debug] the speech_feat {}'.format(speech_feat.shape))
         transformed_speech = self.speech_layer_norm(self.speech_linear(speech_feat))
         if self.projs_linear is not None:
             transformed_speech = self.projs_linear(transformed_speech)

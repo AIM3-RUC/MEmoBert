@@ -41,8 +41,9 @@ if __name__ == '__main__':
 
     ## for img or speech db 
     if True:
-        lmdb_name = 'voxceleb2_v1'
-        filepath = '/data7/emobert/wav2vec_db/{}_3mean/nbb_th1.0_max96_min10.json'.format(lmdb_name)
+        # lmdb_name = 'voxceleb2_v1'
+        # filepath = '/data7/emobert/wav2vec_db/{}_3mean/nbb_th1.0_max96_min10.json'.format(lmdb_name)
+        # filepath = '/data7/emobert/img_db_nomask/{}/nbb_th0.5_max36_min10.json'.format(lmdb_name)
         # filepath = '/data7/emobert/img_db_nomask/{}/nbb_th0.5_max36_min10.json'.format(lmdb_name)
         # filepath = '/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/{}/nbb_th0.1_max64_min10.json'.format(lmdb_name)
         # filepath = '/data7/emobert/norm_comparE_db/{}/nbb_th1.0_max500_min10.json'.format(lmdb_name)
