@@ -85,9 +85,9 @@ def cal_mean_std(hdf5_dir, iemocap_mean_std_path):
 if __name__ == "__main__":
     corpus_name = 'MSP'
     use_mean_pooling = True # 连续的xx帧进行平均
-    feat_type = 'rawwav'
+    feat_type = 'wav2vec_cnn'
     pooling_num_frames = 3
-    use_asr_based_model = True
+    use_asr_based_model = False
 
     if False:
         # computing the mean and std of all iemocap 
@@ -106,6 +106,11 @@ if __name__ == "__main__":
         hdf5_dir = '/data7/emobert/exp/evaluation/{}/feature/wav2vec_rawwav'.format(corpus_name)
         npzs_dir = '/data7/emobert/exp/evaluation/{}/feature/wav2vec_rawwav_npzs'.format(corpus_name)
         use_mean_pooling = False
+        mean, std = None, None
+    elif feat_type == 'wav2vec_cnn':
+        hdf5_dir = '/data7/emobert/exp/evaluation/{}/feature/wav2vec_cnn'.format(corpus_name)
+        npzs_dir = '/data7/emobert/exp/evaluation/{}/feature/wav2vec_cnn_npzs_3mean'.format(corpus_name)
+        use_mean_pooling = True
         mean, std = None, None
     else:
         hdf5_dir = '/data7/emobert/exp/evaluation/{}/feature/comparE_raw'.format(corpus_name)
