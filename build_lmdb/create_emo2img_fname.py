@@ -15,17 +15,12 @@ voxceleb2_v2  emo 0 and fnames 218885 emo 1 and fnames 5488 emo 3 and fnames 198
 
 all_5corpus_emo5:
 
-all_5corpus_emo4: {0: 'anger', 1: 'happy', 2: 'neutral', 3: 'sadness'}  比较符合真实分布。
-movies_v1: emo 2 and fnames 39207 emo 1 and fnames 11115 emo 0 and fnames 6829  emo 3 and fnames 3733
-movies_v2: emo 1 and fnames 4564 emo 2 and fnames 22358 emo 0 and fnames 3076 emo 3 and fnames 2150
-movies_v3: emo 2 and fnames 59815 emo 1 and fnames 16321 emo 3 and fnames 5588 emo 0 and fnames 10438
 
-all_5corpus_emo7:
 '''
 
 # version, v1, v2, or v3
-version = 'v3'
-postfix = 'all_5corpus_emo4'
+version = 'v1'
+postfix = 'all_5corpus_emo5'
 all_emo2img_fname = f'/data7/emobert/txt_pseudo_label/movie_{version}_emo2img_fname_{postfix}.pkl'
 all_emo2img_fname_dict = {}
 all_text2img_path = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all.db/txt2img.json'

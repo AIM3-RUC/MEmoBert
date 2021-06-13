@@ -273,13 +273,46 @@ movies_v3: emo 1 and count 15395 emo 2 and count 56741 emo 3 and count 4939 emo 
 1. 可以直接加入有标注的文本数据单独做 MLM and EmoCls 的任务。--Done
 2. 比如利用 opensubtitle 的数据进行文本的训练, MLM 情感分类模型 和 EmoCLs 情感分类.
 整理基于 opensubtitle 500w 的文本数据，构建均衡的文本分类模型
-需要确认模型，采用几分类的模型，为了下游任务，最好是选用7分类的，可以使用不同的任务。 
-最后确认模型选择 ----
+需要确认模型，采用几分类的模型，目前先选择 5分类的。 
+最后确认模型选择综合几个测试集合的结果，最终选择的模型是:
+/data7/emobert/exp/text_emo_model/all_3corpus_emo5_bert_base_lr2e-5_bs32_debug/ckpt/epoch-1
+将1000w的数据分成4份，并只用长度大于等于3的：
+text_filepath = '/data7/emobert/exp/mlm_pretrain/datasets/OpenSubtitlesV2018/OpenSubtitles.en-zh_cn.en_trn1000w.txt'
+/data7/emobert/exp/mlm_pretrain/datasets/OpenSubtitlesV2018/opensub1000w_p1.csv
+/data7/emobert/exp/mlm_pretrain/datasets/OpenSubtitlesV2018/opensub1000w_p2.csv
+/data7/emobert/exp/mlm_pretrain/datasets/OpenSubtitlesV2018/opensub1000w_p3.csv
+/data7/emobert/exp/mlm_pretrain/datasets/OpenSubtitlesV2018/opensub1000w_p4.csv
+分别构建txtdb，然后用模型提取weak-label.
 
-问一下XED的测试集合如何构建的？ 如果是多标签，如何处理的？
-/data6/lrc/EmotionXED/combined  5分类。
-BertMovie模型的结果是69.4% 
-all_corpus_emo5
+
+
+/data6/lrc/EmotionXED/combined 5分类。
+BertMovie模型的结果是 69.4%  其中有200多数据是重复的，另外里面还有类别6的，重新评测一下。
+BertMovie模型评测根据 preprocess/get_text_weak_label.py
+on /data6/lrc/EmotionXED/combined/val_e5.tsv Or tst_e5.tsv
+验证集合: 'acc': 0.6721714687280393, 'wuar': 0.6721714687280393, 'wf1': 0.6743000025873979, 'uwf1': 0.6270778807276054}
+测试集合: 'acc': 0.6788807461692206, 'wuar': 0.6788807461692206, 'wf1': 0.6830066081593439, 'uwf1': 0.6211400386303344}
+on /data7/emobert/text_emo_corpus/all_3corpus/emo5_bert_data/
+验证集合: 'acc': 0.6033959975742874, 'wuar': 0.6033959975742874, 'wf1': 0.644581201529892, 'uwf1': 0.42027357887138084,
+训练集合: 'acc': 0.6565843167530605, 'wuar': 0.6565843167530605, 'wf1': 0.6608707380083497, 'uwf1': 0.619811166882872,
+
+
+采用其他三个数据集和之前EmotionXED的训练集合合并，然后进行评测，相当于训练的时候只增加了另外三个数据集的数据。
+模型: all_3corpus_emo5_bert_base_lr2e-5_bs32_debug/ckpt/epoch-1
+on /data6/lrc/EmotionXED/combined/val_e5.tsv Or tst_e5.tsv
+验证集合:  'acc': 0.6598735066760365, 'wuar': 0.6598735066760365, 'wf1': 0.645875864949761, 'uwf1': 0.5875428120722952
+测试集合:  'acc': 0.6743837441705529, 'wuar': 0.6743837441705529, 'wf1': 0.6633638279338312, 'uwf1': 0.5947985825668611
+on /data7/emobert/text_emo_corpus/all_3corpus/emo5_bert_data/
+验证集合: Epoch 1: {'total': 11543, 'acc': 0.7538768084553409, 'wuar': 0.7538768084553409, 'wf1': 0.7669220015312301, 'uwf1': 0.5655239452375367}
+训练集合: Epoch 1: {'total': 72536, 'acc': 0.8292296239108856, 'wuar': 0.8292296239108856, 'wf1': 0.8279270478979138, 'uwf1': 0.7923723758424639}
+
+模型: all_5corpus_emo5_bert_base_lr2e-5_bs32_debug/ckpt/epoch-4
+on /data6/lrc/EmotionXED/combined/val_e5.tsv Or tst_e5.tsv
+验证集合: {'acc': 0.8323963457484188, 'wuar': 0.8323963457484188, 'wf1': 0.8285462423426776, 'uwf1': 0.8029856423823029}
+测试集合: {'acc': 0.7836442371752165, 'wuar': 0.7836442371752165, 'wf1': 0.7812776363501978, 'uwf1': 0.7441933520355383}
+on /data7/emobert/text_emo_corpus/all_3corpus/emo5_bert_data/
+验证集合: Epoch 0: 'acc': 0.6325911808022178, 'wuar': 0.6325911808022178, 'wf1': 0.6610797416100563, 'uwf1': 0.49062888564098844
+训练集合: Epoch 0: 'acc': 0.7212970111392963, 'wuar': 0.7212970111392963, 'wf1': 0.7205095503713067, 'uwf1': 0.6772995803609284,
 
 
 ## 在论文MOCKINGJAY中提到语音用 sinusoidal 编码 --Done

@@ -334,6 +334,45 @@ def process_all(root_dir, save_root_dir):
     write_csv(os.path.join(save_root_dir, 'train.tsv'),  all_trn_instances, delimiter='\t')
     write_csv(os.path.join(save_root_dir, 'val.tsv'),  all_val_instances, delimiter='\t')
 
+def process_all3(root_dir, save_root_dir):
+    all_trn_instances = []
+    all_val_instances = []
+    all_trn_emo2ins = {}
+    all_val_emo2ins = {}
+    for filename in ['emorynlp', 'dailydialog', 'goemotions']:
+        train_filepath = root_dir + '/' + filename + '/{}_all_train.tsv'.format(filename)
+        test_filepath =  root_dir + '/' + filename + '/{}_all_test.tsv'.format(filename)
+        if os.path.exists(train_filepath):
+            train_filepath = train_filepath
+        else:
+            train_filepath = os.path.join(root_dir, filename, '{}_all.tsv'.format(filename))
+        data = read_csv(train_filepath, delimiter='\t')
+        for ins in data:
+            emo, sent = ins[0], ins[1]
+            all_trn_instances.append([emo, sent])
+            if all_trn_emo2ins.get(emo) is None:
+                all_trn_emo2ins[emo] = [sent]
+            else:
+                all_trn_emo2ins[emo] += [sent]
+        if os.path.exists(test_filepath):
+            data = read_csv(test_filepath, delimiter='\t')
+            for ins in data:
+                emo, sent = ins[0], ins[1]
+                all_val_instances.append([emo, sent])
+                if all_val_emo2ins.get(emo) is None:
+                    all_val_emo2ins[emo] = [sent]
+                else:
+                    all_val_emo2ins[emo] += [sent]
+    print('train {} val {}'.format(len(all_trn_instances), len(all_val_instances)))
+    for emo in all_trn_emo2ins.keys():
+        print(f'train emo {emo} sents {len(all_trn_emo2ins[emo])}')
+    for emo in all_val_emo2ins.keys():
+        print(f'test emo {emo} sents {len(all_val_emo2ins[emo])}')
+    random.shuffle(all_trn_instances)
+    random.shuffle(all_val_instances)
+    write_csv(os.path.join(save_root_dir, 'train.tsv'),  all_trn_instances, delimiter='\t')
+    write_csv(os.path.join(save_root_dir, 'val.tsv'),  all_val_instances, delimiter='\t')
+
 def process_emo7_format(root_dir, save_root_dir):
     if not os.path.exists(save_root_dir):
         os.makedirs(save_root_dir)
@@ -450,16 +489,20 @@ if __name__ == "__main__":
         process_all(root_dir, save_root_dir)
     
     if False:
+        save_root_dir = os.path.join(root_dir, 'all_3corpus')
+        process_all3(root_dir, save_root_dir)
+    
+    if False:
         root_dir = os.path.join(root_dir, 'all_5corpus')
         save_root_dir = os.path.join(root_dir, 'emo7_bert_data')
         process_emo7_format(root_dir, save_root_dir)
     
-    if False:
-        root_dir = os.path.join(root_dir, 'all_5corpus')
+    if True:
+        root_dir = os.path.join(root_dir, 'all_3corpus')
         save_root_dir = os.path.join(root_dir, 'emo5_bert_data')
         process_emo5_format(root_dir, save_root_dir)
 
-    if True:
+    if False:
         root_dir = os.path.join(root_dir, 'all_5corpus')
         save_root_dir = os.path.join(root_dir, 'emo4_bert_data')
         process_emo4_format(root_dir, save_root_dir)

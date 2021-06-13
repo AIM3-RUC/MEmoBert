@@ -51,7 +51,7 @@ def process_tsv(tsv_file, db, toker, max_tokens, dataset_name, use_emo_label=Fal
         if len(input_ids) > max_tokens:
             print('[Debug] inputs len {}'.format(len(input_ids)))
             input_ids = input_ids[:max_tokens]
-        if len(input_ids) <= 1:
+        if len(input_ids) <= 2:
             # print(f'[Debug] {segmentId} inputs len {len(input_ids)}')
             continue
         tokens = bert_id2token(toker, input_ids)

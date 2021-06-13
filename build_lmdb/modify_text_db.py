@@ -255,9 +255,9 @@ if __name__ == '__main__':
     #     add_img_frame_key(version, setname)
 
     ### for movies data
-    version = 'v3' #  v1 v2 v3
-    for setname in ['val3k', 'trn3k', 'trn']:
-        get_high_quality_emo(version, setname)
+    # version = 'v3' #  v1 v2 v3
+    # for setname in ['val3k', 'trn3k', 'trn']:
+    #     get_high_quality_emo(version, setname)
     
     ## for iemocap or msp data
     # corpus_name = 'msp'

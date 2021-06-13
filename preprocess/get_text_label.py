@@ -1,6 +1,7 @@
 '''
 直接从txt_db数据中读取 input_ids 送入
 '''
+from preprocess.FileOps import read_csv
 from transformers import (
     AdamW,
     AutoConfig,
@@ -23,6 +24,7 @@ from lz4.frame import decompress
 import h5py
 from tqdm import tqdm
 from code.uniter.utils.save import ModelSaver
+from code.bert_pretrain.run_cls import compute_metrics
 
 
 class BertClassifier(BertPreTrainedModel):
@@ -66,17 +68,22 @@ def read_txt_db(txt_db_dir):
     txn = env.begin(buffers=True)
     return txn
 
+def bert_tokenize(tokenizer, text):
+    ids = []
+    for word in text.strip().split():
+        ws = tokenizer.tokenize(word)
+        if not ws:
+            # some special char
+            continue
+        ids.extend(tokenizer.convert_tokens_to_ids(ws))
+    return ids
+
 
 if __name__ == '__main__':
-    # from transformers import BertTokenizer
-    # tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-    # ids = tokenizer.convert_tokens_to_ids(['[CLS]', '[SEP]'])
-    # print(ids)
-    # input()
+    from transformers import BertTokenizer
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+    ids = tokenizer.convert_tokens_to_ids(['[CLS]', '[SEP]'])
     # cls 101 sep 102
-    corpus_name = 'opensub'
-    version = 4
-    setname = 'trn'  # only for IEMOCAP and MSP
     device = torch.device('cuda:0')
     # model_dir = '/data7/emobert/exp/text_emo_model/bert_movie_model/' # num_classes=5
     # num_classes, model_postfix = 5, 'bert_movie'
@@ -84,10 +91,10 @@ if __name__ == '__main__':
     # num_classes, model_postfix=4, 'all_5corpus_emo4'
     model_dir = '/data7/emobert/exp/text_emo_model/all_5corpus_emo5_bert_base_lr2e-5_bs32_debug/ckpt/epoch-1/' # num_classes=5
     num_classes, model_postfix =5, 'all_5corpus_emo5'
-    # model_dir = '/data7/emobert/exp/text_emo_model/all_5corpus_emo7_bert_base_lr2e-5_bs32/ckpt/' # num_classes=7
-    # num_classes, model_postfix =7, 'all_5corpus_emo7'
-
+    
     model_saver = ModelSaver(model_dir)
+    test_filepath = '/data7/emobert/'
+    save_path = f'/data7/emobert/txt_pseudo_label/bert_movie_model-all_3corpus_val_txt_pseudo_label.h5'
     if 'all_5corpus' in  model_dir:
         config = AutoConfig.from_pretrained(model_dir, num_labels=num_classes)
         #print('config', config)
@@ -97,35 +104,22 @@ if __name__ == '__main__':
             config=config)
     else:
         model = BertClassifier.from_pretrained(model_dir, num_classes=num_classes, embd_method='max')
-    model_saver.save(model, 0)
+    model_saver.save(model, 1)
     model.to(device)
     model.eval()
 
-    if corpus_name == 'movies':
-        txt_db_dir = f'/data7/emobert/txt_db/movies_v{version}_th0.5_emowords_sentiword_all.db'
-        save_path = f'/data7/emobert/txt_pseudo_label/movie_txt_pseudo_label_v{version}_{model_postfix}.h5'
-    elif corpus_name == 'voxceleb':
-        txt_db_dir = f'/data7/emobert/txt_db/voxceleb2_v{version}_th1.0_emowords_sentiword_all.db'
-        save_path = f'/data7/emobert/txt_pseudo_label/voxceleb2_txt_pseudo_label_v{version}_{model_postfix}.h5'    
-    elif corpus_name == 'opensub':
-        txt_db_dir = f'/data7/emobert/txt_db/onlytext_opensub_p{version}_emo5_bert_data.db/'
-        save_path = f'/data7/emobert/txt_pseudo_label/onlytext_opensub_p{version}_{model_postfix}.h5'    
-    else:
-        # for downstream tasks
-        corpus_name_low = corpus_name.lower()
-        txt_db_dir = f'/data7/emobert/exp/evaluation/{corpus_name}/txt_db/1/{setname}_emowords_sentiword.db/'
-        save_path = f'/data7/emobert/txt_pseudo_label/{corpus_name_low}_txt_pseudo_label_{setname}_{model_postfix}.h5'
-    text2img_path = os.path.join(txt_db_dir, 'txt2img.json')
-    txn = read_txt_db(txt_db_dir)
-    text2img = json.load(open(text2img_path))
-    print('total {} txts'.format(len(text2img)))
-
+    all_target_emos = []
+    all_pred_emos = []
+    all_instances = read_csv(test_filepath, delimiter=',', skip_rows=1)
     save_h5f = h5py.File(save_path, 'w')
-    for key in tqdm(text2img.keys()):
-        item = msgpack.loads(decompress(txn.get(key.encode('utf-8'))), raw=False)
+    index = 0
+    for instance in tqdm(all_instances):
+        sentence = instance[1]
+        all_target_emos.append(int(instance[0]))
         cls_token = torch.tensor([[101]]).long()
         sep_token = torch.tensor([[102]]).long()
-        input_ids = torch.tensor([item['input_ids']])
+        input_ids = bert_tokenize(tokenizer, sentence)
+        input_ids = torch.tensor([input_ids]).long()
         # need to add the special token, cls and sep
         input_ids = torch.cat([cls_token, input_ids, sep_token], dim=-1).to(device)
         masks = torch.ones(input_ids.size()).to(device)
@@ -139,12 +133,19 @@ if __name__ == '__main__':
                 # {'neutral': 0, 'happiness': 1, 'surprise': 2, 'sadness': 3, 'anger': 4}
                 logits, _ = model.forward(input_ids, masks)
                 pred = nn.functional.softmax(logits, dim=-1)
-        # print(item['toked_caption'])
-        # print(pred)
-        group = save_h5f.create_group(key)
+        all_pred_emos.append(torch.argmax(pred).cpu().numpy())
+        # print(f'[Debug] sentence {sentence}')
+        # print(f'[Debug] target {int(instance[0])}')
+        # print(f'[Debug] pred {torch.argmax(pred).cpu().numpy()}')
+        group = save_h5f.create_group(str(index))
         group['logits'] = logits.cpu().numpy()
         group['pred'] = pred.cpu().numpy()
+        index += 1
     save_h5f.close()
+    print(len(all_pred_emos), len(all_target_emos))
+    assert len(all_pred_emos) == len(all_target_emos)
+    results = compute_metrics(all_pred_emos, all_target_emos)
+    print(results)
 
 # export PYTHONPATH=/data7/MEmoBert
-# CUDA_VISIBLE_DEVICES=3 python get_text_weak_label.py
+# CUDA_VISIBLE_DEVICES=1 python get_text_label.py
