@@ -279,18 +279,18 @@ class MSpanrcDataset(DetectFeatTxtTokDataset):
         img_frames, output_label = self.create_mcrm_io(num_bb, mask_consecutive=self.mask_consecutive)
         img_mask_tgt = _get_img_tgt_mask(output_label, len(input_ids), num_frame)
         img_mask = torch.tensor([True if frame == 1000 else False for frame in img_frames], dtype=torch.long)
-        print(f'[Debug in mspanrc] img mask {img_mask} {len(img_mask)}')
+        # print(f'[Debug in mspanrc] img mask {img_mask} {len(img_mask)}')
         # 在修改feature之前先获取target.
-        print(f'[Debug in mspanrc] img_soft_labels {img_soft_labels.shape}')
+        # print(f'[Debug in mspanrc] img_soft_labels {img_soft_labels.shape}')
         label_target = _get_target(img_soft_labels, output_label)
         label_target = torch.cat(label_target).reshape(-1, img_soft_labels.size(-1))
-        print(f'[Debug in mspanrc] masked label_target {label_target.shape}')
+        # print(f'[Debug in mspanrc] masked label_target {label_target.shape}')
         assert len(img_mask_tgt) == img_mask_tgt.size(0)
         # 将random replacement 的帧替换一下
         for i, index in enumerate(img_frames):
             if index != 1000 and i != index:
                 img_feat[i] = img_feat[index]
-                print(f'[Debug in mspanrc] sample {i} replacement feature indexs {i} to {index}')
+                # print(f'[Debug in mspanrc] sample {i} replacement feature indexs {i} to {index}')
         return (input_ids, img_feat, speech_feat,
                 img_soft_labels, attn_masks, img_mask, img_mask_tgt, label_target)
 
@@ -318,7 +318,7 @@ def mspanrc_collate(inputs):
     img_masks = pad_sequence(img_masks, batch_first=True, padding_value=0)
 
     label_targets = torch.cat(label_targets, dim=0).view(-1, img_soft_label.size(-1))
-    print(f'[Debug in mspanrfr] masked batch label_targets {label_targets.shape}')
+    # print(f'[Debug in mspanrfr] masked batch label_targets {label_targets.shape}')
 
     img_feat = _mask_img_feat(img_feat, img_masks)
     img_mask_tgt = pad_sequence(img_mask_tgts,

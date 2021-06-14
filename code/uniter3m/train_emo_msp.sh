@@ -1677,7 +1677,7 @@ corpus_name='msp'
 # done
 
 ### case20.1: text + wav2vec-globalcnn 
-# for lr in 3e-5 5e-5
+# for lr in 3e-5
 # do
 #         for cvNo in $(seq 1 12)
 #         do
