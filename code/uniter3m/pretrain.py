@@ -33,7 +33,8 @@ from code.uniter3m.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   EmoClsDataset, emocls_collate,
                   EmoLareDataset, emolare_collate,
                   EItmDataset, eitm_collate,
-                  MerfrDataset, MercDataset)
+                  MerfrDataset, MercDataset,
+                  MSpanrfrDataset, mspanrfr_collate, MSpanrcDataset, mspanrc_collate)
 from code.uniter3m.model.pretrain import UniterForPretraining
 
 # from uniter
@@ -136,6 +137,25 @@ def build_merfr_dataset(txt_db, img_db, speech_db, is_train, opts):
 
     return dataset, mrfr_collate
 
+def build_mspanrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
+    # use the mrfr collection function
+    assert img_db != None
+    if is_train:
+        if speech_db is not None:
+            datasets = [MSpanrfrDataset(opts.mask_visual_consecutive, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif speech_db is None:
+            datasets = [MSpanrfrDataset(opts.mask_visual_consecutive, t, i, None) for t, i in zip(txt_db, img_db)]
+        elif txt_db is None and speech_db is None:
+            LOGGER.info('[Debug in merfr dataset] the text and speech modality are None!')
+            datasets = [MSpanrfrDataset(opts.mask_visual_consecutive, None, i, None) for i in img_db]
+        else:
+            LOGGER.info('[Error] Error merfr datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = MSpanrfrDataset(opts.mask_visual_consecutive, txt_db, img_db, speech_db)
+    return dataset, mspanrfr_collate
+
+
 def build_msrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
     assert speech_db != None
     if is_train:
@@ -189,6 +209,24 @@ def build_merc_dataset(txt_db, img_db, speech_db, is_train, opts):
     else:
         dataset = MercDataset(txt_db, img_db, speech_db)
     return dataset, mrc_collate
+
+def build_mspanrc_dataset(txt_db, img_db, speech_db, is_train, opts):
+    assert img_db != None
+    if is_train:
+        if speech_db is not None:
+            datasets = [MSpanrcDataset(opts.mask_visual_consecutive, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif speech_db is None:
+            datasets = [MSpanrcDataset(opts.mask_visual_consecutive, t, i, None) for t, i in zip(txt_db, img_db)]
+        elif txt_db is None and speech_db is None:
+            LOGGER.info('[Debug in mrckl dataset] the text and speech modality are None!')
+            datasets = [MSpanrcDataset(opts.mask_visual_consecutive,  None, i, None) for i in img_db]
+        else:
+            LOGGER.info('[Error] Error mrc datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = MSpanrcDataset(opts.mask_visual_consecutive, txt_db, img_db, speech_db)
+
+    return dataset, mspanrc_collate
 
 def build_emocls_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:
@@ -318,6 +356,10 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
                 dataset = build_merfr_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('merc'):
                 dataset = build_merc_dataset(txt_db, img_db, speech_db, is_train, opts)
+            elif task.startswith('mspanrfr'):
+                dataset = build_mspanrfr_dataset(txt_db, img_db, speech_db, is_train, opts)
+            elif task.startswith('mspanrc'):
+                dataset = build_mspanrc_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('emocls'):
                 dataset = build_emocls_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('itm'):
@@ -553,12 +595,18 @@ def validate(model, val_dataloaders):
             val_log = validate_mrfr(model, loader, task)
         elif task.startswith('merfr') and args.use_visual:
             val_log = validate_mrfr(model, loader, task)
+        elif task.startswith('mspanrfr') and args.use_visual:
+            LOGGER.info("start running MSpanRFR validation...")
+            val_log = validate_mrfr(model, loader, task)
         elif task.startswith('msrfr') and args.use_speech:
             val_log = validate_msrfr(model, loader)
         elif task.startswith('mrc') and args.use_visual:
             val_log = validate_mrc(model, loader, task)
         elif task.startswith('merc') and args.use_visual:
             LOGGER.info("start running MERCKL validation...")
+            val_log = validate_mrc(model, loader, task)
+        elif task.startswith('mspanrc') and args.use_visual:
+            LOGGER.info("start running MSpanRCKL validation...")
             val_log = validate_mrc(model, loader, task)
         elif task.startswith('emocls'):
             val_log = validate_emocls(model, loader, emocls_type=args.emocls_type)
@@ -783,6 +831,8 @@ def validate_mrfr(model, val_loader, task):
             loss = model(batch, task='mrfr', compute_loss=True)
         elif task.startswith('merfr'):
             loss = model(batch, task='merfr', compute_loss=True)
+        elif task.startswith('mspanrfr'):
+            loss = model(batch, task='mspanrfr', compute_loss=True)
         else:
             LOGGER.info(f'[Error in valid_mrfr] Error task name {task}')
         val_loss += loss.sum().item() / IMG_DIM
@@ -830,6 +880,8 @@ def validate_mrc(model, val_loader, task):
             prediction_soft_label = model(batch, task='mrckl', compute_loss=False)     
         elif task.startswith('merc'):
             prediction_soft_label = model(batch, task='merckl', compute_loss=False)   
+        elif task.startswith('mspanrc'):
+            prediction_soft_label = model(batch, task='mspanrckl', compute_loss=False)   
         else:
             LOGGER.info(f'[Error in valid_mrc] error task name {task}')
         # default use "kl" in task:
@@ -1003,6 +1055,11 @@ if __name__ == "__main__":
                         help='max number of speech frames')
     parser.add_argument('--min_frames', type=int, default=10,
                         help='min number of speech frames')
+
+    parser.add_argument('--mask_speech_consecutive', type=int, default=3,
+                        help='span number of speech frames')
+    parser.add_argument('--mask_visual_consecutive', type=int, default=3,
+                        help='span number of visual frames')
     # use modality branch
     parser.add_argument("--use_speech", action='store_true',  help='use speech branch')
     parser.add_argument("--use_visual", action='store_true',  help='use visual branch')

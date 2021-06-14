@@ -21,13 +21,13 @@ def read_txt_db(txt_db_dir):
     txn = env.begin(buffers=True)
     return txn
 
-def modify_emotype(version, setname, postfix='all_5corpus_emo5'):
+def modify_emotype(version, setname, postfix='5corpus_emo5'):
     txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all_{setname}.db'
     output_txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_emocls_all_{setname}_{postfix}.db'
     text2img_path = os.path.join(txt_db_dir, 'txt2img.json')
 
     all_text2img_path = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all.db/txt2img.json'
-    all_targe_path = f'/data7/emobert/txt_pseudo_label/movie_txt_pseudo_label_{version}_{postfix}.h5'
+    all_targe_path = f'/data7/emobert/txt_pseudo_label/movie_txt_pseudo_label_{version}_all_{postfix}.h5'
     print(all_targe_path)
     all_textId2target = h5py.File(all_targe_path, 'r')
     all_text2img = json.load(open(all_text2img_path))
@@ -59,6 +59,43 @@ def modify_emotype(version, setname, postfix='all_5corpus_emo5'):
             example['logits'] = np.array(logits)
             example['target'] = np.array(target)
             db[textId] = example
+    os.system(f'cp {txt_db_dir}/*.json {output_txt_db_dir}/')
+
+def modify_emotype_opensub(version):
+    txt_db_dir = f'/data7/emobert/txt_db/onlytext_opensub_{version}_emo5_bert_data.db/'
+    output_txt_db_dir = f'/data7/emobert/txt_db/onlytext_opensub_{version}_emo5_bert_data_5corpus_emo5_emocls.db/'
+    text2img_path = os.path.join(txt_db_dir, 'txt2img.json')
+
+    all_targe_path = f'/data7/emobert/txt_pseudo_label/onlytext_opensub_{version}_all_5corpus_emo5.h5'
+    print(all_targe_path)
+    all_textId2target = h5py.File(all_targe_path, 'r')
+    text2img = json.load(open(text2img_path))
+    textIds = text2img.keys()
+
+    # transfer to all imgId2target
+    imgId2target = {}
+    for textId in text2img.keys():
+        img_fname = text2img[textId]
+        target = all_textId2target[textId]
+        imgId2target[img_fname] = target
+
+    txn = read_txt_db(txt_db_dir)
+    open_db = curry(open_lmdb, output_txt_db_dir, readonly=False)
+    with open_db() as db:
+        for textId in tqdm(textIds, total=len(textIds)):
+            example = msgpack.loads(decompress(txn.get(textId.encode('utf-8'))), raw=False)
+            img_fname = example['img_fname']
+            # get correct info by the img_fname
+            emoinfo = imgId2target[img_fname]
+            pred = emoinfo['pred'][0]
+            logits = emoinfo['logits'][0]
+            target = np.argmax(pred)
+            assert example['id'] == textId
+            example['soft_labels'] = np.array(pred)
+            example['logits'] = np.array(logits)
+            example['target'] = np.array(target)
+            db[textId] = example
+    os.system(f'cp {txt_db_dir}/*.json {output_txt_db_dir}/')
 
 def get_high_quality_emo(version, setname):
     # 要生成几个 json 文件
@@ -241,11 +278,10 @@ def modify_emotype_vox(setname):
 
 # export PYTHONPATH=/data7/MEmoBert
 if __name__ == '__main__':
-
     ### for movies data
     # version = 'v3' #  v1 v2 v3
     # for setname in ['val3k', 'trn3k', 'trn']:
-    #     for postfix in ['all_5corpus_emo5', 'all_5corpus_emo4', 'all_5corpus_emo7']:
+    #     for postfix in ['5corpus_emo5']:
     #         print(f'current {setname} {postfix}')
     #         modify_emotype(version, setname, postfix=postfix)
 
@@ -270,3 +306,8 @@ if __name__ == '__main__':
     # if True:
     #     for setname in ['val3k', 'trn3k', 'trn']:
     #         modify_emotype_vox(setname)
+
+
+    if True:
+        version = 'p4' #  v1 v2 v3
+        modify_emotype_opensub(version)
