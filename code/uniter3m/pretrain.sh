@@ -24,6 +24,39 @@ export PYTHONPATH=/data7/MEmoBert
 #         --num_train_steps 20000 --warmup_steps 2000 --valid_steps 2000 \
 #         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_lr5e5_bs512_faceth0.5
 
+## case1.1: visual + text running on gpu0
+# CUDA_VISIBLE_DEVICES=0 horovodrun -np 1 python pretrain.py \
+#         --cvNo 0 --n_workers 4  --use_visual  \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_4tasks.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --learning_rate 5e-05 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 768 \
+#         --train_batch_size 128 --val_batch_size 128 \
+#         --num_train_steps 20000 --warmup_steps 2000 --valid_steps 2000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_lr5e5_bs512_faceth0.5
+
+## case1.1: visual + text running on gpu0 + corpusemo5
+# CUDA_VISIBLE_DEVICES=4,5 horovodrun -np 2 python pretrain.py \
+#         --cvNo 0 --n_workers 4  --use_visual  \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_4tasks_emocls_corpusemo5.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --learning_rate 5e-05 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 768 \
+#         --train_batch_size 200 --val_batch_size 200 \
+#         --num_train_steps 20000 --warmup_steps 2000 --valid_steps 5000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_emocls_corpusemo5_lr5e5_bs512
+
+## case1.2: visual + text + speech + corpusemo5
+# CUDA_VISIBLE_DEVICES=6,7 horovodrun -np 2 python pretrain.py \
+#         --cvNo 0 --n_workers 4  --use_visual --use_speech \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks_emocls_corpusemo5.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --learning_rate 5e-05 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 768 \
+#         --train_batch_size 128 --val_batch_size 128 \
+#         --num_train_steps 30000 --warmup_steps 3000 --valid_steps 5000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speech_visual_text_5tasks_emocls_corpusemo5_lr5e5_bs512
+
 ## case2: wav2vec + text running on a100, ---Going
 # CUDA_VISIBLE_DEVICES=0 horovodrun -np 1 python pretrain.py \
 #         --cvNo 0 --n_workers 4  --use_speech  \
@@ -48,17 +81,41 @@ export PYTHONPATH=/data7/MEmoBert
 #         --num_train_steps 30000 --warmup_steps 3000 --valid_steps 5000 \
 #         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_wav2vec_text_3tasks_emocls_lr5e5_bs512
 
-## case2.2: wav2vec_cnn + text running on a100, ---Going
-CUDA_VISIBLE_DEVICES=0,1 horovodrun -np 2 python pretrain.py \
-        --cvNo 0 --n_workers 4  --use_speech  \
-        --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2veccnn_text_3tasks_mlmitmmsm.json \
-        --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
-        --learning_rate 5e-5 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
-        --IMG_DIM 342 --Speech_DIM 512 \
-        --max_txt_len 30 \
-        --train_batch_size 100 --val_batch_size 100 \
-        --num_train_steps 20000 --warmup_steps 20000 --valid_steps 5000 \
-        --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_wav2vec_text_3tasks_mlmitmmsrfrcnn_lr5e5_bs1024
+# ## case2.2: wav2vec_cnn + text running on a100, ---Going
+# CUDA_VISIBLE_DEVICES=0,1 horovodrun -np 2 python pretrain.py \
+#         --cvNo 0 --n_workers 4  --use_speech  \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2veccnn_text_3tasks_mlmitmmsm.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --learning_rate 5e-5 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 512 \
+#         --max_txt_len 30 \
+#         --train_batch_size 100 --val_batch_size 100 \
+#         --num_train_steps 20000 --warmup_steps 3000 --valid_steps 5000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_wav2vec_text_3tasks_mlmitmmsrfrcnn_lr5e5_bs1024
+
+# ## case2.2: wav2vec_cnn + text running on a100, ---Going
+# CUDA_VISIBLE_DEVICES=0,1 horovodrun -np 2 python pretrain.py \
+#         --cvNo 0 --n_workers 4  --use_speech  \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_globalcnn_text_3tasks.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --learning_rate 5e-5 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 1280 \
+#         --max_txt_len 30 \
+#         --train_batch_size 200 --val_batch_size 200 \
+#         --num_train_steps 30000 --warmup_steps 3000 --valid_steps 5000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_wav2vec_globalcnn_text_3tasks_lr5e5_bs1024
+
+# ## case3.0: wav2vec_cnn + text running on a100, ---Going
+# CUDA_VISIBLE_DEVICES=2,3 horovodrun -np 2 python pretrain.py \
+#         --cvNo 0 --n_workers 4  --use_speech --use_visual \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_globalcnn_5tasks.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --learning_rate 5e-5 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 1280 \
+#         --max_txt_len 30 \
+#         --train_batch_size 128 --val_batch_size 128 \
+#         --num_train_steps 30000 --warmup_steps 3000 --valid_steps 5000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_wav2vec_globalcnn_5tasks_lr5e5_bs1024
 
 ## case3: wav2vec + text + visual running on gpu2
 # CUDA_VISIBLE_DEVICES=2 horovodrun -np 1 python pretrain.py \
