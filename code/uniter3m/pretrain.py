@@ -34,7 +34,8 @@ from code.uniter3m.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   EmoLareDataset, emolare_collate,
                   EItmDataset, eitm_collate,
                   MerfrDataset, MercDataset,
-                  MSpanrfrDataset, mspanrfr_collate, MSpanrcDataset, mspanrc_collate)
+                  MSpanrfrDataset, mspanrfr_collate, MSpanrcDataset, mspanrc_collate,
+                  MSpansrfrDataset, mspansrfr_collate)
 from code.uniter3m.model.pretrain import UniterForPretraining
 
 # from uniter
@@ -146,10 +147,10 @@ def build_mspanrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
         elif speech_db is None:
             datasets = [MSpanrfrDataset(opts.mask_visual_consecutive, t, i, None) for t, i in zip(txt_db, img_db)]
         elif txt_db is None and speech_db is None:
-            LOGGER.info('[Debug in merfr dataset] the text and speech modality are None!')
+            LOGGER.info('[Debug in mspanrfr dataset] the text and speech modality are None!')
             datasets = [MSpanrfrDataset(opts.mask_visual_consecutive, None, i, None) for i in img_db]
         else:
-            LOGGER.info('[Error] Error merfr datasets')
+            LOGGER.info('[Error] Error mspanrfr datasets')
         dataset = ConcatDatasetWithLens(datasets)
     else:
         dataset = MSpanrfrDataset(opts.mask_visual_consecutive, txt_db, img_db, speech_db)
@@ -167,12 +168,30 @@ def build_msrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
             LOGGER.info('[Debug in msrfr dataset] the text and img modality are None!')
             datasets = [MrfrDataset(opts.msrm_prob, None, None, s) for s in speech_db]
         else:
-            LOGGER.info('[Error] Error mrfr datasets')
+            LOGGER.info('[Error] Error msrfr datasets')
         dataset = ConcatDatasetWithLens(datasets)
     else:
         dataset = MsrfrDataset(opts.msrm_prob, txt_db, img_db, speech_db)
 
     return dataset, msrfr_collate
+
+def build_mspansrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
+    assert speech_db != None
+    if is_train:
+        if img_db is not None:
+            datasets = [MSpansrfrDataset(opts.mask_speech_consecutive, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif img_db is None:
+            datasets = [MSpansrfrDataset(opts.mask_speech_consecutive, t, None, s) for t, s in zip(txt_db, speech_db)]
+        elif txt_db is None and img_db is None:
+            LOGGER.info('[Debug in mspansrfr dataset] the text and img modality are None!')
+            datasets = [MSpansrfrDataset(opts.mask_speech_consecutive, None, None, s) for s in speech_db]
+        else:
+            LOGGER.info('[Error] Error mspansrfr datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = MSpansrfrDataset(opts.mask_speech_consecutive, txt_db, img_db, speech_db)
+
+    return dataset, mspansrfr_collate
 
 def build_mrc_dataset(txt_db, img_db, speech_db, is_train, opts):
     assert img_db != None
@@ -182,7 +201,7 @@ def build_mrc_dataset(txt_db, img_db, speech_db, is_train, opts):
         elif speech_db is None:
             datasets = [MrcDataset(opts.mrm_prob, t, i, None) for t, i in zip(txt_db, img_db)]
         elif txt_db is None and speech_db is None:
-            LOGGER.info('[Debug in mrckl dataset] the text and speech modality are None!')
+            LOGGER.info('[Debug in mrc dataset] the text and speech modality are None!')
             datasets = [MrfrDataset(opts.mrm_prob, None, i, None) for i in img_db]
         else:
             LOGGER.info('[Error] Error mrc datasets')
@@ -218,10 +237,10 @@ def build_mspanrc_dataset(txt_db, img_db, speech_db, is_train, opts):
         elif speech_db is None:
             datasets = [MSpanrcDataset(opts.mask_visual_consecutive, t, i, None) for t, i in zip(txt_db, img_db)]
         elif txt_db is None and speech_db is None:
-            LOGGER.info('[Debug in mrckl dataset] the text and speech modality are None!')
+            LOGGER.info('[Debug in mspanrc dataset] the text and speech modality are None!')
             datasets = [MSpanrcDataset(opts.mask_visual_consecutive,  None, i, None) for i in img_db]
         else:
-            LOGGER.info('[Error] Error mrc datasets')
+            LOGGER.info('[Error] Error mspanrc datasets')
         dataset = ConcatDatasetWithLens(datasets)
     else:
         dataset = MSpanrcDataset(opts.mask_visual_consecutive, txt_db, img_db, speech_db)
@@ -360,6 +379,8 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
                 dataset = build_mspanrfr_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('mspanrc'):
                 dataset = build_mspanrc_dataset(txt_db, img_db, speech_db, is_train, opts)
+            elif task.startswith('mspansrfr'):
+                dataset = build_mspansrfr_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('emocls'):
                 dataset = build_emocls_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('itm'):
@@ -599,7 +620,10 @@ def validate(model, val_dataloaders):
             LOGGER.info("start running MSpanRFR validation...")
             val_log = validate_mrfr(model, loader, task)
         elif task.startswith('msrfr') and args.use_speech:
-            val_log = validate_msrfr(model, loader)
+            val_log = validate_msrfr(model, loader, task)
+        elif task.startswith('mspansrfr') and args.use_speech:
+            LOGGER.info("start running MSpanSRFR validation...")
+            val_log = validate_msrfr(model, loader, task)
         elif task.startswith('mrc') and args.use_visual:
             val_log = validate_mrc(model, loader, task)
         elif task.startswith('merc') and args.use_visual:
@@ -848,14 +872,19 @@ def validate_mrfr(model, val_loader, task):
     return val_log
 
 @torch.no_grad()
-def validate_msrfr(model, val_loader):
+def validate_msrfr(model, val_loader, task='msrfr'):
     LOGGER.info("start running MSRFR validation...")
     val_loss = 0
     n_feat = 0
     st = time()
     for i, batch in enumerate(val_loader):
-        loss = model(batch, task='msrfr', compute_loss=True)
-        val_loss += loss.sum().item() / IMG_DIM
+        if task.startswith('msrfr'):
+            loss = model(batch, task='msrfr', compute_loss=True)
+        elif task.startswith('mspansrfr'):
+            loss = model(batch, task='mspansrfr', compute_loss=True)
+        else:
+            LOGGER.info(f'[Error in valid_mrfr] Error task name {task}')
+        val_loss += loss.sum().item() / Speech_DIM
         n_feat += batch['speech_mask_tgt'].sum().item()
     val_loss = sum(all_gather_list(val_loss))
     n_feat = sum(all_gather_list(n_feat))

@@ -128,7 +128,7 @@ class UniterForPretraining(UniterPreTrainedModel):
             mrfr_feat_target = batch['feat_targets']
             return self.forward_mrfr(batch, img_masks, img_mask_tgt,
                                      mrfr_feat_target, compute_loss=compute_loss)
-        elif task == 'msrfr':
+        elif task == 'msrfr' or task == 'mspansrfr':
             speech_mask_tgt = batch['speech_mask_tgt']
             speech_masks = batch['speech_masks']
             msrfr_feat_target = batch['feat_targets']

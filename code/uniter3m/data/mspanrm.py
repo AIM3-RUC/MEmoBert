@@ -1,7 +1,7 @@
 """
 Copyright (c) Microsoft Corporation.
 Licensed under the MIT license.
-Mask Consecutive Region Modeling Datasets
+Mask Span Region Modeling Datasets
 
 采用 Mockingjay 的完全类似 Bert MLM 的做法来做 acoustic and visual frames modeling.
 # https://github.com/andi611/Mockingjay-Speech-Representation/blob/9377bf2585c020b4d217b35f0d27963eb45274ef/utility/mam.py#L92
@@ -54,7 +54,7 @@ def get_consecutive_mask(num_bb, mask_consecutive=3):
         # do nothing
         else:
             pass
-    if sum(tokens) < 1000:
+    if sum(output_label) == len(output_label) * -1:
         # at least mask 1
         if num_bb > 1:
             random_mask = random.choice(range(1, num_bb))
@@ -155,7 +155,7 @@ class MSpanrfrDataset(DetectFeatTxtTokDataset):
         feat_target = _get_feat_target(img_feat, output_label)
         feat_target = torch.cat(feat_target).reshape(-1, img_feat.size(-1))
         # print(f'[Debug in mspanrfr] masked feat_targets {feat_target.shape}')
-        assert len(img_mask_tgt) == img_mask_tgt.size(0)
+        assert sum(img_mask_tgt) == feat_target.size(0)
         # 将random replacement 的帧替换一下
         for i, index in enumerate(img_frames):
             if index != 1000 and i != index:
