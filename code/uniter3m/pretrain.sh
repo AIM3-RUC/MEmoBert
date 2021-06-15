@@ -505,3 +505,42 @@ export PYTHONPATH=/data7/MEmoBert
 #         --train_batch_size 80 --val_batch_size 80 \
 #         --num_train_steps 30000 --warmup_steps 3000 --valid_steps 5000 \
 #         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emocls_AVsinusoid_vstype2_lr5e5_bs1024
+
+### case14.1: text + wav2vec with bert-corpus-emo Model Init
+# CUDA_VISIBLE_DEVICES=0,1 horovodrun -np 2 python pretrain.py \
+#         --cvNo 0 --n_workers 4 --use_speech \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_3tasks.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --checkpoint /data7/emobert/resources/pretrained/uniter_init_5corpus_emo5.pt \
+#         --learning_rate 5e-5 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 768 \
+#         --max_txt_len 30 \
+#         --train_batch_size 128 --val_batch_size 128 \
+#         --num_train_steps 30000 --warmup_steps 3000 --valid_steps 3000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_wav2vec_text_3tasks_init_uniter_init_5corpus_emo5_vstype2_lr5e5_bs1024
+
+### case14.2: text + visual with bert-corpus-emo Model Init
+# CUDA_VISIBLE_DEVICES=2,3 horovodrun -np 2 python pretrain.py \
+#         --cvNo 0 --n_workers 4 --use_visual \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_visual_text_4tasks.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --checkpoint /data7/emobert/resources/pretrained/uniter_init_5corpus_emo5.pt \
+#         --learning_rate 5e-5 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 768 \
+#         --max_txt_len 30 \
+#         --train_batch_size 128 --val_batch_size 128 \
+#         --num_train_steps 30000 --warmup_steps 3000 --valid_steps 3000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_visual_text_4tasks_init_uniter_init_5corpus_emo5_vstype2_lr5e5_bs1024
+
+### case14.3: text + speech + visual with bert-corpus-emo Model Init
+# CUDA_VISIBLE_DEVICES=4,5 horovodrun -np 2 python pretrain.py \
+#         --cvNo 0 --n_workers 4 --use_speech --use_visual \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --checkpoint /data7/emobert/resources/pretrained/uniter_init_5corpus_emo5.pt \
+#         --learning_rate 5e-5 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 768 \
+#         --max_txt_len 30 \
+#         --train_batch_size 80 --val_batch_size 80 \
+#         --num_train_steps 30000 --warmup_steps 3000 --valid_steps 3000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_visual_speech_text_5tasks_init_uniter_init_5corpus_emo5_vstype2_lr5e5_bs1024

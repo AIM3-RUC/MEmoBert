@@ -45,17 +45,15 @@
             ],
             "tasks": [
                 "mlm",
+                "itm",
                 "mrfr",
-                "mrckl",
-                "msrfr",
-                "itm"
+                "mrckl"
             ],
             "mix_ratio": [
                 2,
+                2,
                 1,
-                1,
-                1,
-                2
+                1
             ]
         },
         {
@@ -71,17 +69,15 @@
             ],
             "tasks": [
                 "mlm",
+                "itm",
                 "mrfr",
-                "mrckl",
-                "msrfr",
-                "itm"
+                "mrckl"
             ],
             "mix_ratio": [
                 2,
+                2,
                 1,
-                1,
-                1,
-                2
+                1
             ]
         },
         {
@@ -97,17 +93,15 @@
             ],
             "tasks": [
                 "mlm",
+                "itm",
                 "mrfr",
-                "mrckl",
-                "msrfr",
-                "itm"
+                "mrckl"
             ],
             "mix_ratio": [
                 2,
+                2,
                 1,
-                1,
-                1,
-                2
+                1
             ]
         }
     ],
@@ -115,7 +109,7 @@
         {
             "name": "movies_v1_val3k",
             "db": [
-                "/data7/emobert/txt_db/movies_v1_th0.5_emowords_sentiword_emocls_all_val3k.db/"            
+                "/data7/emobert/txt_db/movies_v1_th0.5_emowords_sentiword_emocls_all_val3k.db"            
             ],
             "img": [
                 "/data7/emobert/img_db_nomask/movies_v1/fc/feat_th0.5_max36_min10"
@@ -125,10 +119,9 @@
             ],
             "tasks": [
                 "mlm",
+                "itm",
                 "mrfr",
-                "mrckl",
-                "msrfr",
-                "itm"      
+                "mrckl"
             ]
         },
         {
@@ -144,10 +137,9 @@
             ],
             "tasks": [
                 "mlm",
+                "itm",
                 "mrfr",
-                "mrckl",
-                "msrfr",
-                "itm"       
+                "mrckl"
             ]
         },
         {
@@ -163,10 +155,9 @@
             ],
             "tasks": [
                 "mlm",
+                "itm",
                 "mrfr",
-                "mrckl",
-                "msrfr",
-                "itm"      
+                "mrckl"
             ]
         },
         {
@@ -182,10 +173,9 @@
             ],
             "tasks": [
                 "mlm",
+                "itm",
                 "mrfr",
-                "mrckl",
-                "msrfr",
-                "itm"         
+                "mrckl"
             ]
         },
         {
@@ -201,10 +191,9 @@
             ],
             "tasks": [
                 "mlm",
+                "itm",
                 "mrfr",
-                "mrckl",
-                "msrfr",
-                "itm"       
+                "mrckl"
             ]
         },
         {
@@ -220,10 +209,9 @@
             ],
             "tasks": [
                 "mlm",
+                "itm",
                 "mrfr",
-                "mrckl",
-                "msrfr",
-                "itm"          
+                "mrckl"
             ]
         }
     ]

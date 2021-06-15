@@ -45,17 +45,13 @@
             ],
             "tasks": [
                 "mlm",
-                "mrfr",
-                "mrckl",
-                "msrfr",
-                "itm"
+                "itm",
+                "msrfr"
             ],
             "mix_ratio": [
                 2,
-                1,
-                1,
-                1,
-                2
+                2,
+                1
             ]
         },
         {
@@ -71,17 +67,13 @@
             ],
             "tasks": [
                 "mlm",
-                "mrfr",
-                "mrckl",
-                "msrfr",
-                "itm"
+                "itm",
+                "msrfr"
             ],
             "mix_ratio": [
                 2,
-                1,
-                1,
-                1,
-                2
+                2,
+                1
             ]
         },
         {
@@ -97,17 +89,13 @@
             ],
             "tasks": [
                 "mlm",
-                "mrfr",
-                "mrckl",
-                "msrfr",
-                "itm"
+                "itm",
+                "msrfr"
             ],
             "mix_ratio": [
                 2,
-                1,
-                1,
-                1,
-                2
+                2,
+                1
             ]
         }
     ],
@@ -125,10 +113,8 @@
             ],
             "tasks": [
                 "mlm",
-                "mrfr",
-                "mrckl",
-                "msrfr",
-                "itm"      
+                "itm",
+                "msrfr"
             ]
         },
         {
@@ -144,10 +130,8 @@
             ],
             "tasks": [
                 "mlm",
-                "mrfr",
-                "mrckl",
-                "msrfr",
-                "itm"       
+                "itm",
+                "msrfr"
             ]
         },
         {
@@ -163,10 +147,8 @@
             ],
             "tasks": [
                 "mlm",
-                "mrfr",
-                "mrckl",
-                "msrfr",
-                "itm"      
+                "itm",
+                "msrfr"
             ]
         },
         {
@@ -182,10 +164,8 @@
             ],
             "tasks": [
                 "mlm",
-                "mrfr",
-                "mrckl",
-                "msrfr",
-                "itm"         
+                "itm",
+                "msrfr"
             ]
         },
         {
@@ -201,10 +181,8 @@
             ],
             "tasks": [
                 "mlm",
-                "mrfr",
-                "mrckl",
-                "msrfr",
-                "itm"       
+                "itm",
+                "msrfr"
             ]
         },
         {
@@ -220,10 +198,8 @@
             ],
             "tasks": [
                 "mlm",
-                "mrfr",
-                "mrckl",
-                "msrfr",
-                "itm"          
+                "itm",
+                "msrfr"
             ]
         }
     ]
