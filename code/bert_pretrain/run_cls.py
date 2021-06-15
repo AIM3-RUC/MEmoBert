@@ -38,6 +38,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Finetune a transformers model on a text classification task")
     parser.add_argument("--gpuid", type=int, default=0)
     parser.add_argument("--cvNo", type=int, default=1)
+    parser.add_argument("--corpus_name", type=str, default='iemocap')
     parser.add_argument(
         "--train_file", type=str, default=None, help="A csv or a json file containing the training data."
     )
@@ -140,15 +141,6 @@ def parse_args():
         os.makedirs(args.output_dir, exist_ok=True)
 
     return args
-
-def compute_metrics(preds, label_ids):
-    assert len(preds) == len(label_ids)
-    acc = accuracy_score(label_ids, preds)
-    wuar = recall_score(label_ids, preds, average='weighted')
-    wf1 = f1_score(label_ids, preds, average='weighted')
-    uwf1 = f1_score(label_ids, preds, average='macro')
-    cm = confusion_matrix(label_ids, preds)
-    return {'total':len(preds), "acc": acc, "wuar": wuar, "wf1": wf1, 'uwf1': uwf1, 'cm': cm}
 
 def main():
     args = parse_args()
@@ -293,8 +285,16 @@ def main():
         # Only show the progress bar once on each machine.
         progress_bar = tqdm(range(args.max_train_steps), disable=not accelerator.is_local_main_process)
         completed_steps = 0
-        best_eval_acc = 0
+
+        if args.corpus_name == 'meld':
+            select_metrix = 'wf1'
+        elif args.corpus_name == 'msp':
+            select_metrix = 'uar'
+        elif args.corpus_name == 'iemocap':
+            select_metrix = 'uar'
+        best_eval_metrix = 0
         best_eval_epoch = -1
+        logger.info(f'[Info] the corpus name {args.corpus_name} and select_metrix {select_metrix}')
 
         for epoch in range(args.num_train_epochs):
             lr = optimizer.state_dict()['param_groups'][0]['lr']
@@ -323,9 +323,9 @@ def main():
             test_reuslts = evaluation(accelerator, model, test_dataloader)
             logger.info('\t Epoch {}: {}'.format(epoch, test_reuslts))
             # choose the best epoch
-            if eval_results['wf1'] > best_eval_acc:
+            if eval_results[select_metrix] > best_eval_metrix:
                 best_eval_epoch = epoch
-                best_eval_acc = eval_results['wf1']
+                best_eval_metrix = eval_results[select_metrix]
                 patience = args.patience
                 # save the model
                 model_saver.save(model, epoch)
@@ -370,6 +370,15 @@ def main():
         logger.info(f'total {len(test_preds)} samples ')
         print(test_reuslts)
 
+def compute_metrics(preds, label_ids):
+    assert len(preds) == len(label_ids)
+    acc = accuracy_score(label_ids, preds)
+    uar = recall_score(label_ids, preds, average='macro')
+    wf1 = f1_score(label_ids, preds, average='weighted')
+    uwf1 = f1_score(label_ids, preds, average='macro')
+    cm = confusion_matrix(label_ids, preds)
+    return {'total':len(preds), "acc": acc, "uar": uar, "wf1": wf1, 'uwf1': uwf1, 'cm': cm}
+
 def write_result_to_tsv(file_path, tst_log, cvNo):
     # 使用fcntl对文件加锁,避免多个不同进程同时操作同一个文件
     f_in = open(file_path)
@@ -377,7 +386,7 @@ def write_result_to_tsv(file_path, tst_log, cvNo):
     content = f_in.readlines()
     if len(content) != 12:
         content += ['\n'] * (12-len(content))
-    content[cvNo-1] = 'CV{}\t{:.4f}\t{:.4f}\t{:.4f}\n'.format(cvNo, tst_log['acc'], tst_log['wf1'], tst_log['uwf1'])
+    content[cvNo-1] = 'CV{}\t{:.4f}\t{:.4f}\t{:.4f}\n'.format(cvNo, tst_log['acc'], tst_log['wf1'], tst_log['uar'])
     f_out = open(file_path, 'w')
     f_out.writelines(content)
     f_out.close()

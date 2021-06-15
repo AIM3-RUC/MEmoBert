@@ -12,12 +12,13 @@ corpus_name_L='IEMOCAP'
 
 # for cvNo in `seq 1 10`
 # do
-#     for lr in 2e-5 3e-5 5e-5
+#     for lr in 3e-5 5e-5
 #     do
 #     bert_data_dir=/data7/emobert/exp/evaluation/${corpus_name_L}/bert_data/${cvNo}
 #     CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
-#         --model_name_or_path /data7/emobert/exp/text_emo_model/all_5corpus_emo4_bert_base_lr2e-5_bs32/ckpt/  \
-#         --restore_pt_checkpoint /data7/emobert/exp/text_emo_model/all_5corpus_emo4_bert_base_lr2e-5_bs32/ckpt/model_step_0.pt \
+#         --corpus_name ${corpus_name} \
+#         --model_name_or_path /data7/emobert/exp/text_emo_model/all_3corpus_emo5_bert_base_lr2e-5_bs32_debug/ckpt/epoch-1/  \
+#         --restore_pt_checkpoint /data7/emobert/exp/text_emo_model/all_3corpus_emo5_bert_base_lr2e-5_bs32_debug/ckpt/epoch-1/model_step_1.pt \
 #         --cvNo ${cvNo} \
 #         --train_file ${bert_data_dir}/trn_val.csv \
 #         --validation_file ${bert_data_dir}/tst.csv \
@@ -29,18 +30,18 @@ corpus_name_L='IEMOCAP'
 #         --patience 2 \
 #         --learning_rate ${lr} \
 #         --lr_scheduler_type 'linear' \
-#         --output_dir ${output_dir}/${corpus_name}_all_5corpus_emo4_bert_lr${lr}_bs32_trnval/${cvNo}
+#         --output_dir ${output_dir}/${corpus_name}_all_3corpus_emo5_bert_base_lr${lr}_bs32_trnval/${cvNo}
 #     done
 # done
 
 # for cvNo in `seq 1 10`
 # do
-#     for lr in 2e-5 3e-5 5e-5
+#     for lr in 3e-5 5e-5
 #     do
 #     bert_data_dir=/data7/emobert/exp/evaluation/${corpus_name_L}/bert_data/${cvNo}
 #     CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
-#         --model_name_or_path /data7/emobert/exp/text_emo_model/all_5corpus_emo5_bert_base_lr2e-5_bs32/ckpt/  \
-#         --restore_pt_checkpoint /data7/emobert/exp/text_emo_model/all_5corpus_emo5_bert_base_lr2e-5_bs32/ckpt/model_step_0.pt \
+#         --corpus_name ${corpus_name} \
+#         --model_name_or_path bert-base-uncased  \
 #         --cvNo ${cvNo} \
 #         --train_file ${bert_data_dir}/trn_val.csv \
 #         --validation_file ${bert_data_dir}/tst.csv \
@@ -52,18 +53,19 @@ corpus_name_L='IEMOCAP'
 #         --patience 2 \
 #         --learning_rate ${lr} \
 #         --lr_scheduler_type 'linear' \
-#         --output_dir ${output_dir}/${corpus_name}_all_5corpus_emo5_bert_lr${lr}_bs32_trnval/${cvNo}
+#         --output_dir ${output_dir}/${corpus_name}_bert_base_lr${lr}_bs32_trnval/${cvNo}
 #     done
 # done
 
 # for cvNo in `seq 1 10`
 # do
-#     for lr in 2e-5 3e-5 5e-5
+#     for lr in 3e-5 5e-5
 #     do
 #     bert_data_dir=/data7/emobert/exp/evaluation/${corpus_name_L}/bert_data/${cvNo}
 #     CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
-#         --model_name_or_path /data7/emobert/exp/text_emo_model/all_5corpus_emo7_bert_base_lr2e-5_bs32/ckpt/ \
-#         --restore_pt_checkpoint /data7/emobert/exp/text_emo_model/all_5corpus_emo7_bert_base_lr2e-5_bs32/ckpt/model_step_1.pt \
+#         --corpus_name ${corpus_name} \
+#         --model_name_or_path /data7/emobert/exp/text_emo_model/bert_movie_model/  \
+#         --restore_pt_checkpoint /data7/emobert/exp/text_emo_model/bert_movie_model/model_step_0.pt  \
 #         --cvNo ${cvNo} \
 #         --train_file ${bert_data_dir}/trn_val.csv \
 #         --validation_file ${bert_data_dir}/tst.csv \
@@ -75,32 +77,9 @@ corpus_name_L='IEMOCAP'
 #         --patience 2 \
 #         --learning_rate ${lr} \
 #         --lr_scheduler_type 'linear' \
-#         --output_dir ${output_dir}/${corpus_name}_all_5corpus_emo7_bert_lr${lr}_bs32_trnval/${cvNo}
+#         --output_dir ${output_dir}/${corpus_name}_bert_movie_emo5_bert_base_lr${lr}_bs32_trnval/${cvNo}
 #     done
 # done
-
-for cvNo in `seq 1 10`
-do
-    for lr in 2e-5 5e-5
-    do
-    bert_data_dir=/data7/emobert/exp/evaluation/${corpus_name_L}/bert_data/${cvNo}
-    CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
-        --model_name_or_path /data7/emobert/exp/text_emo_model/bert_movie_model/ \
-        --restore_pt_checkpoint /data7/emobert/exp/text_emo_model/bert_movie_model/model_step_0.pt \
-        --cvNo ${cvNo} \
-        --train_file ${bert_data_dir}/trn_val.csv \
-        --validation_file ${bert_data_dir}/tst.csv \
-        --test_file ${bert_data_dir}/tst.csv \
-        --max_length 50 \
-        --per_device_train_batch_size 32 \
-        --per_device_eval_batch_size 32 \
-        --num_train_epochs 6 \
-        --patience 2 \
-        --learning_rate ${lr} \
-        --lr_scheduler_type 'linear' \
-        --output_dir ${output_dir}/${corpus_name}_bert_movie_lr${lr}_bs32_trnval/${cvNo}
-    done
-done
 
 # pretrained dir = /data7/MEmoBert/emobert/exp/mlm_pretrain/results/
 # ${pretrain_model_dir}/${corpus_name}/${cvNo}/bert_base_uncased_2e5_epoch10_bs64/
