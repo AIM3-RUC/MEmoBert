@@ -11,6 +11,7 @@ avg_len 12.191646682653877 mid_len 9 m80_len 19 less2 621 less3 920 less10 2868 
 /data7/MEmoBert/emobert/exp/evaluation/MSP/bert_data/1/trn_val.csv
 avg_len 10.920388349514564 mid_len 9 m80_len 16 less2 319 less3 526 less10 2148 large3 3079
 
+数据质量确实不怎么高，less2/less3的数据大约占10%的比例。要不要保留这些短的数据进行训练呢？
 '''
 from preprocess.FileOps import read_csv
 

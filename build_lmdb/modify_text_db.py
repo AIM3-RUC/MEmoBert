@@ -16,6 +16,14 @@ msgpack_numpy.patch()
 from code.uniter.data.data import open_lmdb
 from collections import defaultdict
 
+
+'''
+high-quality: 整体的分布还是很均匀的，并没有太大的问题。
+Movies1: emo 2 and count 6461 emo 0 and count 10181 emo 1 and count 7395 emo 4 and count 7190 emo 3 and count 5794
+Movies2: emo 4 and count 3057 emo 1 and count 2892 emo 2 and count 3098 emo 3 and count 2937 emo 0 and count 6204
+Movies3: emo 0 and count 17560 emo 3 and count 8102 emo 2 and count 10024 emo 4 and count 10727 emo 1 and count 10660
+'''
+
 def read_txt_db(txt_db_dir):
     env = lmdb.open(txt_db_dir)
     txn = env.begin(buffers=True)
@@ -99,6 +107,7 @@ def modify_emotype_opensub(version):
 
 def get_high_quality_emo(version, setname):
     # 不光要保证质量，还要保证类别是均衡的。
+    # 先过一遍看看具体的分布情况，然后给每个类别设置一个数量的阈值。
     # bert-movies {'neutral': 0, 'happiness': 1, 'surprise': 2, 'sadness': 3, 'anger': 4}
     txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all_{setname}.db'
     output_txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_emoclsselected_all_{setname}.db'
@@ -292,7 +301,7 @@ if __name__ == '__main__':
 
     ### for movies data, emotion selected
     version = 'v3' #  v1 v2 v3
-    for setname in ['val3k', 'trn3k', 'trn']:
+    for setname in ['trn']:
         get_high_quality_emo(version, setname)
     
     ## for iemocap or msp data

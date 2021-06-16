@@ -583,3 +583,51 @@ export PYTHONPATH=/data7/MEmoBert
 #         --train_batch_size 160 --val_batch_size 160 \
 #         --num_train_steps 30000 --warmup_steps 3000 --valid_steps 3000 \
 #         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_visual_speech_text_5tasks_emocls_init_uniter_init_5corpus_emo5_vstype2_lr5e5_bs1024
+
+### case15.1: text + visual with quality-emotion-selected for all tasks
+CUDA_VISIBLE_DEVICES=0 horovodrun -np 1 python pretrain.py \
+        --cvNo 0 --n_workers 4 --use_visual \
+        --config config/pretrain-movies-v1v2v3-base-2gpu_visual_text_4tasks_selected.json \
+        --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+        --learning_rate 5e-5 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+        --IMG_DIM 342 --Speech_DIM 768 \
+        --max_txt_len 30 \
+        --train_batch_size 256 --val_batch_size 256 \
+        --num_train_steps 30000 --warmup_steps 3000 --valid_steps 5000 \
+        --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_visual_text_visual_text_4tasks_selected_vstype2_lr5e5_bs1024
+
+### case15.2: text + visual + emocls with quality-emotion-selected for all tasks
+CUDA_VISIBLE_DEVICES=1 horovodrun -np 1 python pretrain.py \
+        --cvNo 0 --n_workers 4 --use_visual \
+        --config config/pretrain-movies-v1v2v3-base-2gpu_visual_text_4tasks_emocls_selected.json \
+        --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+        --learning_rate 5e-5 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+        --IMG_DIM 342 --Speech_DIM 768 \
+        --max_txt_len 30 \
+        --train_batch_size 256 --val_batch_size 256 \
+        --num_train_steps 30000 --warmup_steps 3000 --valid_steps 5000 \
+        --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_visual_text_visual_text_4tasks_emocls_selected_vstype2_lr5e5_bs1024
+
+### case15.3: text + visual with quality-emotion-selected for all tasks
+CUDA_VISIBLE_DEVICES=2,3 horovodrun -np 1 python pretrain.py \
+        --cvNo 0 --n_workers 4 --use_visual --use_speech \
+        --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks_selected.json \
+        --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+        --learning_rate 5e-5 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+        --IMG_DIM 342 --Speech_DIM 768 \
+        --max_txt_len 30 \
+        --train_batch_size 128 --val_batch_size 128 \
+        --num_train_steps 20000 --warmup_steps 3000 --valid_steps 5000 \
+        --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_visual_text_visual_text_4tasks_selected_vstype2_lr5e5_bs1024
+
+### case15.4: text + visual + emocls with quality-emotion-selected for all tasks
+CUDA_VISIBLE_DEVICES=4,5 horovodrun -np 1 python pretrain.py \
+        --cvNo 0 --n_workers 4 --use_visual --use_speech \
+        --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks_emocls_selected.json \
+        --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+        --learning_rate 5e-5 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+        --IMG_DIM 342 --Speech_DIM 768 \
+        --max_txt_len 30 \
+        --train_batch_size 128 --val_batch_size 128 \
+        --num_train_steps 20000 --warmup_steps 3000 --valid_steps 5000 \
+        --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_visual_text_visual_text_4tasks_emocls_selected_vstype2_lr5e5_bs1024
