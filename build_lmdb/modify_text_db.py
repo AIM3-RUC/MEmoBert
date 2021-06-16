@@ -22,6 +22,17 @@ high-quality: 整体的分布还是很均匀的，并没有太大的问题。
 Movies1: emo 2 and count 6461 emo 0 and count 10181 emo 1 and count 7395 emo 4 and count 7190 emo 3 and count 5794
 Movies2: emo 4 and count 3057 emo 1 and count 2892 emo 2 and count 3098 emo 3 and count 2937 emo 0 and count 6204
 Movies3: emo 0 and count 17560 emo 3 and count 8102 emo 2 and count 10024 emo 4 and count 10727 emo 1 and count 10660
+Opensubtitle: 
+
+corpus5_emo5 high-quality:
+Movies1: emo 4 and count 6574 emo 2 and count 3456 emo 0 and count 10354 emo 1 and count 9736 emo 3 and count 4386
+Movies2: emo 4 and count 2863 emo 1 and count 3984 emo 0 and count 6196 emo 2 and count 1600 emo 3 and count 2355
+Movies3: emo 1 and count 14484 emo 0 and count 16209 emo 3 and count 6716 emo 4 and count 10303 emo 2 and count 5436
+比较符合真实的数据分布。等上面的结果出来看看，会不会有提升，如果有的话，跑一个这个。
+OpenSubP1: emo 0 and count 389320 emo 1 and count 339851 emo 3 and count 165482 emo 4 and count 334671 emo 2 and count 105609
+过滤掉了一半，情感分布还算均匀, 还剩 1334933, 继续过滤，每个类别最多保留15w可以 最终还剩 705609
+OpenSubP2: emo 1 and count 327563 emo 4 and count 323144 emo 0 and count 383640 emo 3 and count 167102 emo 2 and count 106355
+过滤掉了一半，情感分布还算均匀, 还剩 1334933, 继续过滤，每个类别最多保留15w可以 最终还剩 706355
 '''
 
 def read_txt_db(txt_db_dir):
@@ -107,18 +118,25 @@ def modify_emotype_opensub(version):
 
 def get_high_quality_emo(version, setname):
     # 不光要保证质量，还要保证类别是均衡的。
-    # 先过一遍看看具体的分布情况，然后给每个类别设置一个数量的阈值。
+    # 先过一遍看看具体的分布情况，然后给每个类别设置一个数量的阈值 max_samples_emo = 150000。
     # bert-movies {'neutral': 0, 'happiness': 1, 'surprise': 2, 'sadness': 3, 'anger': 4}
-    txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all_{setname}.db'
-    output_txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_emoclsselected_all_{setname}.db'
+    ### for movies data
+    # txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all_{setname}.db'
+    # output_txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_emoclsselected_all_{setname}_5corpus_emo5.db'
+    # text2img_path = os.path.join(txt_db_dir, 'txt2img.json')
+    # all_text2img_path = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all.db/txt2img.json'
+    # all_targe_path = f'/data7/emobert/txt_pseudo_label/movie_txt_pseudo_label_{version}_all_5corpus_emo5.h5'
+
+    ### for opensub data
+    txt_db_dir = f'/data7/emobert/txt_db/onlytext_opensub_{version}_emo5_bert_data_5corpus_emo5_emoclsselected.db/'
+    output_txt_db_dir = f'/data7/emobert/txt_db/onlytext_opensub_{version}_emo5_bert_data_5corpus_emo5_emoclsselected2.db'
     text2img_path = os.path.join(txt_db_dir, 'txt2img.json')
 
-    all_text2img_path = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all.db/txt2img.json'
-    all_targe_path = f'/data7/emobert/txt_pseudo_label/movie_txt_pseudo_label_{version}.h5'
+    all_text2img_path = f'/data7/emobert/txt_db/onlytext_opensub_{version}_emo5_bert_data_5corpus_emo5_emocls.db/txt2img.json'
+    all_targe_path = f'/data7/emobert/txt_pseudo_label/onlytext_opensub_{version}_all_5corpus_emo5.h5'
     all_textId2target = h5py.File(all_targe_path, 'r')
     all_text2img = json.load(open(all_text2img_path))
     assert len(all_textId2target.keys()) == len(all_text2img)
-
     # transfer to all imgId2target
     imgId2target = {}
     for textId in all_text2img.keys():
@@ -130,6 +148,7 @@ def get_high_quality_emo(version, setname):
     txt2img = {}  # not sure if useful
     img2txt = defaultdict(list)
     emo2count = {}
+    max_samples_emo = 150000
     txn = read_txt_db(txt_db_dir)
     text2img = json.load(open(text2img_path))
     textIds = text2img.keys()
@@ -145,7 +164,7 @@ def get_high_quality_emo(version, setname):
             logits = emoinfo['logits'][0]
             target = np.argmax(pred)
             max_prob = pred[target]
-            if len(example['input_ids']) <= 1:
+            if len(example['input_ids']) <= 2:
                 continue
             if target == 0:
                 if max_prob >= 0.8:
@@ -161,6 +180,8 @@ def get_high_quality_emo(version, setname):
                 emo2count[target] =  1
             else:
                 emo2count[target] +=  1
+                if emo2count.get(target) > max_samples_emo:
+                    continue
             assert example['id'] == textId
             id2len[textId] = len(example['input_ids'])
             txt2img[textId] = img_fname
@@ -300,9 +321,12 @@ if __name__ == '__main__':
     #     add_img_frame_key(version, setname)
 
     ### for movies data, emotion selected
-    version = 'v3' #  v1 v2 v3
-    for setname in ['trn']:
-        get_high_quality_emo(version, setname)
+    # version = 'v3' #  v1 v2 v3
+    # for setname in ['trn', 'val3k', 'trn3k']:
+    #     get_high_quality_emo(version, setname)
+
+    version = 'p2' #  p1 p2 p3 p4
+    get_high_quality_emo(version, setname='None')
     
     ## for iemocap or msp data
     # corpus_name = 'msp'

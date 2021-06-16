@@ -113,29 +113,29 @@
         {
             "name": "opensub_p1",
             "db": [
-                "/data7/emobert/txt_db/onlytext_opensub_p1_emo5_bert_data_5corpus_emo5_emocls.db/"
+                "/data7/emobert/txt_db/onlytext_opensub_p1_emo5_bert_data_5corpus_emo5_emoclsselected2.db/"
             ],
             "tasks": [
                 "mlm",
                 "emocls"
             ],
             "mix_ratio": [
-                4,
-                8
+                6,
+                6
             ]
         },
         {
             "name": "opensub_p2",
             "db": [
-                "/data7/emobert/txt_db/onlytext_opensub_p2_emo5_bert_data_5corpus_emo5_emocls.db/"
+                "/data7/emobert/txt_db/onlytext_opensub_p2_emo5_bert_data_5corpus_emo5_emoclsselected2.db/"
             ],
             "tasks": [
                 "mlm",
                 "emocls"
             ],
             "mix_ratio": [
-                4,
-                8
+                6,
+                6
             ]
         }
     ],
@@ -251,16 +251,6 @@
                 "itm",
                 "mrfr",
                 "mrckl",
-                "emocls"
-            ]
-        },
-        {
-            "name": "onlytext_all_5corpus_emo5_val",
-            "db": [
-                "/data7/emobert/txt_db/onlytext_all_5corpus_emo5_bert_data_emolabel_val.db/"
-            ],
-            "tasks": [
-                "mlm",
                 "emocls"
             ]
         }

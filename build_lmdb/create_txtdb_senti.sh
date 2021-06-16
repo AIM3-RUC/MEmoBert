@@ -26,12 +26,12 @@ export PYTHONPATH=/data7/MEmoBert
 
 # # step4
 # ## build the trn set by the all set and the all_2000 set. to build a new filter path
-python mk_txtdb_by_faces_sentiword.py --input /data7/emobert/data_nomask_new/voxceleb2_v2/ref_captions.json \
-                --output /data7/emobert/txt_db/voxceleb2_v2_th1.0_emowords_sentiword_all_trn3k.db \
-                --filter_path /data7/emobert/img_db_nomask/voxceleb2_v2/fc/nbb_th1.0_max64_min10.json \
-                --include_path /data7/emobert/txt_db/voxceleb2_v2_th1.0_emowords_sentiword_all_trn.db/img2txts.json \
-                --toker bert-base-uncased  --dataset_name voxceleb2_v2_all_trn3k \
-                --num_samples 3000  
+# python mk_txtdb_by_faces_sentiword.py --input /data7/emobert/data_nomask_new/voxceleb2_v2/ref_captions.json \
+#                 --output /data7/emobert/txt_db/voxceleb2_v2_th1.0_emowords_sentiword_all_trn3k.db \
+#                 --filter_path /data7/emobert/img_db_nomask/voxceleb2_v2/fc/nbb_th1.0_max64_min10.json \
+#                 --include_path /data7/emobert/txt_db/voxceleb2_v2_th1.0_emowords_sentiword_all_trn.db/img2txts.json \
+#                 --toker bert-base-uncased  --dataset_name voxceleb2_v2_all_trn3k \
+#                 --num_samples 3000  
 
 # for iemocap
 # for i in `seq 1 10`; do

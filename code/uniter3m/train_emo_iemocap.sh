@@ -2118,9 +2118,9 @@ corpus_name='iemocap'
 # done
 
 ### case25.2: text + wav2vec + initby init_5corpus_emo5
-# for lr in 5e-5 3e-5
+# for lr in 3e-5
 # do
-#         for cvNo in $(seq 1 10)
+#         for cvNo in $(seq 8 10)
 #         do
 #         num_train_steps=1200
 #         valid_steps=100
@@ -2143,9 +2143,9 @@ corpus_name='iemocap'
 # done
 
 ### case25.3: text + wav2vec + visual + initby init_5corpus_emo5
-# for lr in 5e-5 3e-5
+# for lr in 3e-5
 # do
-#         for cvNo in $(seq 1 10)
+#         for cvNo in $(seq 8 10)
 #         do
 #         num_train_steps=1200
 #         valid_steps=100
@@ -2194,9 +2194,9 @@ corpus_name='iemocap'
 # done
 
 ### case25.5: text + wav2vec + initby init_5corpus_emo5
-# for lr in 5e-5 3e-5
+# for lr in 3e-5
 # do
-#         for cvNo in $(seq 1 10)
+#         for cvNo in $(seq 9 10)
 #         do
 #         num_train_steps=1200
 #         valid_steps=100
@@ -2219,9 +2219,9 @@ corpus_name='iemocap'
 # done
 
 ### case25.6: text + wav2vec + visual + initby init_5corpus_emo5
-# for lr in 5e-5 3e-5
+# for lr in 3e-5
 # do
-#         for cvNo in $(seq 1 10)
+#         for cvNo in $(seq 5 7)
 #         do
 #         num_train_steps=1200
 #         valid_steps=100
