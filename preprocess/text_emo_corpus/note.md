@@ -6,8 +6,6 @@ train: 21672 val: 2846 test: 6004
 
 /data7/emobert/text_emo_corpus
 
-## 1. 测试一下 MELD MELD 还是有效果的
-## 2. balance 一下类别数据
 ## 3. 预训练的时候的EmoCls单独做一个数据集合（只用质量高的数据做）neu 概率大于 80% 其他类别的概率大于 40%. 
 
 ## 整理下面5个情感数据集，

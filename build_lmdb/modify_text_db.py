@@ -98,14 +98,14 @@ def modify_emotype_opensub(version):
     os.system(f'cp {txt_db_dir}/*.json {output_txt_db_dir}/')
 
 def get_high_quality_emo(version, setname):
-    # 要生成几个 json 文件
+    # 不光要保证质量，还要保证类别是均衡的。
     # bert-movies {'neutral': 0, 'happiness': 1, 'surprise': 2, 'sadness': 3, 'anger': 4}
     txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all_{setname}.db'
-    output_txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_emoclsselected_all_{setname}_all_5corpus_emo4.db'
+    output_txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_emoclsselected_all_{setname}.db'
     text2img_path = os.path.join(txt_db_dir, 'txt2img.json')
 
     all_text2img_path = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all.db/txt2img.json'
-    all_targe_path = f'/data7/emobert/txt_pseudo_label/movie_txt_pseudo_label_{version}_all_5corpus_emo4.h5'
+    all_targe_path = f'/data7/emobert/txt_pseudo_label/movie_txt_pseudo_label_{version}.h5'
     all_textId2target = h5py.File(all_targe_path, 'r')
     all_text2img = json.load(open(all_text2img_path))
     assert len(all_textId2target.keys()) == len(all_text2img)
@@ -290,10 +290,10 @@ if __name__ == '__main__':
     # for setname in ['val3k', 'trn3k', 'trn']:
     #     add_img_frame_key(version, setname)
 
-    ### for movies data
-    # version = 'v3' #  v1 v2 v3
-    # for setname in ['val3k', 'trn3k', 'trn']:
-    #     get_high_quality_emo(version, setname)
+    ### for movies data, emotion selected
+    version = 'v3' #  v1 v2 v3
+    for setname in ['val3k', 'trn3k', 'trn']:
+        get_high_quality_emo(version, setname)
     
     ## for iemocap or msp data
     # corpus_name = 'msp'
@@ -307,7 +307,6 @@ if __name__ == '__main__':
     #     for setname in ['val3k', 'trn3k', 'trn']:
     #         modify_emotype_vox(setname)
 
-
-    if True:
-        version = 'p4' #  v1 v2 v3
-        modify_emotype_opensub(version)
+    # if True:
+    #     version = 'p4' #  v1 v2 v3
+    #     modify_emotype_opensub(version)

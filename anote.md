@@ -257,13 +257,8 @@ Late Supervised 在EF的基础上加了一个句子分类层,
 挑选策略，如果之后一个词，那么去掉；如果类别是Neutral，那么要求概率大约 pneu=80%； 如果类别是其他的情感类别，那么概率大于 pohter=40% 才可以。
 以上两个阈值，可以根据最终的数据分布进行确定。 pohter=30% 35% 40% pneu=70% 75% 80%
 /data7/MEmoBert/build_lmdb/modify_text_db.py
-
 BertMovies的数据都比较平衡，但是不符合常理啊，数据集中怎么可能分布那么均衡呢？
-all_5corpus_emo4: 
-movies_v2: emo 1 and count 4062 emo 2 and count 19959 emo 3 and count 1791 emo 0 and count 836
-movies_v1: emo 2 and count 36642 emo 1 and count 10335 emo 3 and count 3247 emo 0 and count 2675
-movies_v3: emo 1 and count 15395 emo 2 and count 56741 emo 3 and count 4939 emo 0 and count 3876
-按理说类别的分布本身就是不均衡的～
+
 
 
 ## UNIMO 单模态训练 --Going
@@ -282,8 +277,9 @@ text_filepath = '/data7/emobert/exp/mlm_pretrain/datasets/OpenSubtitlesV2018/Ope
 /data7/emobert/exp/mlm_pretrain/datasets/OpenSubtitlesV2018/opensub1000w_p2.csv
 /data7/emobert/exp/mlm_pretrain/datasets/OpenSubtitlesV2018/opensub1000w_p3.csv
 /data7/emobert/exp/mlm_pretrain/datasets/OpenSubtitlesV2018/opensub1000w_p4.csv
-分别构建txtdb，然后用模型提取weak-label.
-
+分别构建txtdb，然后用模型提取weak-label. 
+## Note： 做数据质量以及情感类别的筛选，保证类别是均衡的。-- #Going
+## 预训练的时候的EmoCls单独做一个数据集合（只用质量高的数据做）neu 概率大于 80% 其他类别的概率大于 40%. 
 
 
 /data6/lrc/EmotionXED/combined 5分类。
@@ -320,7 +316,7 @@ sinusoidal positional encoding instead of learnable positional embeddings becaus
 在三模态的baseline上进行测试。
 本文保持原有的编码方式不变，语音和人脸采用位置 Sinusoid 编码方式。 试试吧，感觉用处不大。
 
-## 语音和视觉的mask机制修改为中间的 Span 的Mask. --Going
+## 语音和视觉的mask机制修改为中间的 Span 的Mask. --Done
 由于视觉和音频信息的local smoothness特性，需要改成 Span Mask.
 参考: https://github.com/andi611/Mockingjay-Speech-Representation/blob/9377bf2585c020b4d217b35f0d27963eb45274ef/utility/mam.py#L92
 code/uniter/data/mrm.py _get_consecutive_img_mask()

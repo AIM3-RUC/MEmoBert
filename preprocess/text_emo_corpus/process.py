@@ -497,7 +497,7 @@ if __name__ == "__main__":
         save_root_dir = os.path.join(root_dir, 'emo7_bert_data')
         process_emo7_format(root_dir, save_root_dir)
     
-    if True:
+    if False:
         root_dir = os.path.join(root_dir, 'all_3corpus')
         save_root_dir = os.path.join(root_dir, 'emo5_bert_data')
         process_emo5_format(root_dir, save_root_dir)
