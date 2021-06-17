@@ -217,16 +217,16 @@ export PYTHONPATH=/data7/MEmoBert
 #         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_speech_text_5tasks_emoclsselected_vstype2_lr5e5_bs1024
 
 # ## case6.3: text + visual, diff emo cls (logits-label) task with itm + emoclsselected
-# CUDA_VISIBLE_DEVICES=4 horovodrun -np 1 python pretrain.py \
-#         --cvNo 0 --n_workers 4 --use_visual --use_speech \
-#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks_emoclsselected_corpusemo4.json \
-#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft_emo4.json \
+# CUDA_VISIBLE_DEVICES=0,1 horovodrun -np 2 python pretrain.py \
+#         --cvNo 0 --n_workers 4 --use_visual \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_visual_text_4tasks_emoclsselected_corpusemo5.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
 #         --learning_rate 5e-5 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
 #         --IMG_DIM 342 --Speech_DIM 768 \
 #         --max_txt_len 30 \
-#         --train_batch_size 80 --val_batch_size 80 \
-#         --num_train_steps 30000 --warmup_steps 3000 --valid_steps 5000 \
-#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_speech_text_5tasks_emoclsselected_corpusemo4_vstype2_lr5e5_bs1024
+#         --train_batch_size 200 --val_batch_size 200 \
+#         --num_train_steps 10000 --warmup_steps 500 --valid_steps 5000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_emoclsselected_corpusemo5_vstype2_lr5e5_bs1024
 
 # 将 itm 任务替换为 vtm 和 stm 两个任务, 这样可以做下游的两模态的任务
 # case7: text + wav2vec + visual, diff type-embedding running on leo --training
@@ -358,29 +358,6 @@ export PYTHONPATH=/data7/MEmoBert
 #         --num_train_steps 50000 --warmup_steps 5000 --valid_steps 5000 \
 #         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emocls_corpusemo5_vstype2_lr5e5_bs1024
 
-### case9.5: text + wav2vec + visual, diff emo cls (logits-label) task with itm task --all_corpus_emo5
-# CUDA_VISIBLE_DEVICES=5 horovodrun -np 1 python pretrain.py \
-#         --cvNo 0 --n_workers 4 --use_speech --use_visual \
-#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks_emocls_corpusemo4.json \
-#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft_emo4.json \
-#         --learning_rate 5e-5 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
-#         --IMG_DIM 342 --Speech_DIM 768 \
-#         --max_txt_len 30 \
-#         --train_batch_size 64 --val_batch_size 64 \
-#         --num_train_steps 50000 --warmup_steps 5000 --valid_steps 5000 \
-#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emocls_corpusemo4_vstype2_lr5e5_bs1024
-
-### case9.6: text + wav2vec + visual, diff emo cls (logits-label) task with itm task --all_corpus_emo7
-# CUDA_VISIBLE_DEVICES=7 horovodrun -np 1 python pretrain.py \
-#         --cvNo 0 --n_workers 4 --use_speech --use_visual \
-#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks_emocls_corpusemo7.json \
-#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft_emo7.json \
-#         --learning_rate 5e-5 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
-#         --IMG_DIM 342 --Speech_DIM 768 \
-#         --max_txt_len 30 \
-#         --train_batch_size 64 --val_batch_size 64 \
-#         --num_train_steps 50000 --warmup_steps 5000 --valid_steps 5000 \
-#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emocls_corpusemo7_vstype2_lr5e5_bs1024
 
 
 ### case10.2: text + wav2vec + visual, diff emo cls (probs + only important word) running on a100
@@ -597,25 +574,25 @@ export PYTHONPATH=/data7/MEmoBert
 #         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_emocls_selected_vstype2_lr5e5_bs1024
 
 # ### case15.3: text + visual with quality-emotion-selected for all tasks
-# CUDA_VISIBLE_DEVICES=2,3 horovodrun -np 2 python pretrain.py \
+# CUDA_VISIBLE_DEVICES=2 horovodrun -np 1 python pretrain.py \
 #         --cvNo 0 --n_workers 4 --use_visual --use_speech \
 #         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks_selected.json \
 #         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
 #         --learning_rate 5e-5 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
 #         --IMG_DIM 342 --Speech_DIM 768 \
 #         --max_txt_len 30 \
-#         --train_batch_size 160 --val_batch_size 160 \
+#         --train_batch_size 120 --val_batch_size 120 \
 #         --num_train_steps 20000 --warmup_steps 2000 --valid_steps 5000 \
-#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_speech_visual_text_5tasks_selected_vstype2_lr5e5_bs1024
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_speech_visual_text_5tasks_selected_vstype2_lr5e5_bs1024_dehug
 
 # ### case15.4: text + visual + emocls with quality-emotion-selected for all tasks
-# CUDA_VISIBLE_DEVICES=4,5 horovodrun -np 2 python pretrain.py \
+# CUDA_VISIBLE_DEVICES=3 horovodrun -np 1 python pretrain.py \
 #         --cvNo 0 --n_workers 4 --use_visual --use_speech \
 #         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks_emocls_selected.json \
 #         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
 #         --learning_rate 5e-5 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
 #         --IMG_DIM 342 --Speech_DIM 768 \
 #         --max_txt_len 30 \
-#         --train_batch_size 160 --val_batch_size 160 \
+#         --train_batch_size 120 --val_batch_size 120 \
 #         --num_train_steps 20000 --warmup_steps 2000 --valid_steps 5000 \
-#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_speech_visual_text_5tasks_emocls_selected_vstype2_lr5e5_bs1024
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_speech_visual_text_5tasks_emocls_selected_vstype2_lr5e5_bs1024_debug

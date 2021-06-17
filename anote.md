@@ -260,7 +260,6 @@ Late Supervised 在EF的基础上加了一个句子分类层,
 BertMovies的数据都比较平衡，但是不符合常理啊，数据集中怎么可能分布那么均衡呢？
 
 
-
 ## UNIMO 单模态训练 --Going
 可以同时利用单模态，或者任意模态的组合进行训练，--use_visual --use_speech 用来初始化模型。
 而构建db的时候不能根据 --use_visual 来进行判断，而是config中每个db模态信息是否存在.
@@ -328,3 +327,12 @@ code/uniter/data/mrm.py _get_consecutive_img_mask()
 2. 很简单的一种方式, 在原来的mrfr的基础，只是将随机帧的Mask修改为中间 span frames 的 mask.
 
 还是直接一步到位，采用方案1吧。 视觉和语音都可以直接用。
+
+## 将Word的Mask机制，修改为 Whole Word Mask 的方法 --Going
+
+
+## FrameOrderTask 也该加进来了 --Going
+
+
+## 为啥加入EmoCls任务显存占用反而会小很多呢？ 会不会是加入EmoCls任务效果一直不好的原因？？？
+对比加载的数据，任务数量，模型参数，基本没有区别啊。
