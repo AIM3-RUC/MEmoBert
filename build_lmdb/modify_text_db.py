@@ -116,24 +116,12 @@ def modify_emotype_opensub(version):
             db[textId] = example
     os.system(f'cp {txt_db_dir}/*.json {output_txt_db_dir}/')
 
-def get_high_quality_emo(version, setname):
+def get_high_quality_emo(txt_db_dir, output_txt_db_dir, all_text2img_path, all_targe_path):
     # 不光要保证质量，还要保证类别是均衡的。
     # 先过一遍看看具体的分布情况，然后给每个类别设置一个数量的阈值 max_samples_emo = 150000。
     # bert-movies {'neutral': 0, 'happiness': 1, 'surprise': 2, 'sadness': 3, 'anger': 4}
     ### for movies data
-    # txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all_{setname}.db'
-    # output_txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_emoclsselected_all_{setname}_5corpus_emo5.db'
-    # text2img_path = os.path.join(txt_db_dir, 'txt2img.json')
-    # all_text2img_path = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all.db/txt2img.json'
-    # all_targe_path = f'/data7/emobert/txt_pseudo_label/movie_txt_pseudo_label_{version}_all_5corpus_emo5.h5'
-
-    ### for opensub data
-    txt_db_dir = f'/data7/emobert/txt_db/onlytext_opensub_{version}_emo5_bert_data_5corpus_emo5_emoclsselected.db/'
-    output_txt_db_dir = f'/data7/emobert/txt_db/onlytext_opensub_{version}_emo5_bert_data_5corpus_emo5_emoclsselected2.db'
     text2img_path = os.path.join(txt_db_dir, 'txt2img.json')
-
-    all_text2img_path = f'/data7/emobert/txt_db/onlytext_opensub_{version}_emo5_bert_data_5corpus_emo5_emocls.db/txt2img.json'
-    all_targe_path = f'/data7/emobert/txt_pseudo_label/onlytext_opensub_{version}_all_5corpus_emo5.h5'
     all_textId2target = h5py.File(all_targe_path, 'r')
     all_text2img = json.load(open(all_text2img_path))
     assert len(all_textId2target.keys()) == len(all_text2img)
@@ -204,6 +192,60 @@ def get_high_quality_emo(version, setname):
     meta = {}
     meta['output'] = output_txt_db_dir
     meta['num_samples'] = total_sampels
+    meta['tokenizer'] = "bert-base-uncased"
+    meta['toker'] = "bert-base-uncased"
+    meta['UNK'] = 100
+    meta['CLS'] = 101
+    meta['SEP'] = 102
+    meta['MASK'] = 103
+    meta['v_range'] = [999, 30522]
+    with open(f'{output_txt_db_dir}/meta.json', 'w') as f:
+        json.dump(meta, f, indent=4)
+
+def get_high_quality_data(txt_db_dir, output_txt_db_dir, max_len=3, save_long=True):
+    # 仅仅是将目前的测试集合根据长度进行划分两部分
+    text2img_path = os.path.join(txt_db_dir, 'txt2img.json')
+    id2len = {}
+    txt2img = {}  # not sure if useful
+    img2txt = defaultdict(list)
+    txn = read_txt_db(txt_db_dir)
+    text2img = json.load(open(text2img_path))
+    textIds = text2img.keys()
+    print('total {} txts'.format(len(text2img)))
+    total_sampels = 0
+    open_db = curry(open_lmdb, output_txt_db_dir, readonly=False)
+    with open_db() as db:
+        for textId in tqdm(textIds, total=len(textIds)):
+            example = msgpack.loads(decompress(txn.get(textId.encode('utf-8'))), raw=False)  
+            assert example['id'] == textId
+            if save_long:
+                if  len(example['input_ids']) > max_len:
+                    db[textId] = example
+                    id2len[textId] = len(example['input_ids'])
+                    img_fname = example['img_fname']
+                    txt2img[textId] = img_fname
+                    img2txt[img_fname] = textId
+                    total_sampels += 1
+            else:
+                if len(example['input_ids']) <= max_len:
+                    db[textId] = example
+                    id2len[textId] = len(example['input_ids'])
+                    img_fname = example['img_fname']
+                    txt2img[textId] = img_fname
+                    img2txt[img_fname] = textId
+                    total_sampels += 1
+    print(f'Long {save_long} high quality total {total_sampels} {len(id2len)} {len(txt2img)} {len(img2txt)}')
+    with open(f'{output_txt_db_dir}/id2len.json', 'w') as f:
+        json.dump(id2len, f)
+    with open(f'{output_txt_db_dir}/txt2img.json', 'w') as f:
+        json.dump(txt2img, f)
+    with open(f'{output_txt_db_dir}/img2txts.json', 'w') as f:
+        json.dump(img2txt, f)
+    meta = {}
+    meta['output'] = output_txt_db_dir
+    meta['num_samples'] = total_sampels
+    meta['tokenizer'] = "bert-base-uncased"
+    meta['toker'] = "bert-base-uncased"
     meta['UNK'] = 100
     meta['CLS'] = 101
     meta['SEP'] = 102
@@ -323,11 +365,30 @@ if __name__ == '__main__':
     ### for movies data, emotion selected
     # version = 'v3' #  v1 v2 v3
     # for setname in ['trn', 'val3k', 'trn3k']:
+    #     txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all_{setname}.db'
+    #     output_txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_emoclsselected_all_{setname}_5corpus_emo5.db'
+    #     all_text2img_path = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all.db/txt2img.json'
+    #     all_targe_path = f'/data7/emobert/txt_pseudo_label/movie_txt_pseudo_label_{version}_all_5corpus_emo5.h5'
     #     get_high_quality_emo(version, setname)
 
-    version = 'p2' #  p1 p2 p3 p4
-    get_high_quality_emo(version, setname='None')
-    
+    ### for opensub data
+    # version = 'p2' #  p1 p2 p3 p4
+    # txt_db_dir = f'/data7/emobert/txt_db/onlytext_opensub_{version}_emo5_bert_data_5corpus_emo5_emoclsselected.db/'
+    # output_txt_db_dir = f'/data7/emobert/txt_db/onlytext_opensub_{version}_emo5_bert_data_5corpus_emo5_emoclsselected2.db'
+    # all_text2img_path = f'/data7/emobert/txt_db/onlytext_opensub_{version}_emo5_bert_data_5corpus_emo5_emocls.db/txt2img.json'
+    # all_targe_path = f'/data7/emobert/txt_pseudo_label/onlytext_opensub_{version}_all_5corpus_emo5.h5'
+    # get_high_quality_emo(version, setname='None')
+
+    ### for downstream data
+    for cvNo in range(1, 11):
+        for setname in ['trn', 'val', 'tst']:
+            print(f'cur cvNo {cvNo} setnemt {setname}')
+            txt_db_dir = f'/data7/emobert/exp/evaluation/MSP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls.db'
+            output_txt_db_dir_long = f'/data7/emobert/exp/evaluation/MSP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls_long3.db'
+            output_txt_db_dir_short = f'/data7/emobert/exp/evaluation/MSP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls_short3.db'
+            get_high_quality_data(txt_db_dir, output_txt_db_dir_long, max_len=3, save_long=True)
+            get_high_quality_data(txt_db_dir, output_txt_db_dir_short, max_len=3, save_long=False)
+
     ## for iemocap or msp data
     # corpus_name = 'msp'
     # imgId2target = get_weak_lable_list(corpus_name)
