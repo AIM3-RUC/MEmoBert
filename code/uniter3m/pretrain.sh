@@ -594,7 +594,7 @@ export PYTHONPATH=/data7/MEmoBert
 #         --max_txt_len 30 \
 #         --train_batch_size 256 --val_batch_size 256 \
 #         --num_train_steps 30000 --warmup_steps 3000 --valid_steps 5000 \
-#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_visual_text_visual_text_4tasks_selected_vstype2_lr5e5_bs1024
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_uniter3m_text_visual_text_4tasks_selected_vstype2_lr5e5_bs1024
 
 # ### case15.2: text + visual + emocls with quality-emotion-selected for all tasks
 # CUDA_VISIBLE_DEVICES=1 horovodrun -np 1 python pretrain.py \
@@ -606,7 +606,7 @@ export PYTHONPATH=/data7/MEmoBert
 #         --max_txt_len 30 \
 #         --train_batch_size 256 --val_batch_size 256 \
 #         --num_train_steps 30000 --warmup_steps 3000 --valid_steps 5000 \
-#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_visual_text_visual_text_4tasks_emocls_selected_vstype2_lr5e5_bs1024
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_emocls_selected_vstype2_lr5e5_bs1024
 
 # ### case15.3: text + visual with quality-emotion-selected for all tasks
 # CUDA_VISIBLE_DEVICES=2,3 horovodrun -np 2 python pretrain.py \
