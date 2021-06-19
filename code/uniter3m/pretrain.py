@@ -35,7 +35,8 @@ from code.uniter3m.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   EItmDataset, eitm_collate,
                   MerfrDataset, MercDataset,
                   MSpanrfrDataset, mspanrfr_collate, MSpanrcDataset, mspanrc_collate,
-                  MSpansrfrDataset, mspansrfr_collate)
+                  MSpansrfrDataset, mspansrfr_collate,
+                  MlmWWMDataset, mlm_wwm_collate)
 from code.uniter3m.model.pretrain import UniterForPretraining
 
 # from uniter
@@ -66,6 +67,24 @@ def build_mlm_dataset(txt_db, img_db, speech_db, is_train, opts):
     else:
         dataset = MlmDataset(txt_db, img_db, speech_db)
     return dataset, mlm_collate
+
+def build_mlm_wwm_dataset(txt_db, img_db, speech_db, is_train, opts):
+    if is_train:
+        if img_db is not None and speech_db is not None:
+            datasets = [MlmWWMDataset(t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif img_db is None and speech_db is not None:
+            datasets = [MlmWWMDataset(t, None, s) for t, s in zip(txt_db, speech_db)]
+        elif img_db is not None and speech_db is None:
+            datasets = [MlmWWMDataset(t, i, None) for t, i in zip(txt_db, img_db)]
+        elif img_db is None and speech_db is None:
+            LOGGER.info('[Debug in mlm dataset] the img and speech modality are None!')
+            datasets = [MlmWWMDataset(t, None, None) for t in txt_db]
+        else:
+            LOGGER.info('[Error] Error mlm datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = MlmWWMDataset(txt_db, img_db, speech_db)
+    return dataset, mlm_wwm_collate
 
 def build_melm_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:
@@ -361,8 +380,11 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
                 LOGGER.info(f"Loading {task} train dataset {dset['db']}")
                 txt_db = TxtTokLmdb(dset['db'][0], max_txt_len=60)
 
-            if task.startswith('mlm'):
+            if task.startswith('mlm_wwm'):
+                # 由于 mlm_wwm 和 mlm 都是mlm开头，所以这里的顺序不能换
                 dataset = build_mlm_dataset(txt_db, img_db, speech_db, is_train, opts)
+            elif task.startswith('mlm'):
+                dataset = build_mlm_wwm_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('melm'):
                 dataset = build_melm_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('mrfr'):
@@ -608,8 +630,10 @@ def validate(model, val_dataloaders):
     model.eval()
     for task, loader in val_dataloaders.items():
         LOGGER.info(f"validate on {task} task")
-        if task.startswith('mlm'):
-            val_log = validate_mlm(model, loader)
+        if task.startswith('mlm_wwm'):
+            val_log = validate_mlm(model, loader, task)
+        elif task.startswith('mlm'):
+            val_log = validate_mlm(model, loader, task)
         elif task.startswith('melm'):
             val_log = validate_melm(model, loader)
         elif task.startswith('mrfr') and args.use_visual:
@@ -617,20 +641,16 @@ def validate(model, val_dataloaders):
         elif task.startswith('merfr') and args.use_visual:
             val_log = validate_mrfr(model, loader, task)
         elif task.startswith('mspanrfr') and args.use_visual:
-            LOGGER.info("start running MSpanRFR validation...")
             val_log = validate_mrfr(model, loader, task)
         elif task.startswith('msrfr') and args.use_speech:
             val_log = validate_msrfr(model, loader, task)
         elif task.startswith('mspansrfr') and args.use_speech:
-            LOGGER.info("start running MSpanSRFR validation...")
             val_log = validate_msrfr(model, loader, task)
         elif task.startswith('mrc') and args.use_visual:
             val_log = validate_mrc(model, loader, task)
         elif task.startswith('merc') and args.use_visual:
-            LOGGER.info("start running MERCKL validation...")
             val_log = validate_mrc(model, loader, task)
         elif task.startswith('mspanrc') and args.use_visual:
-            LOGGER.info("start running MSpanRCKL validation...")
             val_log = validate_mrc(model, loader, task)
         elif task.startswith('emocls'):
             val_log = validate_emocls(model, loader, emocls_type=args.emocls_type)
@@ -653,14 +673,14 @@ def validate(model, val_dataloaders):
     model.train()
 
 @torch.no_grad()
-def validate_mlm(model, val_loader):
-    LOGGER.info("start running MLM validation...")
+def validate_mlm(model, val_loader, task='mlm'):
+    LOGGER.info(f"start running {task} validation...")
     val_loss = 0
     n_correct = 0
     n_word = 0
     st = time()
     for i, batch in enumerate(val_loader):
-        scores = model(batch, task='mlm', compute_loss=False)
+        scores = model(batch, task=task, compute_loss=False)
         labels = batch['txt_labels']
         labels = labels[labels != -1]
         loss = F.cross_entropy(scores, labels, reduction='sum')
@@ -846,7 +866,7 @@ def accuracy_count(out, labels):
 @torch.no_grad()
 def validate_mrfr(model, val_loader, task):
     # task: mrfr or merfr
-    LOGGER.info(f"start running {task.upper()} validation...")
+    LOGGER.info(f"start running {task} validation...")
     val_loss = 0
     n_feat = 0
     st = time()
@@ -873,7 +893,7 @@ def validate_mrfr(model, val_loader, task):
 
 @torch.no_grad()
 def validate_msrfr(model, val_loader, task='msrfr'):
-    LOGGER.info("start running MSRFR validation...")
+    LOGGER.info(f"start running {task} validation...")
     val_loss = 0
     n_feat = 0
     st = time()
@@ -899,7 +919,7 @@ def validate_msrfr(model, val_loader, task='msrfr'):
 @torch.no_grad()
 def validate_mrc(model, val_loader, task):
     # task: mrfr or merfr
-    LOGGER.info(f"start running {task.upper()} validation...")
+    LOGGER.info(f"start running {task} validation...")
     val_loss = 0
     n_feat = 0
     st = time()
@@ -989,7 +1009,7 @@ def compute_accuracy_for_soft_targets(out, labels):
 
 @torch.no_grad()
 def validate_itm(model, val_loader, task):
-    LOGGER.info("start running ITM validation...")
+    LOGGER.info(f"start running {task} validation...")
     val_loss = 0
     tot_score = 0
     n_ex = 0

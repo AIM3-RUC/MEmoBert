@@ -122,6 +122,8 @@ class MSpansrfrDataset(DetectFeatTxtTokDataset):
 
         # text input
         input_ids = example['input_ids']
+        if isinstance(input_ids[0], list):
+            input_ids = [y for x in input_ids for y in x]
         input_ids = self.txt_db.combine_inputs(input_ids)
         attn_masks = torch.ones(len(input_ids), dtype=torch.long)
 

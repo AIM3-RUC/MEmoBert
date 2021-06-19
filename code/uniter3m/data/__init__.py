@@ -18,3 +18,4 @@ from .eitm import EItmDataset, eitm_collate
 from .merm import MerfrDataset, MercDataset
 from .mspanrm import MSpanrfrDataset, mspanrfr_collate, MSpanrcDataset, mspanrc_collate
 from .mspansrm import MSpansrfrDataset, mspansrfr_collate
+from .mlm_wwm import MlmWWMDataset, mlm_wwm_collate

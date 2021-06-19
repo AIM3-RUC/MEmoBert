@@ -5,15 +5,59 @@ Licensed under the MIT license.
 MLM datasets-Whole Word Masking
 """
 import random
-
 import torch
 from torch.nn.utils.rnn import pad_sequence
 from toolz.sandbox import unzip
 from code.uniter3m.data.data import (DetectFeatTxtTokDataset, TxtTokLmdb,
                    pad_tensors, get_gather_index)
-# from uniter 
-from code.uniter.data.mlm import random_word
-class MlmDataset(DetectFeatTxtTokDataset):
+
+def random_wwm_word(tokens, vocab_range, mask):
+    """
+    Masking some random tokens for Language Model task with probabilities as in
+        the original BERT paper.
+    :param tokens: list of list, tokenized sentence. [word1_tokens, word2_tokens]
+    :param vocab_range: for choosing a random word
+    :return: (list of int), masked tokens and related labels for
+        LM prediction
+    """
+    output_label = []
+
+    for i, word_tokens in enumerate(tokens):
+        prob = random.random()
+        # mask token with 15% probability
+        if prob < 0.15:
+            prob /= 0.15
+            # 80% randomly change token to mask token
+            if prob < 0.8:
+                # print('[Debug] 0.8 predict mask token {}'.format(token))
+                tokens[i] = [mask] * len(tokens[i])
+            # 10% randomly change token to random token
+            elif prob < 0.9:
+                # print('[Debug] 0.1 predict random token {}'.format(token))
+                tokens[i] = [random.choice(list(range(*vocab_range))) for i in range(len(tokens[i]))]
+            # -> rest 10% randomly keep current token
+            # append current token to output (we will predict these later)
+            output_label.append(word_tokens)
+        else:
+            # no masking token (will be ignored by loss function later)
+            output_label.append([-1] * len(word_tokens))
+    if all(o == -1 for o in output_label):
+        # at least mask 1
+        random_choice = random.choice(range(len(tokens)))
+        output_label[random_choice] = tokens[random_choice]
+        tokens[random_choice] = mask
+    assert len(output_label) == len(tokens)
+    new_output_label, new_tokens = [], []
+    for l, t in zip(output_label, tokens):
+        new_output_label.extend(l)
+        new_tokens.extend(t)
+        # print(f'[Debug of element] {l} {t}')
+    assert len(new_output_label) == len(new_tokens)
+    # print(f'[Debug in randomwwm] {new_output_label}')
+    # print(f'[Debug in randomwwm] {new_tokens}')
+    return new_tokens, new_output_label
+
+class MlmWWMDataset(DetectFeatTxtTokDataset):
     def __init__(self, txt_db, img_db, speech_db):
         assert isinstance(txt_db, TxtTokLmdb)
         super().__init__(txt_db, img_db, speech_db)
@@ -57,7 +101,7 @@ class MlmDataset(DetectFeatTxtTokDataset):
         
     def create_mlm_io(self, input_ids):
         # print('[Debug] In MLM, the original input ids: {}'.format(input_ids))
-        input_ids, txt_labels = random_word(input_ids,
+        input_ids, txt_labels = random_wwm_word(input_ids,
                                             self.txt_db.v_range,
                                             self.txt_db.mask)
         input_ids = torch.tensor([self.txt_db.cls_]
@@ -68,7 +112,7 @@ class MlmDataset(DetectFeatTxtTokDataset):
         # print('[Debug] In MLM, the text labels: {} {}'.format(len(txt_labels[1:-1]), txt_labels[1:-1]))
         return input_ids, txt_labels
 
-def mlm_collate(inputs):
+def mlm_wwm_collate(inputs):
     """
     Jinming: 关于 attn_masks 和 gather-index.
     attn_masks 是所有 a+b 的最大长度, 而 input-ids 是所有text的最大长度pad而成,  speech-feat 是所有speech的最大长度pad而成.

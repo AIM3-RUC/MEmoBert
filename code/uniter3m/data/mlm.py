@@ -30,7 +30,10 @@ class MlmDataset(DetectFeatTxtTokDataset):
         """
         example = super().__getitem__(i)
         # text input
-        input_ids, txt_labels = self.create_mlm_io(example['input_ids'])
+        input_ids = example['input_ids']
+        if isinstance(input_ids[0], list):
+            input_ids = [y for x in input_ids for y in x]
+        input_ids, txt_labels = self.create_mlm_io(input_ids)
         attn_masks = torch.ones(len(input_ids), dtype=torch.long)
         # print('[Debug] item {} text attn mask {} {}'.format(i, attn_masks, attn_masks.shape))
 

@@ -124,6 +124,8 @@ class EmoLareDataset(DetectFeatTxtTokDataset):
         """
         example = super().__getitem__(i)
         input_ids = example['input_ids']
+        if isinstance(input_ids[0], list):
+            input_ids = [y for x in input_ids for y in x]
         input_pos_ids = example['pos_ids']
         input_senti_ids = example['word_senti_ids']
         target = example['target'] # utterance-level label

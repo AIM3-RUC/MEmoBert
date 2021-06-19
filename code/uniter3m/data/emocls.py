@@ -51,6 +51,8 @@ class EmoClsDataset(DetectFeatTxtTokDataset):
         if self.use_text:
             # text input
             input_ids = example['input_ids']
+            if isinstance(input_ids[0], list):
+                input_ids = [y for x in input_ids for y in x]    
             input_ids = torch.tensor([self.txt_db.cls_] + input_ids + [self.txt_db.sep])
             attn_masks = torch.ones(len(input_ids), dtype=torch.long)
             if self.use_emolare:

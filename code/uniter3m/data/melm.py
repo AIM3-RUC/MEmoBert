@@ -79,7 +79,10 @@ class MelmDataset(DetectFeatTxtTokDataset):
         example = super().__getitem__(i)
 
         # text input
-        input_ids, txt_labels = self.create_melm_io(example['input_ids'], example['emo_input_ids'])
+        input_ids = example['input_ids']
+        if isinstance(input_ids[0], list):
+            input_ids = [y for x in input_ids for y in x]
+        input_ids, txt_labels = self.create_melm_io(input_ids, example['emo_input_ids'])
         attn_masks = torch.ones(len(input_ids), dtype=torch.long)
 
         # Jinming: add for emo_type_ids (0~2), 0 is the no-emotion-words
