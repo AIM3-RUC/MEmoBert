@@ -136,7 +136,7 @@ def get_high_quality_emo(txt_db_dir, output_txt_db_dir, all_text2img_path, all_t
     txt2img = {}  # not sure if useful
     img2txt = defaultdict(list)
     emo2count = {}
-    max_samples_emo = 150000
+    max_samples_emo = 7000
     txn = read_txt_db(txt_db_dir)
     text2img = json.load(open(text2img_path))
     textIds = text2img.keys()
@@ -152,7 +152,7 @@ def get_high_quality_emo(txt_db_dir, output_txt_db_dir, all_text2img_path, all_t
             logits = emoinfo['logits'][0]
             target = np.argmax(pred)
             max_prob = pred[target]
-            if len(example['input_ids']) <= 2:
+            if len(example['input_ids']) <= 1:
                 continue
             if target == 0:
                 if max_prob >= 0.8:
@@ -369,25 +369,25 @@ if __name__ == '__main__':
     #     output_txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_emoclsselected_all_{setname}_5corpus_emo5.db'
     #     all_text2img_path = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all.db/txt2img.json'
     #     all_targe_path = f'/data7/emobert/txt_pseudo_label/movie_txt_pseudo_label_{version}_all_5corpus_emo5.h5'
-    #     get_high_quality_emo(version, setname)
+    #     get_high_quality_emo(txt_db_dir, output_txt_db_dir, all_text2img_path, all_targe_path)
 
     ### for opensub data
-    # version = 'p2' #  p1 p2 p3 p4
-    # txt_db_dir = f'/data7/emobert/txt_db/onlytext_opensub_{version}_emo5_bert_data_5corpus_emo5_emoclsselected.db/'
-    # output_txt_db_dir = f'/data7/emobert/txt_db/onlytext_opensub_{version}_emo5_bert_data_5corpus_emo5_emoclsselected2.db'
-    # all_text2img_path = f'/data7/emobert/txt_db/onlytext_opensub_{version}_emo5_bert_data_5corpus_emo5_emocls.db/txt2img.json'
-    # all_targe_path = f'/data7/emobert/txt_pseudo_label/onlytext_opensub_{version}_all_5corpus_emo5.h5'
-    # get_high_quality_emo(version, setname='None')
+    version = 'p2' #  p1 p2 p3 p4
+    txt_db_dir = f'/data7/emobert/txt_db/onlytext_opensub_{version}_emo5_bert_data_5corpus_emo5_emoclsselected.db/'
+    output_txt_db_dir = f'/data7/emobert/txt_db/onlytext_opensub_{version}_emo5_bert_data_5corpus_emo5_emoclsselected2.db'
+    all_text2img_path = f'/data7/emobert/txt_db/onlytext_opensub_{version}_emo5_bert_data_5corpus_emo5_emocls.db/txt2img.json'
+    all_targe_path = f'/data7/emobert/txt_pseudo_label/onlytext_opensub_{version}_all_5corpus_emo5.h5'
+    get_high_quality_emo(version, setname='None')
 
     ### for downstream data
-    for cvNo in range(1, 11):
-        for setname in ['trn', 'val', 'tst']:
-            print(f'cur cvNo {cvNo} setnemt {setname}')
-            txt_db_dir = f'/data7/emobert/exp/evaluation/MSP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls.db'
-            output_txt_db_dir_long = f'/data7/emobert/exp/evaluation/MSP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls_long3.db'
-            output_txt_db_dir_short = f'/data7/emobert/exp/evaluation/MSP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls_short3.db'
-            get_high_quality_data(txt_db_dir, output_txt_db_dir_long, max_len=3, save_long=True)
-            get_high_quality_data(txt_db_dir, output_txt_db_dir_short, max_len=3, save_long=False)
+    # for cvNo in range(1, 11):
+    #     for setname in ['trn', 'val', 'tst']:
+    #         print(f'cur cvNo {cvNo} setnemt {setname}')
+    #         txt_db_dir = f'/data7/emobert/exp/evaluation/MSP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls.db'
+    #         output_txt_db_dir_long = f'/data7/emobert/exp/evaluation/MSP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls_long3.db'
+    #         output_txt_db_dir_short = f'/data7/emobert/exp/evaluation/MSP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls_short3.db'
+    #         get_high_quality_data(txt_db_dir, output_txt_db_dir_long, max_len=3, save_long=True)
+    #         get_high_quality_data(txt_db_dir, output_txt_db_dir_short, max_len=3, save_long=False)
 
     ## for iemocap or msp data
     # corpus_name = 'msp'

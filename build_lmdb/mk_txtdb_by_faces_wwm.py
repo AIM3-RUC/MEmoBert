@@ -2,8 +2,11 @@
 Copyright (c) Microsoft Corporation.
 Licensed under the MIT license.
 
-preprocess json raw input to lmdb
+preprocess json raw input to lmdb Whole Word Masking
+Id2Len 还是保存token的长度，但是input_ids保存的是whole-word
+[tokens, tokens]
 """
+
 import argparse
 import os
 from collections import defaultdict
@@ -99,6 +102,7 @@ def process_jsonl(jsonf, db, toker, max_tokens=100, dataset_name="", filter_path
             tokens = bert_id2token(toker, input_ids)
             txt2img[_id] = img_fname
             img2txt[img_fname].append(str(_id))
+            # 长度还是保留原来的长度
             id2len[_id] = sum([len(word_input_ids) for word_input_ids in input_ids])
             example['id'] = str(_id)
             example['dataset'] = dataset_name
@@ -137,8 +141,7 @@ def main(opts):
     with open_db() as db:
         id2lens, txt2img, img2txt = process_jsonl(opts.input, db, toker, dataset_name=opts.dataset_name, \
                                 filter_path=opts.filter_path, filter_path_val=opts.filter_path_val, \
-                                include_path=opts.include_path, num_samples=opts.num_samples, \
-                                use_emo=opts.use_emo, use_emo_type=opts.use_emo_type)
+                                include_path=opts.include_path, num_samples=opts.num_samples)
     print('generate id2lens {} txt2img {} img2txt {}'.format(len(id2lens), len(txt2img), len(img2txt)))
     with open(f'{opts.output}/id2len.json', 'w') as f:
         json.dump(id2lens, f)

@@ -259,12 +259,6 @@ Late Supervised 在EF的基础上加了一个句子分类层,
 /data7/MEmoBert/build_lmdb/modify_text_db.py
 BertMovies的数据都比较平衡，但是不符合常理啊，数据集中怎么可能分布那么均衡呢？
 
-## 采用文本情感模型作为初始化
-注意采用相同的模型，BertMovie 对应 emocls, corpusemo5 对应的是 emoclscorpusemo5
-nomask_movies_v1v2v3_visual_speech_text_5tasks_emoclscorpusemo5_init_uniter_init_5corpus_emo5_vstype2_lr5e5_bs1024
-
-nomask_movies_v1v2v3_visual_speech_text_5tasks_emocls_init_uniter_init_bertmovie_vstype2_lr5e5_bs1024
-
 
 ## UNIMO 单模态训练 --Going
 可以同时利用单模态，或者任意模态的组合进行训练，--use_visual --use_speech 用来初始化模型。
@@ -283,8 +277,8 @@ text_filepath = '/data7/emobert/exp/mlm_pretrain/datasets/OpenSubtitlesV2018/Ope
 /data7/emobert/exp/mlm_pretrain/datasets/OpenSubtitlesV2018/opensub1000w_p3.csv
 /data7/emobert/exp/mlm_pretrain/datasets/OpenSubtitlesV2018/opensub1000w_p4.csv
 分别构建txtdb，然后用模型提取weak-label. 
-Note： 做数据质量以及情感类别的筛选，保证类别是均衡的。neu 概率大于 80% 其他类别的概率大于 40%.
-注意保证EmoCls采用的模型是一致的, 即都采用 Bert-Movie 或者 都采用 corpus5_emo5 模型分类。
+## Note： 做数据质量以及情感类别的筛选，保证类别是均衡的。-- #Going
+## 预训练的时候的EmoCls单独做一个数据集合（只用质量高的数据做）neu 概率大于 80% 其他类别的概率大于 40%. 
 
 
 /data6/lrc/EmotionXED/combined 5分类。
@@ -296,6 +290,7 @@ on /data6/lrc/EmotionXED/combined/val_e5.tsv Or tst_e5.tsv
 on /data7/emobert/text_emo_corpus/all_3corpus/emo5_bert_data/
 验证集合: 'acc': 0.6033959975742874, 'wuar': 0.6033959975742874, 'wf1': 0.644581201529892, 'uwf1': 0.42027357887138084,
 训练集合: 'acc': 0.6565843167530605, 'wuar': 0.6565843167530605, 'wf1': 0.6608707380083497, 'uwf1': 0.619811166882872,
+
 
 采用其他三个数据集和之前EmotionXED的训练集合合并，然后进行评测，相当于训练的时候只增加了另外三个数据集的数据。
 模型: all_3corpus_emo5_bert_base_lr2e-5_bs32_debug/ckpt/epoch-1
@@ -334,6 +329,9 @@ code/uniter/data/mrm.py _get_consecutive_img_mask()
 还是直接一步到位，采用方案1吧。 视觉和语音都可以直接用。
 
 ## 将Word的Mask机制，修改为 Whole Word Mask 的方法 --Going
+生成数据，[word-tokens, word-tokens]。
+build_lmdb/create_txtdb_wwm.sh
+
 
 
 ## FrameOrderTask 也该加进来了 --Going

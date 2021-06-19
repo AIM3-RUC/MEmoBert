@@ -14,8 +14,10 @@ import torch
 #                     tf_ckpt, config_path, output_path))
 
 # step2 将 torch 中的key转化为 uniter
-bert_ckpt = '/data7/emobert/exp/text_emo_model/all_3corpus_emo5_bert_base_lr2e-5_bs32_debug/ckpt/epoch-1/model_step_1.pt'
-output_ckpt = '/data7/MEmoBert/emobert/resources/pretrained/uniter_init_5corpus_emo5.pt'
+# bert_ckpt = '/data7/emobert/exp/text_emo_model/all_3corpus_emo5_bert_base_lr2e-5_bs32_debug/ckpt/epoch-1/model_step_1.pt'
+# output_ckpt = '/data7/MEmoBert/emobert/resources/pretrained/uniter_init_5corpus_emo5.pt'
+bert_ckpt = '/data7/emobert/exp/text_emo_model/bert_movie_model/model_step_0.pt'
+output_ckpt = '/data7/emobert/resources/pretrained/uniter_init_bertmovie.pt'
 bert = torch.load(bert_ckpt)
 uniter = OrderedDict()
 for k, v in bert.items():
