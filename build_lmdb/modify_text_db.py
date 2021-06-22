@@ -372,12 +372,12 @@ if __name__ == '__main__':
     #     get_high_quality_emo(txt_db_dir, output_txt_db_dir, all_text2img_path, all_targe_path)
 
     ### for opensub data
-    version = 'p2' #  p1 p2 p3 p4
-    txt_db_dir = f'/data7/emobert/txt_db/onlytext_opensub_{version}_emo5_bert_data_5corpus_emo5_emoclsselected.db/'
-    output_txt_db_dir = f'/data7/emobert/txt_db/onlytext_opensub_{version}_emo5_bert_data_5corpus_emo5_emoclsselected2.db'
-    all_text2img_path = f'/data7/emobert/txt_db/onlytext_opensub_{version}_emo5_bert_data_5corpus_emo5_emocls.db/txt2img.json'
-    all_targe_path = f'/data7/emobert/txt_pseudo_label/onlytext_opensub_{version}_all_5corpus_emo5.h5'
-    get_high_quality_emo(version, setname='None')
+    # version = 'p2' #  p1 p2 p3 p4
+    # txt_db_dir = f'/data7/emobert/txt_db/onlytext_opensub_{version}_emo5_bert_data_5corpus_emo5_emoclsselected.db/'
+    # output_txt_db_dir = f'/data7/emobert/txt_db/onlytext_opensub_{version}_emo5_bert_data_5corpus_emo5_emoclsselected2.db'
+    # all_text2img_path = f'/data7/emobert/txt_db/onlytext_opensub_{version}_emo5_bert_data_5corpus_emo5_emocls.db/txt2img.json'
+    # all_targe_path = f'/data7/emobert/txt_pseudo_label/onlytext_opensub_{version}_all_5corpus_emo5.h5'
+    # get_high_quality_emo(version, setname='None')
 
     ### for downstream data
     # for cvNo in range(1, 11):

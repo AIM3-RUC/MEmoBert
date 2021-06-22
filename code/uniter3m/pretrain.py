@@ -80,7 +80,7 @@ def build_mlm_wwm_dataset(txt_db, img_db, speech_db, is_train, opts):
             LOGGER.info('[Debug in mlm dataset] the img and speech modality are None!')
             datasets = [MlmWWMDataset(t, None, None) for t in txt_db]
         else:
-            LOGGER.info('[Error] Error mlm datasets')
+            LOGGER.info('[Error] Error mlm_wwm datasets')
         dataset = ConcatDatasetWithLens(datasets)
     else:
         dataset = MlmWWMDataset(txt_db, img_db, speech_db)
@@ -113,7 +113,7 @@ def build_emolare_dataset(txt_db, img_db, speech_db, is_train, opts):
         elif img_db is not None and speech_db is None:
             datasets = [EmoLareDataset(opts.emolare_LStask_ratio, t, i, None) for t, i in zip(txt_db, img_db)]
         else:
-            LOGGER.info('[Error] Error mlm datasets')
+            LOGGER.info('[Error] Error emolare datasets')
         dataset = ConcatDatasetWithLens(datasets)
     else:
         dataset = EmoLareDataset(opts.emolare_LStask_ratio, txt_db, img_db, speech_db)
@@ -382,9 +382,9 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
 
             if task.startswith('mlm_wwm'):
                 # 由于 mlm_wwm 和 mlm 都是mlm开头，所以这里的顺序不能换
-                dataset = build_mlm_dataset(txt_db, img_db, speech_db, is_train, opts)
-            elif task.startswith('mlm'):
                 dataset = build_mlm_wwm_dataset(txt_db, img_db, speech_db, is_train, opts)
+            elif task.startswith('mlm'):
+                dataset = build_mlm_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('melm'):
                 dataset = build_melm_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('mrfr'):
