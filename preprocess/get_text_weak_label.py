@@ -74,21 +74,21 @@ if __name__ == '__main__':
     # print(ids)
     # input()
     # cls 101 sep 102
-    corpus_name = 'opensub'
-    version = 4
+    corpus_name = 'voxceleb'
+    version = 2
     setname = 'trn'  # only for IEMOCAP and MSP
     device = torch.device('cuda:0')
     # model_dir = '/data7/emobert/exp/text_emo_model/bert_movie_model/' # num_classes=5
     # num_classes, model_postfix = 5, 'bert_movie'
     # model_dir = '/data7/emobert/exp/text_emo_model/all_5corpus_emo4_bert_base_lr2e-5_bs32/ckpt/' # num_classes=4
     # num_classes, model_postfix=4, 'all_5corpus_emo4'
-    model_dir = '/data7/emobert/exp/text_emo_model/all_5corpus_emo5_bert_base_lr2e-5_bs32_debug/ckpt/epoch-1/' # num_classes=5
-    num_classes, model_postfix =5, 'all_5corpus_emo5'
+    model_dir = '/data7/emobert/exp/text_emo_model/all_3corpus_emo5_bert_base_lr2e-5_bs32_debug/ckpt/epoch-1/' # num_classes=5
+    num_classes, model_postfix =5, 'corpus5_emo5'
     # model_dir = '/data7/emobert/exp/text_emo_model/all_5corpus_emo7_bert_base_lr2e-5_bs32/ckpt/' # num_classes=7
     # num_classes, model_postfix =7, 'all_5corpus_emo7'
 
     model_saver = ModelSaver(model_dir)
-    if 'all_5corpus' in  model_dir:
+    if 'corpus' in  model_postfix:
         config = AutoConfig.from_pretrained(model_dir, num_labels=num_classes)
         #print('config', config)
         tokenizer = AutoTokenizer.from_pretrained(model_dir)   
@@ -130,7 +130,7 @@ if __name__ == '__main__':
         input_ids = torch.cat([cls_token, input_ids, sep_token], dim=-1).to(device)
         masks = torch.ones(input_ids.size()).to(device)
         with torch.no_grad():
-            if 'all_5corpus' in model_dir:
+            if 'corpus' in model_postfix:
                 # {0: 'neutral', 1: 'happy', 2: 'surprise', 3: 'sad', 4:'anger'}
                 outputs = model.forward(input_ids)
                 logits = outputs.logits
@@ -147,4 +147,4 @@ if __name__ == '__main__':
     save_h5f.close()
 
 # export PYTHONPATH=/data7/MEmoBert
-# CUDA_VISIBLE_DEVICES=3 python get_text_weak_label.py
+# CUDA_VISIBLE_DEVICES=0 python get_text_weak_label.py

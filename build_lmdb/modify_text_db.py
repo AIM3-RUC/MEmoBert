@@ -40,13 +40,17 @@ def read_txt_db(txt_db_dir):
     txn = env.begin(buffers=True)
     return txn
 
-def modify_emotype(version, setname, postfix='5corpus_emo5'):
-    txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all_{setname}.db'
-    output_txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_emocls_all_{setname}_{postfix}.db'
+def modify_emotype(version, setname, postfix='corpus5_emo5'):
+    # txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all_{setname}.db'
+    # output_txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_emocls_all_{setname}_{postfix}.db'
+    # text2img_path = os.path.join(txt_db_dir, 'txt2img.json')
+    # all_text2img_path = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all.db/txt2img.json'
+    txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_wwm_all_{setname}.db'
+    output_txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_wwm_emocls_all_{setname}.db'
     text2img_path = os.path.join(txt_db_dir, 'txt2img.json')
+    all_text2img_path = f'/data7/emobert/txt_db/movies_{version}_th0.5_wwm_all.db/txt2img.json'
 
-    all_text2img_path = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all.db/txt2img.json'
-    all_targe_path = f'/data7/emobert/txt_pseudo_label/movie_txt_pseudo_label_{version}_all_{postfix}.h5'
+    all_targe_path = f'/data7/emobert/txt_pseudo_label/movie_txt_pseudo_label_{version}.h5'
     print(all_targe_path)
     all_textId2target = h5py.File(all_targe_path, 'r')
     all_text2img = json.load(open(all_text2img_path))
@@ -311,12 +315,12 @@ def modify_emotype_downstream(corpus_name, cvNo, setname):
             db[textId] = example
 
 def modify_emotype_vox(setname):
-    txt_db_dir = f'/data7/emobert/txt_db/voxceleb2_v2_th1.0_emowords_sentiword_all_{setname}.db/'
-    output_txt_db_dir = f'/data7/emobert/txt_db/voxceleb2_v2_th1.0_emowords_sentiword_emocls_all_{setname}.db/'
+    txt_db_dir = f'/data7/emobert/txt_db/voxceleb2_v1_th1.0_emowords_sentiword_all_{setname}.db/'
+    output_txt_db_dir = f'/data7/emobert/txt_db/voxceleb2_v1_th1.0_emowords_sentiword_emocls_all_{setname}_corpus5_emo5.db/'
     text2img_path = os.path.join(txt_db_dir, 'txt2img.json')
 
-    all_text2img_path = f'/data7/emobert/txt_db/voxceleb2_v2_th1.0_emowords_sentiword_all.db/txt2img.json'
-    all_targe_path = '/data7/emobert/txt_pseudo_label/voxceleb2_txt_pseudo_label_v2.h5'
+    all_text2img_path = f'/data7/emobert/txt_db/voxceleb2_v1_th1.0_emowords_sentiword_all.db/txt2img.json'
+    all_targe_path = '/data7/emobert/txt_pseudo_label/voxceleb2_txt_pseudo_label_v1_corpus5_emo5.h5'
     all_textId2target = h5py.File(all_targe_path, 'r')
     all_text2img = json.load(open(all_text2img_path))
     print('total {} txts'.format(len(all_text2img)))
@@ -351,11 +355,11 @@ def modify_emotype_vox(setname):
 # export PYTHONPATH=/data7/MEmoBert
 if __name__ == '__main__':
     ### for movies data
-    # version = 'v3' #  v1 v2 v3
-    # for setname in ['val3k', 'trn3k', 'trn']:
-    #     for postfix in ['5corpus_emo5']:
-    #         print(f'current {setname} {postfix}')
-    #         modify_emotype(version, setname, postfix=postfix)
+    version = 'v3' #  v1 v2 v3
+    for setname in ['val3k', 'trn3k', 'trn']:
+        for postfix in ['5corpus_emo5']:
+            print(f'current {setname} {postfix}')
+            modify_emotype(version, setname, postfix=postfix)
 
     ### for movies data
     # version = 'v3' #  v1 v2 v3

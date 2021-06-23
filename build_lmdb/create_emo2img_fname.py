@@ -17,20 +17,22 @@ all_5corpus_emo5:
 movies_v1： emo-0: 33608 emo-1: 10627 emo-2: 4017 emo-3: 5108 emo-4: 7524
 movies_v2： emo-0: 19340 emo-1: 4546  emo-2: 1957 emo-3: 2874 emo-4: 3431
 movies_v3： emo-0: 50910 emo-1: 15617 emo-2: 6297 emo-3: 7718 emo-4: 11620
+voxceleb2_v1: emo-0: 242485 emo-1: 106211 emo-3: 23577 emo-4: 4197 emo-2: 6744
+voxceleb2_v2: emo-0: 143946 emo-1: 62560 emo-2: 3839 emo-3: 14120 emo-4: 2473
 '''
 
 # version, v1, v2, or v3
-version = 'v3'
-postfix = 'all_5corpus_emo5'
+version = 'v1'
+postfix = 'corpus5_emo5'
 # all_emo2img_fname = f'/data7/emobert/txt_pseudo_label/movie_{version}_emo2img_fname_{postfix}.pkl'
 # all_emo2img_fname_dict = {}
 # all_text2img_path = f'/data7/emobert/txt_db/movies_{version}_th0.5_emowords_sentiword_all.db/txt2img.json'
 # all_targe_path = f'/data7/emobert/txt_pseudo_label/movie_txt_pseudo_label_{version}_{postfix}.h5'
 
-all_emo2img_fname = '/data7/emobert/txt_pseudo_label/voxceleb2_{}_emo2img_fname_{postfix}.pkl'
+all_emo2img_fname = f'/data7/emobert/txt_pseudo_label/voxceleb2_{version}_emo2img_fname_{postfix}.pkl'
 all_emo2img_fname_dict = {}
-all_text2img_path = '/data7/emobert/txt_db/voxceleb2_v2_th1.0_emowords_sentiword_all.db/txt2img.json'
-all_targe_path = '/data7/emobert/txt_pseudo_label/voxceleb2_txt_pseudo_label_v2.h5'
+all_text2img_path = f'/data7/emobert/txt_db/voxceleb2_{version}_th1.0_emowords_sentiword_all.db/txt2img.json'
+all_targe_path = f'/data7/emobert/txt_pseudo_label/voxceleb2_txt_pseudo_label_{version}_{postfix}.h5'
 
 all_textId2target = h5py.File(all_targe_path, 'r')
 all_text2img = json.load(open(all_text2img_path))
