@@ -37,7 +37,7 @@
         {
             "name": "movies_v1",
             "db": [
-                "/data7/emobert/txt_db/movies_v1_th0.5_emowords_sentiword_all_trn.db/"
+                "/data7/emobert/txt_db/movies_v1_th0.5_emowords_sentiword_emocls_all_trn_5corpus_emo5.db/"
             ],
             "img": [
                 "/data7/emobert/img_db_nomask/movies_v1/fc/feat_th0.5_max36_min10"
@@ -65,7 +65,7 @@
         {
             "name": "movies_v2",
             "db": [
-                "/data7/emobert/txt_db/movies_v2_th0.5_emowords_sentiword_all_trn.db/"
+                "/data7/emobert/txt_db/movies_v2_th0.5_emowords_sentiword_emocls_all_trn_5corpus_emo5.db/"
             ],
             "img": [
                 "/data7/emobert/img_db_nomask/movies_v2/fc/feat_th0.5_max36_min10"
@@ -93,7 +93,7 @@
         {
             "name": "movies_v3",
             "db": [
-                "/data7/emobert/txt_db/movies_v3_th0.5_emowords_sentiword_all_trn.db/"
+                "/data7/emobert/txt_db/movies_v3_th0.5_emowords_sentiword_emocls_all_trn_5corpus_emo5.db/"
             ],
             "img": [
                 "/data7/emobert/img_db_nomask/movies_v3/fc/feat_th0.5_max36_min10"
@@ -121,7 +121,7 @@
         {
             "name": "voxceleb2_v1",
             "db": [
-                "/data7/emobert/txt_db/voxceleb2_v1_th1.0_emowords_sentiword_all_trn.db"
+                "/data7/emobert/txt_db/voxceleb2_v1_th1.0_emowords_sentiword_emocls_all_trn_corpus5_emo5.db"
             ],
             "img": [
                 "/data7/emobert/img_db_nomask/voxceleb2_v1/fc/feat_th1.0_max64_min10"
@@ -149,7 +149,7 @@
         {
             "name": "voxceleb2_v2",
             "db": [
-                "/data7/emobert/txt_db/voxceleb2_v2_th1.0_emowords_sentiword_all_trn.db"
+                "/data7/emobert/txt_db/voxceleb2_v2_th1.0_emowords_sentiword_emocls_all_trn_corpus5_emo5.db"
             ],
             "img": [
                 "/data7/emobert/img_db_nomask/voxceleb2_v2/fc/feat_th1.0_max64_min10"
@@ -179,7 +179,7 @@
         {
             "name": "movies_v1_val3k",
             "db": [
-                "/data7/emobert/txt_db/movies_v1_th0.5_emowords_sentiword_all_val3k.db/"            
+                "/data7/emobert/txt_db/movies_v1_th0.5_emowords_sentiword_emocls_all_val3k_5corpus_emo5.db/"            
             ],
             "img": [
                 "/data7/emobert/img_db_nomask/movies_v1/fc/feat_th0.5_max36_min10"
@@ -199,7 +199,7 @@
         {
             "name": "movies_v1_trn_val3k",
             "db": [
-                "/data7/emobert/txt_db/movies_v1_th0.5_emowords_sentiword_all_trn3k.db/"            
+                "/data7/emobert/txt_db/movies_v1_th0.5_emowords_sentiword_emocls_all_trn3k_5corpus_emo5.db/"            
             ],
             "img": [
                 "/data7/emobert/img_db_nomask/movies_v1/fc/feat_th0.5_max36_min10"
@@ -219,7 +219,7 @@
         {
             "name": "movies_v2_val3k",
             "db": [
-                "/data7/emobert/txt_db/movies_v2_th0.5_emowords_sentiword_all_val3k.db/"            
+                "/data7/emobert/txt_db/movies_v2_th0.5_emowords_sentiword_emocls_all_val3k_5corpus_emo5.db/"            
             ],
             "img": [
                 "/data7/emobert/img_db_nomask/movies_v2/fc/feat_th0.5_max36_min10"
@@ -239,7 +239,7 @@
         {
             "name": "movies_v2_trn3k",
             "db": [
-                "/data7/emobert/txt_db/movies_v2_th0.5_emowords_sentiword_all_trn3k.db/"            
+                "/data7/emobert/txt_db/movies_v2_th0.5_emowords_sentiword_emocls_all_trn3k_5corpus_emo5.db/"            
             ],
             "img": [
                 "/data7/emobert/img_db_nomask/movies_v2/fc/feat_th0.5_max36_min10"
@@ -259,7 +259,7 @@
         {
             "name": "movies_v3_val3k",
             "db": [
-                "/data7/emobert/txt_db/movies_v3_th0.5_emowords_sentiword_all_val3k.db/"            
+                "/data7/emobert/txt_db/movies_v3_th0.5_emowords_sentiword_emocls_all_val3k_5corpus_emo5.db/"            
             ],
             "img": [
                 "/data7/emobert/img_db_nomask/movies_v3/fc/feat_th0.5_max36_min10"
@@ -279,7 +279,7 @@
         {
             "name": "movies_v3_trn3k",
             "db": [
-                "/data7/emobert/txt_db/movies_v3_th0.5_emowords_sentiword_all_trn3k.db/"            
+                "/data7/emobert/txt_db/movies_v3_th0.5_emowords_sentiword_emocls_all_trn3k_5corpus_emo5.db/"            
             ],
             "img": [
                 "/data7/emobert/img_db_nomask/movies_v3/fc/feat_th0.5_max36_min10"
@@ -299,7 +299,7 @@
         {
             "name": "voxceleb2_v1_val3k",
             "db": [
-                "/data7/emobert/txt_db/voxceleb2_v1_th1.0_emowords_sentiword_all_val3k.db/"            
+                "/data7/emobert/txt_db/voxceleb2_v1_th1.0_emowords_sentiword_emocls_all_val3k_corpus5_emo5.db/"            
             ],
             "img": [
                 "/data7/emobert/img_db_nomask/voxceleb2_v1/fc/feat_th1.0_max64_min10"
@@ -319,7 +319,7 @@
         {
             "name": "voxceleb2_v1_trn3k",
             "db": [
-                "/data7/emobert/txt_db/voxceleb2_v1_th1.0_emowords_sentiword_all_trn3k.db/"            
+                "/data7/emobert/txt_db/voxceleb2_v1_th1.0_emowords_sentiword_emocls_all_trn3k_corpus5_emo5.db/"            
             ],
             "img": [
                 "/data7/emobert/img_db_nomask/voxceleb2_v1/fc/feat_th1.0_max64_min10"
@@ -339,7 +339,7 @@
         {
             "name": "voxceleb2_v2_val3k",
             "db": [
-                "/data7/emobert/txt_db/voxceleb2_v2_th1.0_emowords_sentiword_all_val3k.db/"            
+                "/data7/emobert/txt_db/voxceleb2_v2_th1.0_emowords_sentiword_emocls_all_val3k_corpus5_emo5.db/"            
             ],
             "img": [
                 "/data7/emobert/img_db_nomask/voxceleb2_v2/fc/feat_th1.0_max64_min10"
@@ -359,7 +359,7 @@
         {
             "name": "voxceleb2_v2_trn3k",
             "db": [
-                "/data7/emobert/txt_db/voxceleb2_v2_th1.0_emowords_sentiword_all_trn3k.db/"            
+                "/data7/emobert/txt_db/voxceleb2_v2_th1.0_emowords_sentiword_emocls_all_trn3k_corpus5_emo5.db/"            
             ],
             "img": [
                 "/data7/emobert/img_db_nomask/voxceleb2_v2/fc/feat_th1.0_max64_min10"
