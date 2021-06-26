@@ -25,10 +25,7 @@ def get_consecutive_mask(num_bb, mask_consecutive=3):
 
     if proportion == 0:
         # 不满足 mask-span 条件，随机遮蔽一个
-        if num_bb > 0:
-            random_mask = random.choice(range(1, num_bb))
-        else:
-            random_mask = 0
+        random_mask = random.randint(0, num_bb-1)
         tokens[random_mask] = MASK
         output_label[random_mask] = random_mask
     else:
@@ -55,10 +52,7 @@ def get_consecutive_mask(num_bb, mask_consecutive=3):
             pass
     if sum(output_label) == len(output_label) * -1:
         # at least mask 1
-        if num_bb > 1:
-            random_mask = random.choice(range(1, num_bb))
-        else:
-            random_mask = 0
+        random_mask = random.randint(0, num_bb-1)
         tokens[random_mask] = MASK
         output_label[random_mask] = random_mask        
     return tokens, output_label
