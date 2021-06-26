@@ -146,3 +146,15 @@ export PYTHONPATH=/data7/MEmoBert
 #         --train_batch_size 128 --val_batch_size 128 \
 #         --num_train_steps 20000 --warmup_steps 2000 --valid_steps 5000 \
 #         --output_dir /data7/emobert/exp/pretrain/nomask_movies-v1v2v3-vox2-v1v2-base-uniter3m_wav2vec_text_3tasks_emocls_vstype2_lr5e5_bs512
+
+## case7: text + speech + visual + voxceleb2V1V2 + wwm + span - itm
+CUDA_VISIBLE_DEVICES=4 horovodrun -np 1 python pretrain.py \
+        --cvNo 0 --n_workers 4 --use_speech --use_visual \
+        --config config/pretrain-movies-v1v2v3-vox2-v1v2-base-2gpu_speechwav2vec_5tasks_wwm_span_noitm.json \
+        --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+        --learning_rate 5e-05 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+        --max_txt_len 50 \
+        --IMG_DIM 342 --Speech_DIM 768 \
+        --train_batch_size 100 --val_batch_size 100 \
+        --num_train_steps 40000 --warmup_steps 4000 --valid_steps 5000 \
+        --output_dir /data7/emobert/exp/pretrain/nomask_movies-v1v2v3-vox2-v1v2-base-2gpu_speechwav2vec_5tasks_wwm_span_noitm_vstype2_lr5e5_bs512

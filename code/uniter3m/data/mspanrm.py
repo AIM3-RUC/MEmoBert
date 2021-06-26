@@ -22,7 +22,7 @@ def get_consecutive_mask(num_bb, mask_consecutive=3):
     output_label = [-1 for _ in range(num_bb)] # mask 之后对应的target帧的标签
     # determine whether to mask / random / or do nothing to the frame
     valid_index_range = int(num_bb - mask_consecutive - 1)
-    proportion = int(num_bb * 0.30 // mask_consecutive) # 长度为10即可Mask. 10*0.3/3=1
+    proportion = int(num_bb * 0.20 // mask_consecutive) # 长度为10即可Mask. 10*0.2/3=1
 
     if proportion == 0:
         # 不满足 mask-span 条件，随机遮蔽一个
