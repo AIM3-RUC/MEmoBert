@@ -22,6 +22,7 @@ from code.uniter.data.data import open_lmdb
 WhoWordMasking, 构建textdb的时候按word进行保存，方便就行Mask.
 '''
 
+# modified
 def bert_tokenize(tokenizer, text):
     # return [word1tokens, word2tokens, word3tokens]
     ids = []
@@ -33,6 +34,7 @@ def bert_tokenize(tokenizer, text):
         ids.append(tokenizer.convert_tokens_to_ids(ws))
     return ids
 
+# modified
 def bert_id2token(tokenizer, ids):
     # return [word1tokens, word2tokens, word3tokens]
     tokens = []
@@ -103,6 +105,7 @@ def process_jsonl(jsonf, db, toker, max_tokens=100, dataset_name="", filter_path
             txt2img[_id] = img_fname
             img2txt[img_fname].append(str(_id))
             # 长度还是保留原来的长度
+            # # modified
             id2len[_id] = sum([len(word_input_ids) for word_input_ids in input_ids])
             example['id'] = str(_id)
             example['dataset'] = dataset_name

@@ -36,7 +36,8 @@ from code.uniter3m.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   MerfrDataset, MercDataset,
                   MSpanrfrDataset, mspanrfr_collate, MSpanrcDataset, mspanrc_collate,
                   MSpansrfrDataset, mspansrfr_collate,
-                  MlmWWMDataset, mlm_wwm_collate)
+                  MlmWWMDataset, mlm_wwm_collate,
+                  VFOMDataset, vfom_collate)
 from code.uniter3m.model.pretrain import UniterForPretraining
 
 # from uniter
@@ -175,6 +176,22 @@ def build_mspanrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
         dataset = MSpanrfrDataset(opts.mask_visual_consecutive, txt_db, img_db, speech_db)
     return dataset, mspanrfr_collate
 
+def build_vfom_dataset(txt_db, img_db, speech_db, is_train, opts):
+    assert img_db != None
+    if is_train:
+        if txt_db is not None and speech_db is not None:
+            datasets = [VFOMDataset(opts.vfom_random_prob, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif txt_db is not None and speech_db is None:
+            datasets = [VFOMDataset(opts.vfom_random_prob, t, i, None) for t, i in zip(txt_db, img_db)]
+        elif txt_db is None and speech_db is None:
+            LOGGER.info('[Debug in vfom dataset] the text and speech modality are None!')
+            datasets = [VFOMDataset(opts.vfom_random_prob, None, i, None) for i in img_db]
+        else:
+            LOGGER.info('[Error] Error vfom datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = VFOMDataset(opts.vfom_random_prob, txt_db, img_db, speech_db)
+    return dataset, vfom_collate
 
 def build_msrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
     assert speech_db != None
@@ -397,6 +414,8 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
                 dataset = build_merfr_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('merc'):
                 dataset = build_merc_dataset(txt_db, img_db, speech_db, is_train, opts)
+            elif task.startswith('vfom'):
+                dataset = build_vfom_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('mspanrfr'):
                 dataset = build_mspanrfr_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('mspanrc'):
@@ -642,16 +661,18 @@ def validate(model, val_dataloaders):
             val_log = validate_mrfr(model, loader, task)
         elif task.startswith('mspanrfr') and args.use_visual:
             val_log = validate_mrfr(model, loader, task)
-        elif task.startswith('msrfr') and args.use_speech:
-            val_log = validate_msrfr(model, loader, task)
-        elif task.startswith('mspansrfr') and args.use_speech:
-            val_log = validate_msrfr(model, loader, task)
         elif task.startswith('mrc') and args.use_visual:
             val_log = validate_mrc(model, loader, task)
         elif task.startswith('merc') and args.use_visual:
             val_log = validate_mrc(model, loader, task)
         elif task.startswith('mspanrc') and args.use_visual:
             val_log = validate_mrc(model, loader, task)
+        elif task.startswith('vfom') and args.use_visual:
+            val_log = validate_vfom(model, loader, task)
+        elif task.startswith('msrfr') and args.use_speech:
+            val_log = validate_msrfr(model, loader, task)
+        elif task.startswith('mspansrfr') and args.use_speech:
+            val_log = validate_msrfr(model, loader, task)
         elif task.startswith('emocls'):
             val_log = validate_emocls(model, loader, emocls_type=args.emocls_type)
         elif task.startswith('itm'):
@@ -892,6 +913,27 @@ def validate_mrfr(model, val_loader, task):
     return val_log
 
 @torch.no_grad()
+def validate_vfom(model, val_loader, task):
+    # task: visual frame order modeling --Going
+    LOGGER.info(f"start running {task} validation...")
+    val_loss = 0
+    n_feat = 0
+    st = time()
+    for i, batch in enumerate(val_loader):
+        loss = model(batch, task='vfom', compute_loss=True)
+        val_loss += loss.sum().item() / IMG_DIM
+        n_feat += batch['img_mask_tgt'].sum().item()
+    val_loss = sum(all_gather_list(val_loss))
+    n_feat = sum(all_gather_list(n_feat))
+    tot_time = time()-st
+    val_loss /= n_feat
+    val_log = {'loss': val_loss,
+               'feat_per_s': n_feat/tot_time}
+    LOGGER.info(f"validation finished in {int(tot_time)} seconds, "
+                f"loss: {val_loss:.2f}")
+    return val_log
+
+@torch.no_grad()
 def validate_msrfr(model, val_loader, task='msrfr'):
     LOGGER.info(f"start running {task} validation...")
     val_loss = 0
@@ -1081,6 +1123,10 @@ if __name__ == "__main__":
                         help='weight of OT (optimal transport) loss (WRA)')
     parser.add_argument('--msrm_prob', default=0.15, type=float,
                         help='probability to mask in MSRM training(for speech)')
+    parser.add_argument('--vfom_random_prob', default=0.15, type=float,
+                        help='probability to mask in vfom_random_prob visual training')
+    parser.add_argument('--sfom_random_prob', default=0.15, type=float,
+                        help='probability to mask in vfom_random_prob speech training')
 
     # Prepro parameters
     parser.add_argument('--max_txt_len', type=int, default=60,
