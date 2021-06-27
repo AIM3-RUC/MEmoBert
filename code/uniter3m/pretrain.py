@@ -37,7 +37,8 @@ from code.uniter3m.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   MSpanrfrDataset, mspanrfr_collate, MSpanrcDataset, mspanrc_collate,
                   MSpansrfrDataset, mspansrfr_collate,
                   MlmWWMDataset, mlm_wwm_collate,
-                  VFOMDataset, vfom_collate)
+                  VFOMDataset, vfom_collate,
+                  SFOMDataset, sfom_collate)
 from code.uniter3m.model.pretrain import UniterForPretraining
 
 # from uniter
@@ -192,6 +193,23 @@ def build_vfom_dataset(txt_db, img_db, speech_db, is_train, opts):
     else:
         dataset = VFOMDataset(opts.vfom_random_prob, txt_db, img_db, speech_db)
     return dataset, vfom_collate
+
+def build_sfom_dataset(txt_db, img_db, speech_db, is_train, opts):
+    assert speech_db != None
+    if is_train:
+        if txt_db is not None and img_db is not None:
+            datasets = [SFOMDataset(opts.sfom_random_prob, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif txt_db is not None and img_db is None:
+            datasets = [SFOMDataset(opts.sfom_random_prob, t, None, s) for t, s in zip(txt_db, speech_db)]
+        elif txt_db is None and img_db is None:
+            LOGGER.info('[Debug in sfom dataset] the text and img modality are None!')
+            datasets = [SFOMDataset(opts.sfom_random_prob, None, None, s) for s in speech_db]
+        else:
+            LOGGER.info('[Error] Error sfom datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = SFOMDataset(opts.sfom_random_prob, txt_db, img_db, speech_db)
+    return dataset, sfom_collate
 
 def build_msrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
     assert speech_db != None
@@ -416,6 +434,8 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
                 dataset = build_merc_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('vfom'):
                 dataset = build_vfom_dataset(txt_db, img_db, speech_db, is_train, opts)
+            elif task.startswith('sfom'):
+                dataset = build_sfom_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('mspanrfr'):
                 dataset = build_mspanrfr_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('mspanrc'):
@@ -669,6 +689,8 @@ def validate(model, val_dataloaders):
             val_log = validate_mrc(model, loader, task)
         elif task.startswith('vfom') and args.use_visual:
             val_log = validate_vfom(model, loader, task)
+        elif task.startswith('sfom') and args.use_speech:
+            val_log = validate_sfom(model, loader, task)
         elif task.startswith('msrfr') and args.use_speech:
             val_log = validate_msrfr(model, loader, task)
         elif task.startswith('mspansrfr') and args.use_speech:
@@ -914,23 +936,60 @@ def validate_mrfr(model, val_loader, task):
 
 @torch.no_grad()
 def validate_vfom(model, val_loader, task):
-    # task: visual frame order modeling --Going
+    # task: visual frame order modeling
     LOGGER.info(f"start running {task} validation...")
     val_loss = 0
-    n_feat = 0
+    n_correct = 0
+    n_frame = 0
     st = time()
     for i, batch in enumerate(val_loader):
-        loss = model(batch, task='vfom', compute_loss=True)
-        val_loss += loss.sum().item() / IMG_DIM
-        n_feat += batch['img_mask_tgt'].sum().item()
+        scores = model(batch, task='vfom', compute_loss=False)
+        labels = batch['targets']
+        labels = labels[labels != -1]
+        loss = F.cross_entropy(scores, labels, reduction='sum')
+        val_loss += loss.item()
+        n_correct += (scores.max(dim=-1)[1] == labels).sum().item()
+        n_frame += labels.numel()
     val_loss = sum(all_gather_list(val_loss))
-    n_feat = sum(all_gather_list(n_feat))
+    n_correct = sum(all_gather_list(n_correct))
+    n_frame = sum(all_gather_list(n_frame))
     tot_time = time()-st
-    val_loss /= n_feat
+    val_loss /= n_frame
+    acc = n_correct / n_frame
     val_log = {'loss': val_loss,
-               'feat_per_s': n_feat/tot_time}
+               'acc': acc,
+               'tok_per_s': n_frame/tot_time}
     LOGGER.info(f"validation finished in {int(tot_time)} seconds, "
-                f"loss: {val_loss:.2f}")
+                f"acc: {acc*100:.2f}")
+    return val_log
+
+@torch.no_grad()
+def validate_sfom(model, val_loader, task):
+    # task: speech frame order modeling
+    LOGGER.info(f"start running {task} validation...")
+    val_loss = 0
+    n_correct = 0
+    n_frame = 0
+    st = time()
+    for i, batch in enumerate(val_loader):
+        scores = model(batch, task='sfom', compute_loss=False)
+        labels = batch['targets']
+        labels = labels[labels != -1]
+        loss = F.cross_entropy(scores, labels, reduction='sum')
+        val_loss += loss.item()
+        n_correct += (scores.max(dim=-1)[1] == labels).sum().item()
+        n_frame += labels.numel()
+    val_loss = sum(all_gather_list(val_loss))
+    n_correct = sum(all_gather_list(n_correct))
+    n_frame = sum(all_gather_list(n_frame))
+    tot_time = time()-st
+    val_loss /= n_frame
+    acc = n_correct / n_frame
+    val_log = {'loss': val_loss,
+               'acc': acc,
+               'tok_per_s': n_frame/tot_time}
+    LOGGER.info(f"validation finished in {int(tot_time)} seconds, "
+                f"acc: {acc*100:.2f}")
     return val_log
 
 @torch.no_grad()

@@ -16,7 +16,7 @@ from code.uniter3m.model.model import UniterModel, UniterPreTrainedModel
 from code.uniter3m.model.lare_layers import BertPostagHead, BertSentiHead, BertPolarityHead
 ## from uniter 
 from code.uniter.model.pretrain import RegionFeatureRegression, RegionClassification
-from code.uniter.model.layer import GELU, BertOnlyMLMHead, BertPredictionHeadTransform
+from code.uniter.model.layer import GELU, BertOnlyMLMHead
 
 class EmoClassification(nn.Module):
     " for the emotion classification, with kl-loss"
@@ -91,6 +91,12 @@ class UniterForPretraining(UniterPreTrainedModel):
             self.senti_word_predictions = BertSentiHead(config, self.uniter.embeddings.word_senti_embedding.weight)
             self.senti_utt_predictions = BertPolarityHead(config, self.uniter.embeddings.utt_senti_embedding.weight)
 
+        # for fom classifier
+        print("Use the vfom_output and sfom_output module")
+        self.vfom_output = EmoClassification(config.hidden_size, 
+                                                config.img_max_position_embeddings, cls_type='vqa')
+        self.sfom_output = EmoClassification(config.hidden_size, 
+                                                config.speech_max_position_embeddings, cls_type='vqa')
         # for emotion classification
         self.emo_classifier = EmoClassification(
                 config.hidden_size, config.weak_emo_category_size, cls_type='vqa')
@@ -147,6 +153,10 @@ class UniterForPretraining(UniterPreTrainedModel):
             mrc_label_target = batch['label_targets']
             return self.forward_mrc(batch, img_masks, img_mask_tgt,
                                     mrc_label_target, task, compute_loss=compute_loss)
+        elif task.startswith('vfom'):
+            return self.forward_vfom(batch, compute_loss=compute_loss)
+        elif task.startswith('sfom'):
+            return self.forward_sfom(batch, compute_loss=compute_loss)
         elif task == 'emocls':
             targets = batch['targets']
             return self.forward_emocls(batch, targets, compute_loss=compute_loss)
@@ -176,8 +186,7 @@ class UniterForPretraining(UniterPreTrainedModel):
                                              reduction='none')
             # print('[Debug] in MLM and lmloss {}'.format(masked_lm_loss.shape)) # all validate token loss torch.Size([35])
             return masked_lm_loss
-        else:
-            return prediction_scores
+        return prediction_scores
     
     def forward_melm(self, batch, txt_labels, txt_emo_labels=None, compute_loss=True):
         '''
@@ -403,3 +412,29 @@ class UniterForPretraining(UniterPreTrainedModel):
             return mrc_loss
         else:
             return prediction_soft_label
+    
+    def forward_vfom(self, batch, compute_loss=True):
+        shuffled_orders = batch['shuffled_orders']
+        targets = batch['targets']
+        sequence_output = self.uniter(batch, output_all_encoded_layers=False,
+                                      v_shuffled_orders=shuffled_orders)
+        masked_output = self._compute_masked_hidden(sequence_output, targets != -1)
+        # only compute masked regions for better efficiency
+        frame_reorder_outputs = self.vfom_output(masked_output)
+        if compute_loss:
+            loss = F.cross_entropy(frame_reorder_outputs, targets[targets != -1], reduction='none')
+            return loss
+        return frame_reorder_outputs
+    
+    def forward_sfom(self, batch, compute_loss=True):
+        shuffled_orders = batch['shuffled_orders']
+        targets = batch['targets']
+        sequence_output = self.uniter(batch, output_all_encoded_layers=False,
+                                      s_shuffled_orders=shuffled_orders)
+        masked_output = self._compute_masked_hidden(sequence_output, targets != -1)
+        # only compute masked regions for better efficiency
+        frame_reorder_outputs = self.sfom_output(masked_output)
+        if compute_loss:
+            loss = F.cross_entropy(frame_reorder_outputs, targets[targets != -1], reduction='none')
+            return loss
+        return frame_reorder_outputs

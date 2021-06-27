@@ -16,6 +16,7 @@ import torch
 from torch import nn
 from apex.normalization.fused_layer_norm import FusedLayerNorm
 from code.uniter.model.layer import BertLayer, BertPooler
+from code.uniter.model.layer import GELU
 
 logger = logging.getLogger(__name__)
 
@@ -351,7 +352,8 @@ class UniterImageEmbeddings(nn.Module):
         self.LayerNorm = FusedLayerNorm(config.hidden_size, eps=1e-12)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
-    def forward(self, img_feat, img_position_ids, img_type_embeddings, img_masks=None):
+    def forward(self, img_feat, img_position_ids, img_type_embeddings, img_masks=None, shuffled_orders=None):
+        # shuffled_orders for frame order modeling task
         if img_masks is not None:
             self.mask_embedding.weight.data[0, :].fill_(0)
             mask = self.mask_embedding(img_masks.long())
@@ -371,6 +373,16 @@ class UniterImageEmbeddings(nn.Module):
         embeddings = transformed_im + position_embeddings + img_type_embeddings
         embeddings = self.LayerNorm(embeddings)
         embeddings = self.dropout(embeddings)
+
+        if shuffled_orders is not None:
+            logger.info(['[Debug in UniterImageEmbeddings] using shuffled_orders'])
+            shuffled_orders_expanded = shuffled_orders.unsqueeze(-1).expand_as(
+                embeddings)
+            v_feats_shuffled = torch.zeros_like(embeddings, dtype=embeddings.dtype,
+                                                                device=embeddings.device)
+            embeddings = v_feats_shuffled.scatter_(
+                1, shuffled_orders_expanded, embeddings)
+
         return embeddings
 
 class UniterSpeechEmbeddings(nn.Module):
@@ -415,7 +427,8 @@ class UniterSpeechEmbeddings(nn.Module):
         self.LayerNorm = FusedLayerNorm(config.hidden_size, eps=1e-12)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
-    def forward(self, speech_feat, speech_position_ids, speech_type_embeddings, speech_masks=None):
+    def forward(self, speech_feat, speech_position_ids, speech_type_embeddings, speech_masks=None, shuffled_orders=None):
+        # shuffled_orders for frame order modeling task
         if speech_masks is not None:
             self.mask_embedding.weight.data[0, :].fill_(0)
             mask = self.mask_embedding(speech_masks.long())
@@ -439,6 +452,15 @@ class UniterSpeechEmbeddings(nn.Module):
         embeddings = transformed_speech + position_embeddings + speech_type_embeddings
         embeddings = self.LayerNorm(embeddings)
         embeddings = self.dropout(embeddings)
+
+        if shuffled_orders is not None:
+            logger.info(['[Debug in UniterSpeechEmbeddings] using shuffled_orders'])
+            shuffled_orders_expanded = shuffled_orders.unsqueeze(-1).expand_as(
+                embeddings)
+            v_feats_shuffled = torch.zeros_like(embeddings, dtype=embeddings.dtype,
+                                                                device=embeddings.device)
+            embeddings = v_feats_shuffled.scatter_(
+                1, shuffled_orders_expanded, embeddings)
 
         return embeddings
 
@@ -494,24 +516,24 @@ class UniterModel(UniterPreTrainedModel):
                                 txt_type_ids=None, token_pos_tag_ids=None, 
                                 token_senti_ids=None, token_utt_senti_ids=None):
         output = self.embeddings(input_ids, position_ids, txt_type_ids, 
-                                                    token_pos_tag_ids=None, 
-                                                    token_senti_ids=None, 
-                                                    token_utt_senti_ids=None)
+                                                    token_pos_tag_ids, 
+                                                    token_senti_ids, 
+                                                    token_utt_senti_ids)
         return output
 
     def _compute_img_embeddings(self, img_feat, img_position_ids, img_masks=None,
-                                img_type_ids=None):
+                                img_type_ids=None, shuffled_orders=None):
         if img_type_ids is None:
             img_type_ids = torch.ones_like(img_feat[:, :, 0].long())
         # share the embedding defined in txtEmbedding
         img_type_embeddings = self.embeddings.token_type_embeddings(
             img_type_ids)
         output = self.img_embeddings(img_feat, img_position_ids,
-                                     img_type_embeddings, img_masks)
+                                     img_type_embeddings, img_masks, shuffled_orders=shuffled_orders)
         return output
     
     def _compute_speech_embeddings(self, speech_feat, speech_position_ids, speech_masks=None,
-                                            speech_type_ids=None):
+                                            speech_type_ids=None, shuffled_orders=None):
         if not self.use_visual or self.config.speech_visual_use_same_type:
             # logger.info('[Debug] use visual bert-type-token embedding for speech')
             speech_type_ids = torch.ones_like(speech_feat[:, :, 0].long())
@@ -521,18 +543,20 @@ class UniterModel(UniterPreTrainedModel):
         else:
             speech_type_embeddings = None
         output = self.speech_embeddings(speech_feat, speech_position_ids, \
-                                        speech_type_embeddings, speech_masks)
+                                        speech_type_embeddings, speech_masks, shuffled_orders=shuffled_orders)
         return output
 
     def _compute_img_speech_embeddings(self, img_feat, img_position_ids,
                                     speech_feat, speech_position_ids,
                                     gather_index,
                                     img_masks=None, speech_masks=None,  
-                                    img_type_ids=None, speech_type_ids=None):
+                                    img_type_ids=None, speech_type_ids=None, 
+                                    v_shuffled_orders=None, s_shuffled_orders=None):
+        # v_shuffled_orders for visual modality; s_shuffled_orders for speech modality
         img_emb = self._compute_img_embeddings(
-            img_feat, img_position_ids, img_masks, img_type_ids)
+            img_feat, img_position_ids, img_masks, img_type_ids, shuffled_orders=v_shuffled_orders)
         speech_emb = self._compute_speech_embeddings(
-            speech_feat, speech_position_ids, speech_masks, speech_type_ids)
+            speech_feat, speech_position_ids, speech_masks, speech_type_ids, shuffled_orders=s_shuffled_orders)
         # align back to most compact input
         gather_index = gather_index.unsqueeze(-1).expand(
             -1, -1, self.config.hidden_size)
@@ -546,12 +570,13 @@ class UniterModel(UniterPreTrainedModel):
                                     txt_type_ids=None, img_type_ids=None,
                                     token_pos_tag_ids=None, 
                                     token_senti_ids=None, 
-                                    token_utt_senti_ids=None):
+                                    token_utt_senti_ids=None, 
+                                    v_shuffled_orders=None):
         txt_emb = self._compute_txt_embeddings(
                     input_ids, position_ids, txt_type_ids, 
                         token_pos_tag_ids, token_senti_ids, token_utt_senti_ids)
         img_emb = self._compute_img_embeddings(
-            img_feat, img_position_ids, img_masks, img_type_ids)
+            img_feat, img_position_ids, img_masks, img_type_ids, shuffled_orders=v_shuffled_orders)
         # align back to most compact input
         gather_index = gather_index.unsqueeze(-1).expand(
             -1, -1, self.config.hidden_size)
@@ -565,12 +590,13 @@ class UniterModel(UniterPreTrainedModel):
                                     txt_type_ids=None, speech_type_ids=None,
                                     token_pos_tag_ids=None, 
                                     token_senti_ids=None, 
-                                    token_utt_senti_ids=None):
+                                    token_utt_senti_ids=None,
+                                    s_shuffled_orders=None):
         txt_emb = self._compute_txt_embeddings(
                             input_ids, position_ids, txt_type_ids,
                             token_pos_tag_ids, token_senti_ids, token_utt_senti_ids)
         speech_emb = self._compute_speech_embeddings(
-            speech_feat, speech_position_ids, speech_masks, speech_type_ids)
+            speech_feat, speech_position_ids, speech_masks, speech_type_ids, shuffled_orders=s_shuffled_orders)
         # align back to most compact input
         gather_index = gather_index.unsqueeze(-1).expand(
             -1, -1, self.config.hidden_size)
@@ -589,14 +615,15 @@ class UniterModel(UniterPreTrainedModel):
                                     speech_type_ids=None,
                                     token_pos_tag_ids=None, 
                                     token_senti_ids=None, 
-                                    token_utt_senti_ids=None):
+                                    token_utt_senti_ids=None,
+                                    v_shuffled_orders=None, s_shuffled_orders=None):
         txt_emb = self._compute_txt_embeddings(
             input_ids, position_ids, txt_type_ids,
             token_pos_tag_ids, token_senti_ids, token_utt_senti_ids)
         img_emb = self._compute_img_embeddings(
-            img_feat, img_position_ids, img_masks, img_type_ids)
+            img_feat, img_position_ids, img_masks, img_type_ids, shuffled_orders=v_shuffled_orders)
         speech_emb = self._compute_speech_embeddings(
-            speech_feat, speech_position_ids, speech_masks, speech_type_ids)
+            speech_feat, speech_position_ids, speech_masks, speech_type_ids, shuffled_orders=s_shuffled_orders)
         # align back to most compact input
         gather_index = gather_index.unsqueeze(-1).expand(
             -1, -1, self.config.hidden_size)
@@ -606,7 +633,8 @@ class UniterModel(UniterPreTrainedModel):
 
     def forward(self, batch, use_emolare_input=False, img_masks=None, speech_masks=None,
                 frozen_en_layers=0, output_all_encoded_layers=False,
-                txt_type_ids=None, img_type_ids=None, speech_type_ids=None):
+                txt_type_ids=None, img_type_ids=None, speech_type_ids=None, 
+                v_shuffled_orders=None, s_shuffled_orders=None):
         '''use_emolare_input; if True, the use the input type as SentiLARE
         if False: the use the input type as previous.
         '''
@@ -645,7 +673,8 @@ class UniterModel(UniterPreTrainedModel):
                             img_feat, img_position_ids,
                             gather_index, img_masks, txt_type_ids, 
                             img_type_ids, token_pos_tag_ids, 
-                            token_senti_ids, token_utt_senti_ids)
+                            token_senti_ids, token_utt_senti_ids, 
+                            v_shuffled_orders=v_shuffled_orders)
                     elif speech_feat is not None and img_feat is None:
                         # logger.info('\t[Debug] the speech feat Avaiable')
                         embedding_output = self._compute_speech_txt_embeddings(
@@ -653,7 +682,8 @@ class UniterModel(UniterPreTrainedModel):
                             speech_feat, speech_position_ids,
                             gather_index, speech_masks, txt_type_ids,
                             speech_type_ids, token_pos_tag_ids, 
-                            token_senti_ids, token_utt_senti_ids)
+                            token_senti_ids, token_utt_senti_ids, 
+                            s_shuffled_orders=s_shuffled_orders)
                     elif speech_feat is not None and img_feat is not None:
                         # logger.info('\t[Debug] the speech feat Avaiable and img feat Avaiable')
                         embedding_output = self._compute_speech_img_txt_embeddings(
@@ -664,7 +694,9 @@ class UniterModel(UniterPreTrainedModel):
                                 img_masks, speech_masks, 
                                 txt_type_ids, img_type_ids,
                                 speech_type_ids, token_pos_tag_ids, 
-                                token_senti_ids, token_utt_senti_ids)
+                                token_senti_ids, token_utt_senti_ids, 
+                                v_shuffled_orders=v_shuffled_orders, 
+                                s_shuffled_orders=s_shuffled_orders)
                     elif speech_feat is None and img_feat is None:
                         # 如果只包含一个模态，那么不需要gather
                         # logger.info('\t[Debug] Only the text feat Avaiable')
@@ -681,13 +713,15 @@ class UniterModel(UniterPreTrainedModel):
                         embedding_output = self._compute_img_embeddings(
                                     img_feat, img_position_ids,
                                     img_masks, img_type_ids, token_pos_tag_ids, 
-                                    token_senti_ids, token_utt_senti_ids)
+                                    token_senti_ids, token_utt_senti_ids, 
+                                    shuffled_orders=v_shuffled_orders)
                     elif speech_feat is not None and img_feat is None:
                         # logger.info('\t[Debug] Only the speech feat Avaiable')
                         embedding_output = self._compute_speech_embeddings(
                             speech_feat, speech_position_ids,
                             speech_masks, speech_type_ids, token_pos_tag_ids, 
-                            token_senti_ids, token_utt_senti_ids)
+                            token_senti_ids, token_utt_senti_ids, 
+                            shuffled_orders=s_shuffled_orders)
                     # add on case on not none and not None
                     else:
                         # logger.info('\t[Debug] both the visual and speech feat Avaiable')
@@ -698,7 +732,9 @@ class UniterModel(UniterPreTrainedModel):
                                 img_masks, speech_masks, 
                                 img_type_ids, speech_type_ids,
                                 token_pos_tag_ids, 
-                                token_senti_ids, token_utt_senti_ids)
+                                token_senti_ids, token_utt_senti_ids, 
+                                v_shuffled_orders = v_shuffled_orders, 
+                                s_shuffled_orders = s_shuffled_orders)
         else:
             if input_ids is not None:
                 # logger.info('[Debug] the txt modality is Not None')
@@ -710,7 +746,8 @@ class UniterModel(UniterPreTrainedModel):
                         gather_index, img_masks, txt_type_ids, 
                         img_type_ids,
                         token_pos_tag_ids, 
-                        token_senti_ids, token_utt_senti_ids)
+                        token_senti_ids, token_utt_senti_ids, 
+                        v_shuffled_orders = v_shuffled_orders)
                 elif speech_feat is not None and img_feat is None:
                     # logger.info('[Debug] Only the speech feat Avaiable')
                     embedding_output = self._compute_speech_txt_embeddings(
@@ -718,7 +755,8 @@ class UniterModel(UniterPreTrainedModel):
                         speech_feat, speech_position_ids,
                         gather_index, speech_masks, txt_type_ids,
                         speech_type_ids, token_pos_tag_ids, 
-                        token_senti_ids, token_utt_senti_ids)
+                        token_senti_ids, token_utt_senti_ids, 
+                        s_shuffled_orders = s_shuffled_orders)
                 elif speech_feat is not None and img_feat is not None:
                     # logger.info('[Debug] the speech feat Avaiable and img feat Avaiable')
                     embedding_output = self._compute_speech_img_txt_embeddings(
@@ -729,7 +767,9 @@ class UniterModel(UniterPreTrainedModel):
                             img_masks, speech_masks, 
                             txt_type_ids, img_type_ids,
                             speech_type_ids, token_pos_tag_ids, 
-                            token_senti_ids, token_utt_senti_ids)
+                            token_senti_ids, token_utt_senti_ids, 
+                            v_shuffled_orders = v_shuffled_orders, 
+                            s_shuffled_orders = s_shuffled_orders)
                 elif speech_feat is None and img_feat is None:
                     # logger.info('\t[Debug] Only the text feat Avaiable')
                     embedding_output = self._compute_txt_embeddings(
@@ -746,14 +786,16 @@ class UniterModel(UniterPreTrainedModel):
                                 img_feat, img_position_ids,
                                 img_masks, img_type_ids,
                                 token_pos_tag_ids, 
-                                token_senti_ids, token_utt_senti_ids)
+                                token_senti_ids, token_utt_senti_ids, 
+                                shuffled_orders = v_shuffled_orders)
                 elif speech_feat is not None and img_feat is None:
                     # logger.info('\t[Debug] Only the speech feat Avaiable')
                     embedding_output = self._compute_speech_embeddings(
                         speech_feat, speech_position_ids,
                         speech_masks, speech_type_ids,
                         token_pos_tag_ids, 
-                        token_senti_ids, token_utt_senti_ids)
+                        token_senti_ids, token_utt_senti_ids,
+                        shuffled_orders = s_shuffled_orders)
                 else:
                     # logger.info('\t[Debug] both the visual and speech feat Avaiable')
                     embedding_output = self._compute_img_speech_embeddings(
@@ -763,7 +805,9 @@ class UniterModel(UniterPreTrainedModel):
                             img_masks, speech_masks, 
                             img_type_ids, speech_type_ids,
                             token_pos_tag_ids, 
-                            token_senti_ids, token_utt_senti_ids)
+                            token_senti_ids, token_utt_senti_ids, 
+                            v_shuffled_orders = v_shuffled_orders, 
+                            s_shuffled_orders = s_shuffled_orders)       
         # for model output
         encoded_layers = self.encoder(
             embedding_output, extended_attention_mask,
@@ -774,5 +818,5 @@ class UniterModel(UniterPreTrainedModel):
         return encoded_layers
 
 if __name__ == "__main__":
-    sinusoid_table = position_encoding(10, 768, batch_size=None, padding_idx=None)
+    sinusoid_table = sinusoid_position_encoding(10, 768, batch_size=None, padding_idx=None)
     print(sinusoid_table.shape) # (10, 768)

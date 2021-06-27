@@ -226,10 +226,6 @@ https://github.com/linjieli222/HERO/blob/faaf15d6ccc3aa4accd24643d77d75699e9d7fa
 https://github.com/linjieli222/HERO/blob/f938515424b5f3249fc1d2e7f0373f64112a6529/model/encoder.py#L287
 关于视觉和语音模态是否要加 CLS Token, 可以自定义token进行分类。
 https://github.com/lucidrains/vit-pytorch/blob/main/vit_pytorch/vit.py#L88
-
-FOM 任务是如何做的？？--Going
-
-
 '''
 
 ## Uniter3m 的联合训练
@@ -328,13 +324,25 @@ code/uniter/data/mrm.py _get_consecutive_img_mask()
 
 还是直接一步到位，采用方案1吧。 视觉和语音都可以直接用。
 
-## 将Word的Mask机制，修改为 Whole Word Mask 的方法 --Going
+## 将Word的Mask机制，修改为 Whole Word Mask 的方法 --Done
 生成数据，[word-tokens, word-tokens]。
 build_lmdb/create_txtdb_wwm.sh
+mlm_wwm pretrain-task
 
 
+## FrameOrderTask 也该加进来了 --Done
+vfom & sfom,  pretrain-task
+参考HERO的做法:
+Cross-encoder model, may including 2~4 transformer layers.
+用于接收三个模态的 encoder 的输出，然后做 Concat + attention-mask(音频需要有降采样，Attention Mask全1)进行拼接.
+整理的实现参考HERO的实现，HERO的实现也是基于Uniter的框架，所以参考比较方便一些。
+f_config 对应 cross-transformer, 6层，但是采用 robota base 中的6层作为初始化, 1 3 5 7 9 11 层的参数进行初始化。type_vocab_size=1.
+首先是视觉的信息经过跨模态的特征编码层，进行编码。
+    self.f_encoder = CrossModalTrm(config.f_config, vfeat_dim, max_frm_seq_len)
+    CrossModalTrm中包含 compute_img_embedding 并且经过了一个 CrossModalTrm 的编码
+然后经过进行shuffle, 然后送入 c_encoder, 然后预测真实的序列的Index.
 
-## FrameOrderTask 也该加进来了 --Going
+在Uniter结构要做的话，需要拆分。
 
 
 ## 为啥加入EmoCls任务显存占用反而会小很多呢？ 会不会是加入EmoCls任务效果一直不好的原因？？？

@@ -20,3 +20,4 @@ from .mspanrm import MSpanrfrDataset, mspanrfr_collate, MSpanrcDataset, mspanrc_
 from .mspansrm import MSpansrfrDataset, mspansrfr_collate
 from .mlm_wwm import MlmWWMDataset, mlm_wwm_collate
 from .vfom import VFOMDataset, vfom_collate
+from .sfom import SFOMDataset, sfom_collate

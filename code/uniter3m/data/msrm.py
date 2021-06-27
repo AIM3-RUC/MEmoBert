@@ -54,14 +54,14 @@ class MsrfrDataset(DetectFeatTxtTokDataset):
         speech_feat, num_frame = self._get_speech_feat(example['img_fname'])
         speech_attn_masks = torch.ones(num_frame, dtype=torch.long)
 
-        if not self.img_db:
-            img_feat, num_bb = None, 0
-            attn_masks = torch.cat((attn_masks, speech_attn_masks))
-        else:
+        if self.img_db:
             img_feat, num_bb = self._get_img_feat(example['img_fname'], self.img_shape)
             self.img_shape = img_feat.shape[1:]
             img_attn_masks = torch.ones(num_bb, dtype=torch.long)
             attn_masks = torch.cat((attn_masks, img_attn_masks, speech_attn_masks))
+        else:
+            img_feat, num_bb = None, 0
+            attn_masks = torch.cat((attn_masks, speech_attn_masks))            
            
         speech_mask = _get_img_mask(self.mask_prob, num_frame)
         speech_mask_tgt = _get_speech_tgt_mask(speech_mask, len(input_ids), num_bb)
