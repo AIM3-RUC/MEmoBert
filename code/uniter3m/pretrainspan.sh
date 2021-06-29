@@ -24,6 +24,17 @@ export PYTHONPATH=/data7/MEmoBert
 #         --num_train_steps 20000 --warmup_steps 2000 --valid_steps 5000 \
 #         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_span_noitm_lr5e5_bs512
 
+## case1.2: visual + text running on span visual -ITM + emocls
+# CUDA_VISIBLE_DEVICES=4,5 horovodrun -np 2 python pretrain.py \
+#         --cvNo 0 --n_workers 4  --use_visual  \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_visual_text_4tasks_emocls_span_noitm.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --learning_rate 5e-05 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 768 \
+#         --train_batch_size 256 --val_batch_size 256 \
+#         --num_train_steps 20000 --warmup_steps 2000 --valid_steps 5000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_emocls_span_noitm_lr5e5_bs1024
+
 ## case2.1: speech + text running on span speech 
 # CUDA_VISIBLE_DEVICES=2,3 horovodrun -np 2 python pretrain.py \
 #         --cvNo 0 --n_workers 4  --use_speech  \
@@ -67,3 +78,25 @@ export PYTHONPATH=/data7/MEmoBert
 #         --train_batch_size 160 --val_batch_size 160 \
 #         --num_train_steps 40000 --warmup_steps 3000 --valid_steps 5000 \
 #         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_speech_text_5tasks_span_noitm_lr5e5_bs512_train4w
+
+## case4: visual + text running on span + trans1 - itm
+# CUDA_VISIBLE_DEVICES=0,1 horovodrun -np 2 python pretrain.py \
+#         --cvNo 0 --n_workers 4  --use_visual  \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_visual_text_4tasks_trans1_span_noitm.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --learning_rate 5e-05 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 216 --Speech_DIM 768 \
+#         --train_batch_size 200 --val_batch_size 200 \
+#         --num_train_steps 15000 --warmup_steps 1500 --valid_steps 5000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_trans1_span_noitm_lr5e5_bs800
+
+## case4: visual + text running on wwm + span - itm
+# CUDA_VISIBLE_DEVICES=2,3 horovodrun -np 2 python pretrain.py \
+#         --cvNo 0 --n_workers 4  --use_visual  \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_visual_text_4tasks_wwm_span_noitm.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --learning_rate 5e-05 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 768 \
+#         --train_batch_size 200 --val_batch_size 200 \
+#         --num_train_steps 15000 --warmup_steps 1500 --valid_steps 5000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_wwm_span_noitm_lr5e5_bs800

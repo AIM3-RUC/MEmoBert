@@ -256,7 +256,7 @@ Late Supervised 在EF的基础上加了一个句子分类层,
 BertMovies的数据都比较平衡，但是不符合常理啊，数据集中怎么可能分布那么均衡呢？
 
 
-## UNIMO 单模态训练 --Going
+## UNIMO 单模态训练 --Done
 可以同时利用单模态，或者任意模态的组合进行训练，--use_visual --use_speech 用来初始化模型。
 而构建db的时候不能根据 --use_visual 来进行判断，而是config中每个db模态信息是否存在.
 
@@ -329,7 +329,6 @@ code/uniter/data/mrm.py _get_consecutive_img_mask()
 build_lmdb/create_txtdb_wwm.sh
 mlm_wwm pretrain-task
 
-
 ## FrameOrderTask 也该加进来了 --Done
 vfom & sfom,  pretrain-task
 参考HERO的做法:
@@ -342,8 +341,23 @@ f_config 对应 cross-transformer, 6层，但是采用 robota base 中的6层作
     CrossModalTrm中包含 compute_img_embedding 并且经过了一个 CrossModalTrm 的编码
 然后经过进行shuffle, 然后送入 c_encoder, 然后预测真实的序列的Index.
 
-在Uniter结构要做的话，需要拆分。
+而在Uniter结构要做的话，没有单独的模态Encoder, 只能在输入Uniter之前进行shuffle.
+
+## 语音和视觉采用更多的特征 --Done
+wav2vec2.0 CNN 的输出。 以及 densenet2.0 中间层的输出。
 
 
-## 为啥加入EmoCls任务显存占用反而会小很多呢？ 会不会是加入EmoCls任务效果一直不好的原因？？？
-对比加载的数据，任务数量，模型参数，基本没有区别啊。
+## <分析1> 加入 EmoCls 任务会带来性能的下降？
+根据实验结果进行总结，在什么情况下文本的EmoCls会带来提升？ 在什么情况下会带来下降？
+---- 感觉EmoCls任务和某些预训练任务会产生冲突。
+
+
+## <分析2> 在纯文本端的加强，对于多个模态的影响？
+
+
+## <分析3> 三个模态和两个模态同时使用需要注意什么，很多两个模态work的结论，放到三个模态的情况下反而不work.
+
+
+## <分析4> 多模态效果的Upper-Bound 在哪？ --Going
+将测试集合加入训练，然后看看在测试集合上的效果
+添加 inference-emo 阶段的代码，加载模型直接测试，不用再训练了，也方便进行half-set或者部分缺失模态的训练。

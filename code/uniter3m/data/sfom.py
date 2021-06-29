@@ -62,9 +62,8 @@ class SFOMDataset(DetectFeatTxtTokDataset):
         speech_orders, speech_order_targets = random_reorder(speech_position_ids, self.random_reorder_p)
         # print('[Debug] speech_orders {}'.format(speech_orders))
         # print('[Debug] speech_order_targets {}'.format(speech_order_targets))
-        speech_orders = torch.tensor(speech_orders, dtype=torch.long)
-        speech_order_targets = torch.tensor(speech_order_targets, dtype=torch.long)
         # 按真实长度进行填充
+        speech_order_targets = torch.tensor(speech_order_targets, dtype=torch.long)
         speech_order_targets = _get_speech_tgt(speech_order_targets, len(input_ids), num_bb)
         return (input_ids, img_feat, speech_feat, attn_masks, speech_orders, speech_order_targets)
 

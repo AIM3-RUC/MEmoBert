@@ -118,9 +118,8 @@ class VFOMDataset(DetectFeatTxtTokDataset):
         img_orders, img_order_targets = random_reorder(img_position_ids, self.random_reorder_p)
         # print('[Debug] img_orders {}'.format(img_orders))
         # print('[Debug] img_order_targets {}'.format(img_order_targets))
-        img_orders = torch.tensor(img_orders, dtype=torch.long)
-        img_order_targets = torch.tensor(img_order_targets, dtype=torch.long)
         # 按真实长度进行填充
+        img_order_targets = torch.tensor(img_order_targets, dtype=torch.long)
         img_order_targets = _get_img_tgt(img_order_targets, len(input_ids), num_frame)
         return (input_ids, img_feat, speech_feat, attn_masks, img_orders, img_order_targets)
 

@@ -345,7 +345,7 @@ class UniterImageEmbeddings(nn.Module):
             self.position_embeddings = nn.Embedding(config.max_position_embeddings,
                                                 config.hidden_size)
         else:
-            logger.info('[Debug in UniterImageEmbeddings] use sinusoid_position_embedding')
+            # logger.info('[Debug in UniterImageEmbeddings] use sinusoid_position_embedding')
             self.position_embeddings  = None 
 
         # tf naming convention for layer norm
@@ -375,7 +375,7 @@ class UniterImageEmbeddings(nn.Module):
         embeddings = self.dropout(embeddings)
 
         if shuffled_orders is not None:
-            logger.info(['[Debug in UniterImageEmbeddings] using shuffled_orders'])
+            # logger.info(['[Debug in UniterImageEmbeddings] using shuffled_orders'])
             shuffled_orders_expanded = shuffled_orders.unsqueeze(-1).expand_as(
                 embeddings)
             v_feats_shuffled = torch.zeros_like(embeddings, dtype=embeddings.dtype,
@@ -454,7 +454,7 @@ class UniterSpeechEmbeddings(nn.Module):
         embeddings = self.dropout(embeddings)
 
         if shuffled_orders is not None:
-            logger.info(['[Debug in UniterSpeechEmbeddings] using shuffled_orders'])
+            # logger.info(['[Debug in UniterSpeechEmbeddings] using shuffled_orders'])
             shuffled_orders_expanded = shuffled_orders.unsqueeze(-1).expand_as(
                 embeddings)
             v_feats_shuffled = torch.zeros_like(embeddings, dtype=embeddings.dtype,
