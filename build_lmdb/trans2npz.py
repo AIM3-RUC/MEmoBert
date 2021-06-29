@@ -11,7 +11,7 @@ export PYTHONPATH=/data7/MEmoBert
 
 '''
 
-def convert_hdf5_to_npz(hdf5_dir, output_dir, meta_data_dir, movie_names_path, start=None, end=None):
+def convert_hdf5_to_npz(hdf5_dir, output_dir, meta_data_dir, movie_names_path, ft_name='feat', start=None, end=None):
     '''
     fileter_dict: 未来加很多数据的时候可能
     segment_id = movie_name + '_' + segment_index
@@ -41,7 +41,7 @@ def convert_hdf5_to_npz(hdf5_dir, output_dir, meta_data_dir, movie_names_path, s
             if os.path.exists(outputfile):
                 continue
             soft_labels = np.array(denseface_ft[movie_name][segment_index]['pred'])
-            feat = np.array(denseface_ft[movie_name][segment_index]['feat'])
+            feat = np.array(denseface_ft[movie_name][segment_index][ft_name])
             confidence = np.array(denseface_ft[movie_name][segment_index]['confidence'])
             frame_indexs = np.array(denseface_ft[movie_name][segment_index]['frame_idx'])
             assert len(soft_labels) == len(feat)
@@ -92,17 +92,22 @@ def convert_hdf5_to_npz_voxceleb2(hdf5_dir, output_dir, movie_names_path, start=
 if __name__ == "__main__":
     start = int(sys.argv[1])  # 0
     end =  int(sys.argv[2]) # 100
-    if False:
+    ft_type = 'trans2' # trans1 trans2
+    if ft_type == 'fc':
+        ft_name = 'feat'
+    else:
+        ft_name = ft_type
+    if True:
         # for movies data
         hdf5_dir = '/data7/emobert/denseface_feature_nomask_torch/movies_v3'
         meta_data_dir = '/data7/emobert/data_nomask_new/meta'
         movie_names_path = '/data7/emobert/data_nomask_new/movies_v3/movie_names.npy'
-        npzs_dir = '/data7/emobert/ft_npzs_nomask/movies_v3/fc' 
+        npzs_dir = f'/data7/emobert/ft_npzs_nomask/movies_v3/{ft_type}' 
         if not os.path.exists(npzs_dir):
             os.makedirs(npzs_dir)
-        convert_hdf5_to_npz(hdf5_dir, npzs_dir, meta_data_dir, movie_names_path, start=start, end=end)
+        convert_hdf5_to_npz(hdf5_dir, npzs_dir, meta_data_dir, movie_names_path, ft_name=ft_name, start=start, end=end)
     
-    if True:
+    if False:
         ## for voxcelebs voxceleb2_v1: 5w多
         hdf5_dir = '/data13/voxceleb2/denseface_feature'
         movie_names_path = '/data7/emobert/data_nomask_new/voxceleb2_v2/movie_names.npy'

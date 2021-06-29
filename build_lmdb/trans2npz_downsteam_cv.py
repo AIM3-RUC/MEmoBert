@@ -11,15 +11,15 @@ export PYTHONPATH=/data7/MEmoBert
 对于IEMOCAP 的raw-img 数据，在保存为h5的时候已经转化过了，所以可以直接保存。
 '''
 
-do_raw_img = True
-corpus_name = 'IEMOCAP'
+do_raw_img = False
+corpus_name = 'MSP'
 root_dir = f'/data7/emobert/exp/evaluation/{corpus_name}/'
 cls_num = 8
 if not do_raw_img:
     feature_dir = root_dir + 'feature/denseface_openface_msp_mean_std_torch'
-    IMD_DIM=342
-    ft_key = 'feat' # or trans1 trans2 or img_data
-    npyz_dir = feature_dir + '/ft_npzs/fc'
+    IMD_DIM=300  # trans1 for 216 and trans2 is 300
+    ft_key = 'trans2' # or trans1 trans2 or img_data
+    npyz_dir = feature_dir + '/ft_npzs/trans2'
 else:
     feature_dir = root_dir + 'feature/openface_iemocap_raw_img'
     IMD_DIM=[112, 112]
@@ -72,7 +72,7 @@ for setname in ['trn', 'val', 'tst']:
                 soft_labels[:, label] = 1.0
             else:
                 soft_labels = np.array(data[segment_id]['pred'])
-                feat = np.array(data[segment_id]['feat'])
+                feat = np.array(data[segment_id][ft_key])
         assert len(soft_labels) == len(feat)
         np.savez_compressed(outputfile,
                             soft_labels=soft_labels.astype(np.float16),

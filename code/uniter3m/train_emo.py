@@ -145,9 +145,6 @@ def main(opts):
                             frozen_en_layers=opts.frozen_en_layers, \
                             cls_dropout=opts.cls_dropout, cls_type=opts.cls_type, \
                             use_emolare=opts.use_emolare)
-
-    # print('[Debug] {}'.format(model.state_dict()['emoBert.visual_encoder.visualfront.frontend3D.1.weight']))
-    # print('[Debug] {}'.format(model.state_dict()['emoBert.text_encoder.encoder.layer.0.attention.output.LayerNorm.weight']))
     model.to(device)
     # make sure every process has same model parameters in the beginning
     broadcast_tensors([p.data for p in model.parameters()], 0)

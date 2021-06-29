@@ -356,11 +356,11 @@ def modify_emotype_vox(setname):
 if __name__ == '__main__':
     pass
     ### for movies data
-    # version = 'v3' #  v1 v2 v3
-    # for setname in ['val3k', 'trn3k', 'trn']:
-    #     for postfix in ['5corpus_emo5']:
-    #         print(f'current {setname} {postfix}')
-    #         modify_emotype(version, setname, postfix=postfix)
+    version = 'v1' #  v1 v2 v3
+    for setname in ['val3k', 'trn3k', 'trn']:
+        for postfix in ['5corpus_emo5']:
+            print(f'current {setname} {postfix}')
+            modify_emotype(version, setname, postfix=postfix)
 
     ### for movies data
     # version = 'v3' #  v1 v2 v3

@@ -2,31 +2,23 @@
 Copyright (c) Microsoft Corporation.
 Licensed under the MIT license.
 
-UNITER finetuning for Image-Text Retrieval
+Emotion MEmoBert Inference
 """
 import argparse
 import os
 import fcntl
 from os.path import exists, join
-from time import time
 import json
 
 import torch
-from torch.nn.utils import clip_grad_norm_
 from torch.utils.data import DataLoader, ConcatDataset
-from apex import amp
 from horovod import torch as hvd
-from tqdm import tqdm
 
 from code.uniter3m.data import (PrefetchLoader, TxtTokLmdb, ImageLmdbGroup, SpeechLmdbGroup, EmoClsDataset, emocls_collate)
 from code.uniter3m.model.emocls import UniterForEmoRecognition, evaluation
-from code.uniter3m.optim import get_lr_sched
-from code.uniter3m.optim.misc import build_optimizer
-from code.uniter3m.utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
+from code.uniter3m.utils.logger import LOGGER, TB_LOGGER, add_log_to_file
 from code.uniter3m.utils.distributed import (all_reduce_and_rescale_tensors, broadcast_tensors)
-from code.uniter3m.utils.save import ModelSaver, save_training_meta
 from code.uniter3m.utils.misc import NoOp, parse_with_config, set_random_seed
-
 
 def build_dataloader(dataset, collate_fn, is_train, opts):
     # 构建训练集合或者测试集合的
@@ -57,23 +49,16 @@ def main(opts):
     set_random_seed(opts.seed)
 
     if hvd.rank() == 0:
-        save_training_meta(opts)
         TB_LOGGER.create(join(opts.output_dir, 'log'))
-        pbar = tqdm(total=opts.num_train_steps)
-        model_saver = ModelSaver(join(opts.output_dir, 'ckpt'))
         add_log_to_file(join(opts.output_dir, 'log', 'log.txt'))
         # store ITM predictions
         if not os.path.exists(join(opts.output_dir, 'results_val')):
             os.makedirs(join(opts.output_dir, 'results_val'))
         if not os.path.exists(join(opts.output_dir, 'results_test')):
             os.makedirs(join(opts.output_dir, 'results_test'))
-        if not os.path.exists(join(opts.output_dir, 'results_train')):
-            os.makedirs(join(opts.output_dir, 'results_train'))
     else:
         LOGGER.disabled = True
-        pbar = NoOp()
-        model_saver = NoOp()
-
+    
     LOGGER.info("Loading no image_data_augmentation for validation and testing")
     if opts.use_visual:
         eval_all_img_dbs = ImageLmdbGroup(compress=opts.compressed_db)
@@ -110,27 +95,32 @@ def main(opts):
 
     # Prepare model
     LOGGER.info('[Info] Loading from pretrained model {}'.format(opts.checkpoint))
-    checkpoint = torch.load(opts.checkpoint)
-    model = UniterForEmoRecognition(opts.model_config, \
+    assert len(list(os.listdir(opts.checkpoint))) == 1
+    checkpoint_model = list(os.listdir(opts.checkpoint))[0]
+    checkpoint_model_path = os.path.join(opts.checkpoint, checkpoint_model)
+    checkpoint = torch.load(checkpoint_model_path)
+    bert_part_checkpoint = {}
+    new_checkpoint = {}
+    for k, v in checkpoint.items():
+        if k.startswith('output'):
+            new_checkpoint['output.' + k] = v
+        else:
+            bert_part_checkpoint[k] = v
+            new_checkpoint[k] = v
+    model = UniterForEmoRecognition.from_pretrained(opts.model_config, state_dict=bert_part_checkpoint, \
                             img_dim=IMG_DIM, speech_dim=Speech_DIM, \
                             use_visual=opts.use_visual, use_speech=opts.use_speech, \
                             cls_num=opts.cls_num, \
                             frozen_en_layers=opts.frozen_en_layers, \
                             cls_dropout=opts.cls_dropout, cls_type=opts.cls_type, \
                             use_emolare=opts.use_emolare)
-    model.load_state_dict(checkpoint)
-    print('Load model success')
+    LOGGER.info('[Info] Loading bert model parameters success!')
+    model.load_state_dict(new_checkpoint)
+    LOGGER.info('[Info] Loading classifer model parameters success!')
 
     model.to(device)
     # make sure every process has same model parameters in the beginning
     broadcast_tensors([p.data for p in model.parameters()], 0)
-
-    global_step = 0
-    n_examples = 0
-    best_eval_metrix = 0
-    best_eval_step = 0
-    steps2test_results = {}
-    steps2val_results = {}
 
     val_log = evaluation(model, val_dataloader)
     LOGGER.info(f"[Validation] Loss: {val_log['loss']:.2f},"
@@ -142,17 +132,10 @@ def main(opts):
                 f"\t WA: {test_log['WA']*100:.2f},"
                 f"\t WF1: {val_log['WF1']*100:.2f},"
                 f"\t UA: {test_log['UA']*100:.2f},\n")
-    steps2val_results[0] = val_log
-    steps2test_results[0] = test_log
-
     ### final use the best model tested on validation set.
-    LOGGER.info('Val: Best eval steps {} found with {} {}'.format(best_eval_step, select_metrix, best_eval_metrix))
-    LOGGER.info('Val: {}'.format(steps2val_results[best_eval_step]))
-    LOGGER.info('Test: {}'.format(steps2test_results[best_eval_step]))
-    steps2val_results['beststep'] = best_eval_step
-    json.dump(steps2test_results, open(join(opts.output_dir, 'log', 'step2test_reuslts.json'),'w',encoding='utf-8'))
-    json.dump(steps2val_results, open(join(opts.output_dir, 'log', 'step2val_reuslts.json'),'w',encoding='utf-8'))
-    write_result_to_tsv(output_tsv, steps2test_results[best_eval_step], opts.cvNo)
+    LOGGER.info('Val: {}'.format(val_log))
+    LOGGER.info('Test: {}'.format(test_log))
+    write_result_to_tsv(output_tsv, test_log, opts.cvNo)
 
 def write_result_to_tsv(file_path, tst_log, cvNo):
     # 1. 使用fcntl对文件加锁,避免多个不同进程同时操作同一个文件
@@ -292,15 +275,6 @@ if __name__ == "__main__":
     
     IMG_DIM = args.IMG_DIM
     Speech_DIM = args.Speech_DIM
-
-    if args.corpus_name == 'meld':
-        select_metrix = 'WF1'
-    elif args.corpus_name == 'msp':
-        select_metrix = 'UA'
-    elif args.corpus_name == 'iemocap':
-        select_metrix = 'UA'
-    LOGGER.info(f'[INFO] Corpus {args.corpus_name} and select metrix {select_metrix}')
-    LOGGER.info(f'[INFO] output {args.output_dir}')
 
     # options safe guard
     if args.conf_th == -1:
