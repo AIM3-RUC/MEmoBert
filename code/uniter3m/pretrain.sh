@@ -642,3 +642,27 @@ export PYTHONPATH=/data7/MEmoBert
 #         --train_batch_size 120 --val_batch_size 120 \
 #         --num_train_steps 20000 --warmup_steps 2000 --valid_steps 5000 \
 #         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_speech_visual_text_5tasks_emocls_selected_vstype2_lr5e5_bs1024
+
+# ### case16: text + visual + speech 
+# CUDA_VISIBLE_DEVICES=0,1 horovodrun -np 2 python pretrain.py \
+#         --cvNo 0 --n_workers 4 --use_visual --use_speech \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks_add_la_lv.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --learning_rate 5e-5 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 768 \
+#         --max_txt_len 30 \
+#         --train_batch_size 64 --val_batch_size 64 \
+#         --num_train_steps 40000 --warmup_steps 4000 --valid_steps 5000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_speech_visual_text_5tasks_add_la_lv_vstype2_lr5e5_bs1024
+
+# ### case17: text + visual + speech with comparE
+# CUDA_VISIBLE_DEVICES=6,7 horovodrun -np 2 python pretrain.py \
+#         --cvNo 0 --n_workers 4 --use_visual --use_speech \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechcomparE_5tasks.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --learning_rate 5e-5 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 130 \
+#         --max_txt_len 30 \
+#         --train_batch_size 64 --val_batch_size 64 \
+#         --num_train_steps 40000 --warmup_steps 4000 --valid_steps 5000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_speechcomparE_visual_text_5tasks_vstype2_lr5e5_bs1024
