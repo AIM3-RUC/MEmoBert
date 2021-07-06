@@ -103,7 +103,8 @@ def main(opts):
     new_checkpoint = {}
     for k, v in checkpoint.items():
         if k.startswith('output'):
-            new_checkpoint['output.' + k] = v
+            # new_checkpoint['output.' + k] = v
+            new_checkpoint[k] = v
         else:
             bert_part_checkpoint[k] = v
             new_checkpoint[k] = v

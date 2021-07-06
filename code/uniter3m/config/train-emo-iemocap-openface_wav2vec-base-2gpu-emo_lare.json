@@ -38,9 +38,11 @@
         "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val_emolare.db"
     ],
     "train_img_dbs": [
+        "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/",
         "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/"
     ],
     "train_speech_dbs": [
+        "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_db_3mean/",
         "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_db_3mean/"
     ],
     "val_txt_db": "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst_emolare.db",
