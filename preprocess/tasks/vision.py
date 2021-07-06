@@ -33,7 +33,7 @@ class Video2Frame(BaseWorker):
             cmd = 'ffmpeg -i {} -r {} -q:v 2 -f image2 {}/'.format(video_path, self.fps, save_dir) + '%4d.jpg' + " > /dev/null 2>&1"
             os.system(cmd)
             frames_count = len(glob.glob(os.path.join(save_dir, '*.jpg')))
-            # self.print('Extract frames from {}, totally {} frames, save to {}'.format(video_path, frames_count, save_dir))
+            self.print('Extract frames from {}, totally {} frames, save to {}'.format(video_path, frames_count, save_dir))
         return save_dir
 
 class Video2FrameTool(BaseWorker):
@@ -519,11 +519,15 @@ class AffectiveNetExtractor():
         self.std = std
 
 if __name__ == '__main__':
-    # get_frame = Video2Frame()
-    # frame_dir = get_frame('../resources/output1.mkv')
-    # face_track = VideoFaceTracker()
-    # a = face_track(frame_dir)
-    # print(a)
+    dialog_dir = '/data8/hzp/tmp/output/syncnet/pyavi/clip1'
+    frame_dir = os.path.join(dialog_dir, 'frames')
+    face_dir = os.path.join(dialog_dir, 'faces')
+    audio_path = os.path.join(dialog_dir, 'audio.wav')
+    # get_frame = Video2Frame(fps=30, save_root=frame_dir)
+    openface_dir='/root/tools/openface_tool/OpenFace/build/bin'
+    face_track = VideoFaceTracker(openface_dir=openface_dir, save_root=face_dir)
+    a = face_track(frame_dir)
+    print(a)
     # face_path = '/data6/zjm/emobert/preprocess/test/track/output1/output1_aligned/frame_det_00_000010.bmp'
     # mean = 96.3801
     # std = 53.615868
@@ -534,7 +538,7 @@ if __name__ == '__main__':
     select_activate_spk = ActiveSpeakerSelector()
     # # select_faces = FaceSelector()
     # start = time.time()
-    active_spkid = select_activate_spk("/data7/emobert/data_nomask_new/faces/No0030.About.Time.Error/4", "/data7/emobert/data_nomask_new/audio_clips/No0030.About.Time.Error/4.wav")
+    active_spkid = select_activate_spk(face_dir, audio_path)
     print(active_spkid)
     # # face_lists = select_faces("test/track/output1", active_spkid)
     # end = time.time()

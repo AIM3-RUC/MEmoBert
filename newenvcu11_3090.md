@@ -94,11 +94,13 @@ apt-get install -y --no-install-recommends openssh-client openssh-server && \
     mkdir -p /var/run/sshd
 
 最后需要安装apex.
-git clone https://github.com/NVIDIA/apex.git && \
++ Bug4.1 https://github.com/NVIDIA/apex/issues/802 
+
+git clone https://github.com/NVIDIA/apex.git 
+git checkout f3a960f80244cf9e80558ab30f7f7e8cbf03c0a0
 cd apex && \
 pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" .
 
-+ Bug4.1 https://github.com/NVIDIA/apex/issues/802 
 
 然后根据提示安装一些必要的包
 

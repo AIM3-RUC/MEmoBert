@@ -7,7 +7,7 @@ CUDNN_VERSION=7.6.5.32-1+cuda10.1
 NCCL_VERSION=2.7.8-1+cuda10.1
 
 # Python 3.7 is supported by Ubuntu Bionic out of the box
-ARG python=3.7
+python=3.7
 PYTHON_VERSION=${python}
 
 # Set default shell to /bin/bash
@@ -32,8 +32,9 @@ apt-get install -y --allow-downgrades --allow-change-held-packages --no-install-
         libjpeg-dev \
         libpng-dev \
         python${PYTHON_VERSION} \
-        python${PYTHON_VERSION}-dev \
-        python${PYTHON_VERSION}-distutils \
+        python${PYTHON_VERSION}-dev 
+
+ apt-get install python3-distutils \
         librdmacm1 \
         libibverbs1 \
         ibverbs-providers
@@ -74,8 +75,9 @@ apt-get install -y --no-install-recommends openssh-client openssh-server && \
     mkdir -p /var/run/sshd
 
 最后需要安装apex.
-git clone xxxx
-+ Bug4.1 https://github.com/NVIDIA/apex/issues/802 
+git clone https://github.com/NVIDIA/apex.git 
+git checkout f3a960f80244cf9e80558ab30f7f7e8cbf03c0a0
+cd apex && \
 pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" .
 
 然后根据提示安装一些必要的包
