@@ -2,6 +2,166 @@ export PYTHONPATH=/data7/MEmoBert
 gpu_id=$1
 dropout=0.1
 corpus_name='iemocap'
+corpus_name_L='IEMOCAP'
+
+################# Part1: Directly Training ################################################### 
+# case1: text + visual - directly train
+# for lr in 3e-5 5e-5
+# do
+#         for cvNo in $(seq 1 10)
+#         do
+#         num_train_steps=2000
+#         valid_steps=100
+#         train_batch_size=32
+#         inf_batch_size=32
+#         frozens=0
+#         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
+#                 --cvNo ${cvNo} --use_text --use_visual \
+#                 --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#                 --corpus_name ${corpus_name} --cls_num 4 \
+#                 --config config/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_sentiword.json \
+#                 --checkpoint /data7/emobert/resources/pretrained/uniter-base-uncased-init.pt \
+#                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
+#                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
+#                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-directTrain-uniter3m_visual_text_vstype2-lr${lr}_train${num_train_steps}_trnvalUpdate
+#         done
+# done
+
+# # case2: text + wav2vec  - directly train
+for lr in 3e-5 5e-5
+do
+        for cvNo in $(seq 1 10)
+        do
+        num_train_steps=2000
+        valid_steps=100
+        train_batch_size=32
+        inf_batch_size=32
+        frozens=0
+        CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
+                --cvNo ${cvNo} --use_text  --use_speech \
+                --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+                --corpus_name ${corpus_name} --cls_num 4 \
+                --config config/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_sentiword.json \
+                --checkpoint /data7/emobert/resources/pretrained/uniter-base-uncased-init.pt \
+                --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
+                --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
+                --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+                --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
+                --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
+                --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-directTrain-uniter3m_wav2vec_text-lr${lr}_train${num_train_steps}_trnvalUpdate
+        done
+done
+
+# # case3: text + visual +  wav2vec  - directly train
+# for lr in 3e-5 5e-5
+# do
+#         for cvNo in $(seq 1 10)
+#         do
+#         num_train_steps=2000
+#         valid_steps=100
+#         train_batch_size=32
+#         inf_batch_size=32
+#         frozens=0
+#         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
+#                 --cvNo ${cvNo} --use_speech --use_visual --use_text \
+#                 --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#                 --corpus_name ${corpus_name} --cls_num 4 \
+#                 --config config/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_sentiword.json \
+#                 --checkpoint /data7/emobert/resources/pretrained/uniter-base-uncased-init.pt \
+#                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
+#                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
+#                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-directTrain-uniter3m_visual_wav2vec_text_vstype2-lr${lr}_train${num_train_steps}_trnvalUpdate
+#         done
+# done
+
+# case4: text + visual  - directly train + upperbound
+# for lr in 3e-5 5e-5
+# do
+#         for cvNo in $(seq 1 10)
+#         do
+#         num_train_steps=2000
+#         valid_steps=100
+#         train_batch_size=32
+#         inf_batch_size=32
+#         frozens=0
+#         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
+#                 --cvNo ${cvNo} --use_text --use_visual \
+#                 --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#                 --corpus_name ${corpus_name} --cls_num 4 \
+#                 --config config/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_sentiword_upper.json \
+#                 --checkpoint /data7/emobert/resources/pretrained/uniter-base-uncased-init.pt \
+#                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
+#                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
+#                 --max_txt_len 120 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
+#                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-directTrain_upper-uniter3m_visual_text_vstype2-lr${lr}_train${num_train_steps}
+#         done
+# done
+
+# # case5: text + wav2vec  - directly train + upperbound
+# for lr in 3e-5 5e-5
+# do
+#         for cvNo in $(seq 1 10)
+#         do
+#         num_train_steps=2000
+#         valid_steps=100
+#         train_batch_size=32
+#         inf_batch_size=32
+#         frozens=0
+#         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
+#                 --cvNo ${cvNo} --use_text  --use_speech \
+#                 --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#                 --corpus_name ${corpus_name} --cls_num 4 \
+#                 --config config/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_sentiword_upper.json \
+#                 --checkpoint /data7/emobert/resources/pretrained/uniter-base-uncased-init.pt \
+#                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
+#                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
+#                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-directTrain_upper-uniter3m_wav2vec_text-lr${lr}_train${num_train_steps}
+#         done
+# done
+
+# # case6: text + visual +  wav2vec  - directly train + upperbound
+# for lr in 3e-5 5e-5
+# do
+#         for cvNo in $(seq 1 10)
+#         do
+#         num_train_steps=2000
+#         valid_steps=100
+#         train_batch_size=32
+#         inf_batch_size=32
+#         frozens=0
+#         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
+#                 --cvNo ${cvNo} --use_speech --use_visual --use_text \
+#                 --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#                 --corpus_name ${corpus_name} --cls_num 4 \
+#                 --config config/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_sentiword_upper.json \
+#                 --checkpoint /data7/emobert/resources/pretrained/uniter-base-uncased-init.pt \
+#                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
+#                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
+#                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-directTrain_upper-uniter3m_visual_wav2vec_text_vstype2-lr${lr}_train${num_train_steps}
+#         done
+# done
+
+################# Part2: Pretrain Baseline(base 5tasks) ################################################### 
+
+
+################# Part3: Pretrain Baseline(base 5tasks) + EmoCls ################################################### 
+
+
+################# Part4: Explore the ITM task ################################################### 
 
 # case1: text + wav2vec - finetune on gpu2
 # for lr in 1e-5 2e-5 5e-5
@@ -22,10 +182,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_wav2vec_text_3tasks_mlmitmmsrfr_lr5e5_bs1024_train10w/ckpt/model_step_100000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_wav2vec_text_3tasks_mlmitmmsrfr_train10w-lr${lr}_train${num_train_steps}_trnval_frozen${frozens}
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_wav2vec_text_3tasks_mlmitmmsrfr_train10w-lr${lr}_train${num_train_steps}_trnval_frozen${frozens}
 #         done
 #     done
 # done
@@ -48,10 +208,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_wav2vec_text_3tasks_emocls_lr5e5_bs512/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask_movies_v1v2v3_uniter3m_wav2vec_text_3tasks_emocls-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask_movies_v1v2v3_uniter3m_wav2vec_text_3tasks_emocls-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -73,10 +233,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_wav2vec_text_3tasks_mlmitmmsrfrcnn_lr5e5_bs1024/ckpt/model_step_15000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 512 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 512 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask_movies_v1v2v3_uniter3m_wav2veccnn_text_3tasks-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask_movies_v1v2v3_uniter3m_wav2veccnn_text_3tasks-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -99,10 +259,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_vstype2_lr5e5_bs1024_train10w/ckpt/model_step_100000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_vstype2_train10w-lr${lr}_train${num_train_steps}_trnval_frozen${frozens}
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_vstype2_train10w-lr${lr}_train${num_train_steps}_trnval_frozen${frozens}
 #         done    
 #     done
 # done
@@ -125,10 +285,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_vstype2_lr5e5_bs512_faceth0.5/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_vstype2-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_vstype2-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -150,10 +310,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2_lr5e5_bs1024/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2-FinetuneAL-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2-FinetuneAL-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -175,10 +335,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2_lr5e5_bs1024/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2-FinetuneVL-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2-FinetuneVL-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -200,10 +360,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2_lr5e5_bs1024/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2-FinetuneL-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2-FinetuneL-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -225,10 +385,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2_lr5e5_bs1024/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2-FinetuneA-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2-FinetuneA-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -250,10 +410,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2_lr5e5_bs1024/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2-FinetuneV-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2-FinetuneV-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -275,10 +435,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2_lr5e5_bs1024/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2-FinetuneAV-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2-FinetuneAV-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -300,10 +460,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies-v1v2v3-vox2-v1v2-base-uniter3m_visual_wav2vec_text_5tasks_vstype2_lr5e5_bs512_train5w/ckpt/model_step_50000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-vox2-v1v2-base-uniter3m_visual_wav2vec_text_5tasks_vstype2-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-vox2-v1v2-base-uniter3m_visual_wav2vec_text_5tasks_vstype2-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -325,10 +485,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies-v1v2v3-vox2-v1v2-base-uniter3m_visual_wav2vec_text_5tasks_emocls_corpusemo5_vstype2_lr5e5_bs512_train5w/ckpt/model_step_50000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-vox2-v1v2-base-uniter3m_visual_wav2vec_text_5tasks_emocls_corpusemo5_vstype2-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-vox2-v1v2-base-uniter3m_visual_wav2vec_text_5tasks_emocls_corpusemo5_vstype2-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -350,10 +510,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies-v1v2v3-vox2-v1v2-base-2gpu_speechwav2vec_5tasks_wwm_span_noitm_vstype2_lr5e5_bs512/ckpt/model_step_40000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-vox2-v1v2-base-uniter3m_speechwav2vec_5tasks_wwm_span_noitm_vstype2-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-vox2-v1v2-base-uniter3m_speechwav2vec_5tasks_wwm_span_noitm_vstype2-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -375,10 +535,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/resources/pretrained/uniter-base-uncased-init.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-directTrain-uniter3m_wav2vec_text-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-directTrain-uniter3m_wav2vec_text-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -400,10 +560,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/resources/pretrained/uniter-base-uncased-init.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 1280 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 1280 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-directTrain-uniter3m_wav2vec_globalcnn_text-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-directTrain-uniter3m_wav2vec_globalcnn_text-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -425,87 +585,13 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_wav2veccnn_text_3tasks_mlmitmmsrfrcnn_emocls_lr5e5_bs1024/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 512 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 512 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_wav2veccnn_text_3task_emocls-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_wav2veccnn_text_3task_emocls-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
-# case4.1: text + visual  - directly train + upperbound
-# for lr in 3e-5 5e-5
-# do
-#         for cvNo in $(seq 1 10)
-#         do
-#         num_train_steps=2000
-#         valid_steps=100
-#         train_batch_size=32
-#         inf_batch_size=32
-#         frozens=0
-#         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
-#                 --cvNo ${cvNo} --use_text --use_visual \
-#                 --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
-#                 --corpus_name ${corpus_name} --cls_num 4 \
-#                 --config config/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_sentiword_upper.json \
-#                 --checkpoint /data7/emobert/resources/pretrained/uniter-base-uncased-init.pt \
-#                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
-#                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
-#                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-directTrain_upper-uniter3m_visual_text_vstype2-lr${lr}_train${num_train_steps}
-#         done
-# done
-
-# # case4.2: text + wav2vec  - directly train + upperbound
-# for lr in 3e-5 5e-5
-# do
-#         for cvNo in $(seq 1 10)
-#         do
-#         num_train_steps=2000
-#         valid_steps=100
-#         train_batch_size=32
-#         inf_batch_size=32
-#         frozens=0
-#         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
-#                 --cvNo ${cvNo} --use_text  --use_speech \
-#                 --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
-#                 --corpus_name ${corpus_name} --cls_num 4 \
-#                 --config config/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_sentiword_upper.json \
-#                 --checkpoint /data7/emobert/resources/pretrained/uniter-base-uncased-init.pt \
-#                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
-#                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
-#                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-directTrain_upper-uniter3m_wav2vec_text-lr${lr}_train${num_train_steps}
-#         done
-# done
-
-# # case4.3: text + visual +  wav2vec  - directly train + upperbound
-# for lr in 3e-5 5e-5
-# do
-#         for cvNo in $(seq 1 10)
-#         do
-#         num_train_steps=2000
-#         valid_steps=100
-#         train_batch_size=32
-#         inf_batch_size=32
-#         frozens=0
-#         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
-#                 --cvNo ${cvNo} --use_speech --use_visual --use_text \
-#                 --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
-#                 --corpus_name ${corpus_name} --cls_num 4 \
-#                 --config config/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_sentiword_upper.json \
-#                 --checkpoint /data7/emobert/resources/pretrained/uniter-base-uncased-init.pt \
-#                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
-#                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
-#                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-directTrain_upper-uniter3m_visual_wav2vec_text_vstype2-lr${lr}_train${num_train_steps}
-#         done
-# done
 
 
 ## case5.1: text + visual - finetune 
@@ -526,10 +612,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_lr5e5_bs512_faceth0.5/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_text_4tasks-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_text_4tasks-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -551,10 +637,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_emotasks_emocls_lr3e5/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-emopretrain-baseon_movies_v1v2v3_uniter3m_visual_text_4tasks-1task_emocls-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-emopretrain-baseon_movies_v1v2v3_uniter3m_visual_text_4tasks-1task_emocls-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -576,10 +662,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_emotasks_melm_emocls_lr3e5/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-emopretrain-baseon_movies_v1v2v3_uniter3m_visual_text_4tasks-2task_melm_emocls-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-emopretrain-baseon_movies_v1v2v3_uniter3m_visual_text_4tasks-2task_melm_emocls-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -601,10 +687,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_emotasks_merm_emocls_lr3e5/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-emopretrain-baseon_movies_v1v2v3_uniter3m_visual_text_4tasks-2task_merm_emocls-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-emopretrain-baseon_movies_v1v2v3_uniter3m_visual_text_4tasks-2task_merm_emocls-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -626,10 +712,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_emotasks_eitm_emocls_lr3e5/ckpt/model_step_25000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-emopretrain-baseon_movies_v1v2v3_uniter3m_visual_text_4tasks-2task_eitm_emocls-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-emopretrain-baseon_movies_v1v2v3_uniter3m_visual_text_4tasks-2task_eitm_emocls-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -651,10 +737,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_emotasks_melm_merm_emocls_lr3e5/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-emopretrain-baseon_movies_v1v2v3_uniter3m_visual_text_4tasks-2task_melm_merm_emocls-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-emopretrain-baseon_movies_v1v2v3_uniter3m_visual_text_4tasks-2task_melm_merm_emocls-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -676,10 +762,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies-v1v2v3-vox2-v1v2-base-uniter3m_visual_text_4tasks_vstype2_lr5e5_bs512_faceth0.5/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3-voxceleb2_v1v2_uniter3m_visual_text_4tasks-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3-voxceleb2_v1v2_uniter3m_visual_text_4tasks-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -701,10 +787,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_emocls_vstype2_lr5e5_bs512_faceth0.5/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_text_4tasks_emocls-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_text_4tasks_emocls-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -726,10 +812,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies-v1v2v3-vox2-v1v2-base-uniter3m_visual_text_4tasks_emocls_vstype2_lr5e5_bs512/ckpt/model_step_40000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-vox2-v1v2-base-uniter3m_visual_text_4tasks_emocls-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-vox2-v1v2-base-uniter3m_visual_text_4tasks_emocls-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -751,10 +837,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_emoclsselected_vstype2_lr5e5_bs1024/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-uniter3m_visual_text_4tasks_emoclsselected_vstype2-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-uniter3m_visual_text_4tasks_emoclsselected_vstype2-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -776,10 +862,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_emoclsselected_corpusemo5_vstype2_lr5e5_bs1024/ckpt/model_step_10000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3_visual_text_4tasks_emoclsselected_corpusemo5-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3_visual_text_4tasks_emoclsselected_corpusemo5-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -802,10 +888,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_indemocls_5corpus_emo5_lr5e5_bs512/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-uniter3m_visual_text_4tasks_indemocls_5corpus_emo5_vstype2-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-uniter3m_visual_text_4tasks_indemocls_5corpus_emo5_vstype2-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -827,10 +913,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_6tasks_vstype2_lr5e5_bs512_faceth0.5/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_6tasks_vstype2-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_6tasks_vstype2-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -853,10 +939,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_7tasks_vstype2_lr5e5_bs1024_train10w/ckpt/model_step_100000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_7tasks_vstype2_train10w-lr${lr}_train${num_train_steps}_trnval_frozen${frozens}
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_7tasks_vstype2_train10w-lr${lr}_train${num_train_steps}_trnval_frozen${frozens}
 #         done
 #     done
 # done
@@ -879,10 +965,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclslare0.2_withitm_vstype2_lr5e5_bs1024/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclslare0.2_vstype2_train2w-lr${lr}_train${num_train_steps}_trnval_nopos
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclslare0.2_vstype2_train2w-lr${lr}_train${num_train_steps}_trnval_nopos
 #         done
 # done
 
@@ -904,10 +990,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclslare0.4_withitm_vstype2_lr5e5_bs1024/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclslare0.4_vstype2_train2w-lr${lr}_train${num_train_steps}_trnval_nopos
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclslare0.4_vstype2_train2w-lr${lr}_train${num_train_steps}_trnval_nopos
 #         done
 # done
 
@@ -929,10 +1015,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclslare0.2_withitm_vstype2_lr5e5_bs1024/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclslare0.2_vstype2_train2w-lr${lr}_train${num_train_steps}_trnval_nopos
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclslare0.2_vstype2_train2w-lr${lr}_train${num_train_steps}_trnval_nopos
 #         done
 # done
 
@@ -954,10 +1040,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclslare0.4_withitm_vstype2_lr5e5_bs1024/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclslare0.4_vstype2_train2w-lr${lr}_train${num_train_steps}_trnval_nopos
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclslare0.4_vstype2_train2w-lr${lr}_train${num_train_steps}_trnval_nopos
 #         done
 # done
 
@@ -982,10 +1068,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclslare0.2_withitm_vstype2_lr5e5_bs1024/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type ${clstype} --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclslare0.2_vstype2_train2w-lr${lr}_${clstype}_train${num_train_steps}_trnval_pos
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclslare0.2_vstype2_train2w-lr${lr}_${clstype}_train${num_train_steps}_trnval_pos
 #         done
 #     done
 # done
@@ -1011,10 +1097,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclslare0.4_withitm_vstype2_lr5e5_bs1024/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type ${clstype} --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclslare0.4_vstype2_train2w-lr${lr}_${clstype}_train${num_train_steps}_trnval_pos
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclslare0.4_vstype2_train2w-lr${lr}_${clstype}_train${num_train_steps}_trnval_pos
 #         done
 #     done
 # done
@@ -1040,10 +1126,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclslare0.2_withitm_vstype2_lr5e5_bs1024/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type ${clstype} --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclslare0.2_vstype2_train2w-lr${lr}_${clstype}_train${num_train_steps}_trnval_pos
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclslare0.2_vstype2_train2w-lr${lr}_${clstype}_train${num_train_steps}_trnval_pos
 #         done
 #     done
 # done
@@ -1069,10 +1155,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclslare0.4_withitm_vstype2_lr5e5_bs1024/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type ${clstype} --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclslare0.4_vstype2_train2w-lr${lr}_${clstype}_train${num_train_steps}_trnval_pos
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclslare0.4_vstype2_train2w-lr${lr}_${clstype}_train${num_train_steps}_trnval_pos
 #         done
 #     done
 # done
@@ -1098,10 +1184,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclslare0.0_withitm_vstype2_lr5e5_bs1024/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type ${clstype} --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclslare0.0_withitm_vstype2_train3w-lr${lr}_${clstype}_train${num_train_steps}_trnval_pos
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclslare0.0_withitm_vstype2_train3w-lr${lr}_${clstype}_train${num_train_steps}_trnval_pos
 #         done
 #     done
 # done
@@ -1127,10 +1213,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclslare1.0_withitm_vstype2_lr5e5_bs1024/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type ${clstype} --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_emoclslare1.0_withitm_vstype2_train3w-lr${lr}_${clstype}_train${num_train_steps}_trnval_pos
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_emoclslare1.0_withitm_vstype2_train3w-lr${lr}_${clstype}_train${num_train_steps}_trnval_pos
 #         done
 #     done
 # done
@@ -1153,10 +1239,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_nomlm_withmelm_nomultitask_vstype2_lr5e5_bs1024/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_nomlm_withmelm_nomultitask_vstype2-FinetuneAVL-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_nomlm_withmelm_nomultitask_vstype2-FinetuneAVL-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -1178,10 +1264,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/task_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2_lr5e5-4tasks_emoclsSoft_noitm_trnval/${cvNo}/ckpt/model_step_2000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-taskpretrain-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2-4tasks_emoclsSoft_noitm_trnval-lr${lr}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-taskpretrain-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2-4tasks_emoclsSoft_noitm_trnval-lr${lr}_trnval
 #         done
 # done
 
@@ -1203,10 +1289,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/task_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2_lr5e5-5tasks_emoclsSoft_withitm_trnval/${cvNo}/ckpt/model_step_2000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-taskpretrain-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2-5tasks_emoclsSoft_withitm_trnval-lr${lr}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-taskpretrain-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_withitm_vstype2-5tasks_emoclsSoft_withitm_trnval-lr${lr}_trnval
 #         done
 # done
 
@@ -1228,10 +1314,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclsSoft_eitm_vstype2_lr5e5_bs1024/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclsSoft_eitm_vstype2-lr${lr}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclsSoft_eitm_vstype2-lr${lr}_trnval
 #         done
 # done
 
@@ -1253,10 +1339,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_eitm_vstype2_lr5e5_bs1024/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_eitm_vstype2-lr${lr}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_eitm_vstype2-lr${lr}_trnval
 #         done
 # done
 
@@ -1278,10 +1364,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclsSoft_Teitm_vstype2_lr5e5_bs1024/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclsSoft_Teitm_vstype2-lr${lr}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_4tasks_emoclsSoft_Teitm_vstype2-lr${lr}_trnval
 #         done
 # done
 
@@ -1303,10 +1389,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_Teitm_vstype2_lr5e5_bs1024/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_Teitm_vstype2-lr${lr}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emoclsSoft_Teitm_vstype2-lr${lr}_trnval
 #         done
 # done
 
@@ -1328,10 +1414,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_3tasks_merm_emoclsSoft_vstype2_lr5e5_bs1024/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_3tasks_merm_emoclsSoft_vstype2-lr${lr}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_3tasks_merm_emoclsSoft_vstype2-lr${lr}_trnval
 #         done
 # done
 
@@ -1353,10 +1439,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_merm_emoclsSoft_vstype2_lr5e5_bs1024/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_merm_emoclsSoft_vstype2-lr${lr}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_merm_emoclsSoft_vstype2-lr${lr}_trnval
 #         done
 # done
 
@@ -1379,10 +1465,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_speech_text_5tasks_emoclsselected_vstype2_lr5e5_bs1024/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_speech_text_5tasks_emoclsselected_vstype2-lr${lr}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_speech_text_5tasks_emoclsselected_vstype2-lr${lr}_trnval
 #         done
 # done
 
@@ -1404,10 +1490,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_speech_text_5tasks_emoclsselected_corpusemo4_vstype2_lr5e5_bs1024//ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_speech_text_5tasks_emoclsselected_corpusemo4_vstype2-lr${lr}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_speech_text_5tasks_emoclsselected_corpusemo4_vstype2-lr${lr}_trnval
 #         done
 # done
 
@@ -1429,10 +1515,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_speech_text_5tasks_emoclsselected_corpusemo4_vstype2_lr5e5_bs1024//ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_speech_text_5tasks_emoclsselected_corpusemo4_vstype2-lr${lr}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_speech_text_5tasks_emoclsselected_corpusemo4_vstype2-lr${lr}_trnval
 #         done
 # done
 
@@ -1454,10 +1540,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_emocls_AVsinusoid_vstype2_lr5e5_bs1024/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_visual_speech_text_5tasks_emocls_AVsinusoid_vstype2-lr${lr}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_visual_speech_text_5tasks_emocls_AVsinusoid_vstype2-lr${lr}_trnval
 #         done
 # done
 
@@ -1479,10 +1565,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_wav2veccnn_visual_text_5tasks_lr5e5_bs1024/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 512 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 512 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_wav2veccnn_visual_text_5tasks_vstype2-lr${lr}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_wav2veccnn_visual_text_5tasks_vstype2-lr${lr}_trnval
 #         done
 # done
 
@@ -1504,10 +1590,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_wav2veccnn_visual_text_5tasks_emocls_lr5e5_bs1024/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 512 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 512 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies_v1v2v3_uniter3m_wav2veccnn_visual_text_5tasks_emocls_vstype2-lr${lr}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies_v1v2v3_uniter3m_wav2veccnn_visual_text_5tasks_emocls_vstype2-lr${lr}_trnval
 #         done
 # done
 
@@ -1529,10 +1615,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_emocls_corpusemo5_lr5e5_bs512/ckpt/model_step_15000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-uniter3m_visual_text_4tasks_emocls_corpusemo5_vstype2_train1.5w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-uniter3m_visual_text_4tasks_emocls_corpusemo5_vstype2_train1.5w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -1554,10 +1640,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speech_visual_text_5tasks_emocls_corpusemo5_lr5e5_bs512/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-uniter3m_speech_visual_text_5tasks_emocls_corpusemo5_vstype2-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-uniter3m_speech_visual_text_5tasks_emocls_corpusemo5_vstype2-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -1579,10 +1665,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_wav2vec_globalcnn_text_3tasks_lr5e5_bs1024/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 1280 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 1280 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_wav2vec_globalcnn_text_3tasks-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_wav2vec_globalcnn_text_3tasks-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -1604,10 +1690,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_wav2vec_globalcnn_5tasks_lr5e5_bs1024/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 1280 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 1280 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_wav2vec_globalcnn_text_5tasks-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_wav2vec_globalcnn_text_5tasks-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -1629,10 +1715,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_indemocls_p1p2_emo5_lr5e5_bs512/ckpt/model_step_40000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_indemocls_p1p2_emo5-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_indemocls_p1p2_emo5-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -1654,10 +1740,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_wav2vec_5tasks_indemocls_p1p2_emo5_lr5e5_bs512/ckpt/model_step_40000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_wav2vec_5tasks_indemocls_p1p2_emo5-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_wav2vec_5tasks_indemocls_p1p2_emo5-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -1681,10 +1767,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_span_lr5e5_bs512/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_span-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_span-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -1706,10 +1792,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speech_text_3tasks_span_lr5e5_bs512/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_speech_text_3tasks_span-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_speech_text_3tasks_span-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -1731,10 +1817,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speech_text_3tasks_span_noitm_lr5e5_bs512/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_speech_text_3tasks_span_noitm-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_speech_text_3tasks_span_noitm-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -1756,10 +1842,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_speech_text_5tasks_span_lr5e5_bs512/ckpt/model_step_40000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_speech_text_5tasks_span-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_speech_text_5tasks_span-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -1781,10 +1867,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_span_noitm_lr5e5_bs512/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_span_noitm-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_span_noitm-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -1807,10 +1893,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_speech_text_5tasks_span_noitm_lr5e5_bs512_train4w/ckpt/model_step_40000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_speech_text_5tasks_span_noitm_train4w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_speech_text_5tasks_span_noitm_train4w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -1831,10 +1917,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_speech_text_5tasks_span_noitm_lr5e5_bs512_train4w/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_speech_text_5tasks_span_noitm_train2w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_speech_text_5tasks_span_noitm_train2w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -1856,10 +1942,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies-v1v2v3-vox2-v1v2-base-uniter3m_wav2vec_text_3tasks_vstype2_lr5e5_bs512/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-vox2-v1v2-base-uniter3m_wav2vec_text_3tasks_vstype2-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-vox2-v1v2-base-uniter3m_wav2vec_text_3tasks_vstype2-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -1881,10 +1967,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies-v1v2v3-vox2-v1v2-base-uniter3m_wav2vec_text_3tasks_emocls_vstype2_lr5e5_bs512/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-vox2-v1v2-base-uniter3m_wav2vec_text_3tasks_emocls_vstype2-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-vox2-v1v2-base-uniter3m_wav2vec_text_3tasks_emocls_vstype2-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -1907,10 +1993,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_visual_text_4tasks_init_uniter_init_5corpus_emo5_vstype2_lr5e5_bs1024/ckpt/model_step_18000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_init_uniter_init_5corpus_emo5-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_init_uniter_init_5corpus_emo5-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -1932,10 +2018,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_wav2vec_text_3tasks_init_uniter_init_5corpus_emo5_vstype2_lr5e5_bs1024/ckpt/model_step_18000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_wav2vec_text_3tasks_init_uniter_init_5corpus_emo5-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_wav2vec_text_3tasks_init_uniter_init_5corpus_emo5-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -1957,10 +2043,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_visual_speech_text_5tasks_init_uniter_init_5corpus_emo5_vstype2_lr5e5_bs1024/ckpt/model_step_18000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_speech_text_5tasks_init_uniter_init_5corpus_emo5-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_speech_text_5tasks_init_uniter_init_5corpus_emo5-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -1983,10 +2069,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_visual_text_4tasks_emocls_init_uniter_init_5corpus_emo5_vstype2_lr5e5_bs1024/ckpt/model_step_18000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_emocls_init_uniter_init_5corpus_emo5-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_emocls_init_uniter_init_5corpus_emo5-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2008,10 +2094,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_wav2vec_text_3tasks_emocls_init_uniter_init_5corpus_emo5_vstype2_lr5e5_bs1024/ckpt/model_step_18000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_wav2vec_text_3tasks_emocls_init_uniter_init_5corpus_emo5-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_wav2vec_text_3tasks_emocls_init_uniter_init_5corpus_emo5-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2033,10 +2119,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_visual_speech_text_5tasks_emocls_init_uniter_init_5corpus_emo5_vstype2_lr5e5_bs1024/ckpt/model_step_18000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_speech_text_5tasks_emocls_init_uniter_init_5corpus_emo5-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_speech_text_5tasks_emocls_init_uniter_init_5corpus_emo5-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2059,10 +2145,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_selected_vstype2_lr5e5_bs1024/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_selected-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_selected-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2084,10 +2170,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_emocls_selected_vstype2_lr5e5_bs1024/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_emocls_selected-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_emocls_selected-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2109,10 +2195,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_speech_visual_text_5tasks_selected_vstype2_lr5e5_bs1024/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_speech_visual_text_5tasks_selected-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_speech_visual_text_5tasks_selected-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2135,10 +2221,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_speech_visual_text_5tasks_emocls_selected_vstype2_lr5e5_bs1024/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_speech_visual_text_5tasks_emocls_selected-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_speech_visual_text_5tasks_emocls_selected-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2161,10 +2247,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_indopensubp12_lr5e5_bs1024/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_indopensubp12-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_indopensubp12-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2186,10 +2272,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_indopensubp12_emocls_lr5e5_bs1024/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_indopensubp12_emocls-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_indopensubp12_emocls-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2211,10 +2297,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_indopensubp12_emoclscorpusemo5_lr5e5_bs1024/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_indopensubp12_emoclscorpusemo5-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_indopensubp12_emoclscorpusemo5-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2237,10 +2323,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_wav2vec_text_3tasks_indopensubp12_lr5e5_bs1024/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_wav2vec_text_3tasks_indopensubp12-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_wav2vec_text_3tasks_indopensubp12-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2262,10 +2348,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_wav2vec_text_3tasks_indopensubp12_emocls_lr5e5_bs1024/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_wav2vec_text_3tasks_indopensubp12_emocls-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_wav2vec_text_3tasks_indopensubp12_emocls-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2287,10 +2373,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_wav2vec_text_3tasks_indopensubp12_emoclscorpusemo5_lr5e5_bs1024/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_wav2vec_text_3tasks_indopensubp12_emoclscorpusemo5-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_wav2vec_text_3tasks_indopensubp12_emoclscorpusemo5-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2312,10 +2398,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_indopensubp12_lr5e5_bs512/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_speechwav2vec_5tasks_indopensubp12-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_speechwav2vec_5tasks_indopensubp12-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2337,10 +2423,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_indopensubp12_emocls_lr5e5_bs512/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_speechwav2vec_5tasks_indopensubp12_emocls-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_speechwav2vec_5tasks_indopensubp12_emocls-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2363,10 +2449,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_visual_speech_text_5tasks_emocls_init_uniter_init_bertmovie_vstype2_lr5e5_bs1024/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_speech_text_5tasks_emocls_init_uniter_init_bertmovie-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_speech_text_5tasks_emocls_init_uniter_init_bertmovie-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2388,10 +2474,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_visual_speech_text_5tasks_emoclscorpusemo5_init_uniter_init_5corpus_emo5_vstype2_lr5e5_bs1024/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_speech_text_5tasks_emoclscorpusemo5_init_uniter_init_5corpus_emo5-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_speech_text_5tasks_emoclscorpusemo5_init_uniter_init_5corpus_emo5-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2413,10 +2499,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_wwm_lr5e5_bs800/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_wwm-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_wwm-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2438,10 +2524,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_wav2vec_text_3tasks_wwm_lr5e5_bs800/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_wav2vec_text_3tasks_wwm-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_wav2vec_text_3tasks_wwm-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2463,10 +2549,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_lr5e5_bs800/ckpt/model_step_40000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_speechwav2vec_5tasks_wwm_train4w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_speechwav2vec_5tasks_wwm_train4w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2489,10 +2575,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_lr5e5_bs800/ckpt/model_step_40000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_speechwav2vec_5tasks_wwm_span_train4w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_speechwav2vec_5tasks_wwm_span_train4w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2514,10 +2600,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_speechwav2vec_5tasks_wwm_span_noitm_train4w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_speechwav2vec_5tasks_wwm_span_noitm_train4w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2539,10 +2625,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_emocls_lr5e5_bs800/ckpt/model_step_40000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_speechwav2vec_5tasks_wwm_span_emocls_train4w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_speechwav2vec_5tasks_wwm_span_emocls_train4w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2564,10 +2650,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_emocls_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_speechwav2vec_5tasks_wwm_span_emocls_noitm_train4w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_speechwav2vec_5tasks_wwm_span_emocls_noitm_train4w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2589,10 +2675,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_speechwav2vec_5tasks_wwm_noitm_train4w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_speechwav2vec_5tasks_wwm_noitm_train4w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2614,10 +2700,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_wwm_span_noitm_lr5e5_bs800/ckpt/model_step_15000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_wwm_span_noitm_train1.5w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_wwm_span_noitm_train1.5w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2639,10 +2725,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_emocls_span_noitm_lr5e5_bs1024/ckpt/model_step_20000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_emocls_span_noitm_train1.5w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_emocls_span_noitm_train1.5w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2664,10 +2750,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3-opensubp1234random_uniter3m_speechwav2vec_5tasks_wwm_span_noitm_lr5e5_bs512/ckpt/model_step_40000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-opensubp1234random-base-uniter3m_speechwav2vec_5tasks_wwm_span_noitm_train4w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-opensubp1234random-base-uniter3m_speechwav2vec_5tasks_wwm_span_noitm_train4w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2689,10 +2775,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3-opensubp1234emowords_uniter3m_speechwav2vec_5tasks_wwm_span_noitm_lr5e5_bs512/ckpt/model_step_40000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-opensubp1234emowords-base-uniter3m_speechwav2vec_5tasks_wwm_span_noitm_train4w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-opensubp1234emowords-base-uniter3m_speechwav2vec_5tasks_wwm_span_noitm_train4w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2714,10 +2800,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_vfom_lr5e5_bs800/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_vfom_train3w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_vfom_train3w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2739,10 +2825,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_vfom_noitm_lr5e5_bs800/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_vfom_noitm_train3w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_vfom_noitm_train3w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2764,10 +2850,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speech_text_3tasks_sfom_lr5e5_bs800/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_speech_text_3tasks_sfom_train3w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_speech_text_3tasks_sfom_train3w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2789,10 +2875,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speech_text_3tasks_sfom_noitm_lr5e5_bs800/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_speech_text_3tasks_sfom_noitm_train3w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_speech_text_3tasks_sfom_noitm_train3w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2814,10 +2900,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speech_visual_text_5tasks_vfom_sfom_lr5e5_bs800/ckpt/model_step_40000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_speech_visual_text_5tasks_vfom_sfom_train4w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_speech_visual_text_5tasks_vfom_sfom_train4w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2839,10 +2925,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speech_visual_text_5tasks_vfom_sfom_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_speech_visual_text_5tasks_vfom_sfom_noitm_train4w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_speech_visual_text_5tasks_vfom_sfom_noitm_train4w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2864,10 +2950,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_emocls_noitm_lr5e5_bs800/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_emocls_noitm_train3w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_emocls_noitm_train3w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2889,10 +2975,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_emocls_nomrfrmrcklitm_lr5e5_bs800/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_emocls_nomrfrmrcklitm_train3w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_emocls_nomrfrmrcklitm_train3w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2914,10 +3000,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_emocls_nomrfrmrckl_lr5e5_bs800/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_emocls_nomrfrmrckl_train3w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_emocls_nomrfrmrckl_train3w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2940,10 +3026,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_trans1_span_noitm_lr5e5_bs800/ckpt/model_step_15000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 216 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 216 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_trans1_span_noitm_train1.5w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_trans1_span_noitm_train1.5w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2965,10 +3051,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_trans2_span_noitm_lr5e5_bs800/ckpt/model_step_15000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 300 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 300 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_trans2_span_noitm_train1.5w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_trans2_span_noitm_train1.5w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -2991,10 +3077,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_wwm_emocls_noitm_lr5e5_bs800/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_wwm_emocls_noitm_train3w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_wwm_emocls_noitm_train3w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -3016,10 +3102,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_text_4tasks_wwm_span_emocls_noitm_lr5e5_bs800/ckpt/model_step_30000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_wwm_span_emocls_noitm_train3w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_visual_text_4tasks_wwm_span_emocls_noitm_train3w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -3041,10 +3127,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_speech_visual_text_5tasks_add_la_lv_vstype2_lr5e5_bs1024/ckpt/model_step_40000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_speech_visual_text_5tasks_add_la_lv_train4w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_speech_visual_text_5tasks_add_la_lv_train4w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -3066,10 +3152,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_speech_visual_text_5tasks_add_la_lv_noitm_vstype2_lr5e5_bs1024/ckpt/model_step_40000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_speech_visual_text_5tasks_add_la_lv_noitm_train4w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_speech_visual_text_5tasks_add_la_lv_noitm_train4w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -3091,10 +3177,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_speech_visual_text_5tasks_add_la_lv_emocls_noitm_vstype2_lr5e5_bs1024/ckpt/model_step_40000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_speech_visual_text_5tasks_add_la_lv_emocls_noitm_train4w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_speech_visual_text_5tasks_add_la_lv_emocls_noitm_train4w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -3116,10 +3202,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_speech_visual_text_5tasks_wwm_span_add_la_lv_noitm_vstype2_lr5e5_bs1024/ckpt/model_step_40000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_speech_visual_text_5tasks_wwm_span_add_la_lv_noitm_train4w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_speech_visual_text_5tasks_wwm_span_add_la_lv_noitm_train4w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -3141,10 +3227,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_speech_visual_text_5tasks_wwm_span_add_la_lv_emocls_noitm_vstype2_lr5e5_bs1024/ckpt/model_step_40000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_speech_visual_text_5tasks_wwm_span_add_la_lv_emocls_noitm_train4w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_speech_visual_text_5tasks_wwm_span_add_la_lv_emocls_noitm_train4w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -3166,10 +3252,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_speechcomparE_visual_text_5tasks_vstype2_lr5e5_bs1024/ckpt/model_step_40000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 130 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 130 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_speechcomparE_selfnorm_visual_text_5tasks_train4w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_speechcomparE_selfnorm_visual_text_5tasks_train4w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -3191,10 +3277,10 @@ corpus_name='iemocap'
 #                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_speechcomparE_visual_text_5tasks_vstype2_lr5e5_bs1024/ckpt/model_step_40000.pt \
 #                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
 #                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-#                 --IMG_DIM 342 --Speech_DIM 130 \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 130 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/IEMOCAP/finetune/nomask-movies-v1v2v3-base-uniter3m_speechcomparE_movienorm_visual_text_5tasks_train4w-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_speechcomparE_movienorm_visual_text_5tasks_train4w-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 

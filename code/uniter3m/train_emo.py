@@ -74,13 +74,14 @@ def main(opts):
         pbar = NoOp()
         model_saver = NoOp()
 
-    LOGGER.info("Loading Train Dataset {} {}".format(opts.train_txt_dbs, opts.train_img_dbs,
+    LOGGER.info("Loading Train Dataset {} {} {}".format(opts.train_txt_dbs, opts.train_img_dbs,
                                                         opts.train_speech_dbs))
     if opts.use_visual:
         train_all_img_dbs = ImageLmdbGroup(compress=opts.compressed_db)
     if opts.use_speech:
         train_speech_dbs = SpeechLmdbGroup(compress=opts.compressed_db)
     train_datasets = []
+    assert len(opts.train_txt_dbs) == len(opts.train_img_dbs) == len(opts.train_speech_dbs)
     for txt_path, img_path, speech_path in zip(opts.train_txt_dbs, opts.train_img_dbs, opts.train_speech_dbs):
         txt_path = txt_path.format(opts.cvNo)
         txt_db = TxtTokLmdb(txt_path, opts.max_txt_len)
@@ -92,8 +93,10 @@ def main(opts):
             speech_db = train_speech_dbs[speech_path]
         else:
             speech_db = None
-        print(type(txt_db), type(img_db), type(speech_path))
+        LOGGER.info(type(txt_db), type(img_db), type(speech_db))
+        LOGGER.info('current {} have valid samples {}'.format(txt_path, len(txt_db.id2len)))
         train_datasets.append(EmoClsDataset(txt_db, img_db, speech_db, use_text=opts.use_text, use_emolare=opts.use_emolare))
+
     train_dataset = ConcatDataset(train_datasets)
 
     LOGGER.info("Loading no image_data_augmentation for validation and testing")
@@ -319,7 +322,7 @@ if __name__ == "__main__":
     parser.add_argument('--postfix', required=True, default='None',
                         help='postfix for the output dir')
     # Prepro parameters
-    parser.add_argument('--max_txt_len', type=int, default=60,
+    parser.add_argument('--max_txt_len', type=int, default=120,
                         help='max number of tokens in text (BERT BPE)')
     parser.add_argument('--conf_th', type=float, default=0.2,
                         help='threshold for dynamic bounding boxes '

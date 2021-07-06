@@ -39,9 +39,13 @@
         "/data7/emobert/exp/evaluation/MSP/txt_db/{}/tst_emowords_sentiword.db"
     ],
     "train_img_dbs": [
+        "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/feat_th0.0_max36_min10",
+        "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/feat_th0.0_max36_min10",
         "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/feat_th0.0_max36_min10"
     ],
     "train_speech_dbs": [
+        "/data7/MEmoBert/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10",
+        "/data7/MEmoBert/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10",
         "/data7/MEmoBert/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10"
     ],
     "val_txt_db": "/data7/emobert/exp/evaluation/MSP/txt_db/{}/tst_emowords_sentiword.db",
