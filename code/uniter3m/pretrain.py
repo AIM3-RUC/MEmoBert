@@ -396,7 +396,7 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
                 speech_db = None
         else:
             if dset.get('img') is not None and opts.use_visual:
-                assert len(dset['db']) == len(dset['img']) == 1
+                assert len(dset['db']) == len(dset['img'])
                 img_db = all_img_dbs[dset['img'][0]]
             else:
                 img_db = None
