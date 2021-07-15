@@ -93,7 +93,6 @@ def main(opts):
             speech_db = train_speech_dbs[speech_path]
         else:
             speech_db = None
-        LOGGER.info(type(txt_db), type(img_db), type(speech_db))
         LOGGER.info('current {} have valid samples {}'.format(txt_path, len(txt_db.id2len)))
         train_datasets.append(EmoClsDataset(txt_db, img_db, speech_db, use_text=opts.use_text, use_emolare=opts.use_emolare))
 
@@ -138,8 +137,14 @@ def main(opts):
     if opts.checkpoint:
         LOGGER.info('[Info] Loading from pretrained model {}'.format(opts.checkpoint))
         checkpoint = torch.load(opts.checkpoint)
+        bert_part_checkpoint = {}
+        for k, v in checkpoint.items():
+            if k.startswith('output'):
+                pass
+            else:
+                bert_part_checkpoint[k] = v
     else:
-        checkpoint = {}
+        bert_part_checkpoint = {}
 
     model = UniterForEmoRecognition.from_pretrained(opts.model_config, state_dict=checkpoint, \
                             img_dim=IMG_DIM, speech_dim=Speech_DIM, \
@@ -148,6 +153,7 @@ def main(opts):
                             frozen_en_layers=opts.frozen_en_layers, \
                             cls_dropout=opts.cls_dropout, cls_type=opts.cls_type, \
                             use_emolare=opts.use_emolare)
+    
     model.to(device)
     # make sure every process has same model parameters in the beginning
     broadcast_tensors([p.data for p in model.parameters()], 0)

@@ -455,13 +455,13 @@ if __name__ == '__main__':
 
 
     ### for half the downstream data on trn and val set for iemocap
-    for cvNo in range(1, 13):
+    for cvNo in range(1, 11):
         for setname in ['trn', 'val']:
             print(f'cur cvNo {cvNo} setnemt {setname}')
-            txt_db_dir = f'/data7/emobert/exp/evaluation/MSP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls.db'
-            output_txt_db_dir = f'/data7/emobert/exp/evaluation/MSP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls_half1.db'
+            txt_db_dir = f'/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls.db'
+            output_txt_db_dir = f'/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls_half1.db'
             get_half_data(txt_db_dir, output_txt_db_dir, use_half1=True)
-            output_txt_db_dir = f'/data7/emobert/exp/evaluation/MSP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls_half2.db'
+            output_txt_db_dir = f'/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls_half2.db'
             get_half_data(txt_db_dir, output_txt_db_dir, use_half1=False)
 
     # if True:
