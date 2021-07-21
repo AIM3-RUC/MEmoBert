@@ -1,6 +1,6 @@
 {
-    "output_dir": "/data7/emobert/exp/pretrain/tasks/xx",
-    "model_config": "config/xxx",
+    "output_dir": "/data7/emobert/exp/pretrain/tasks/xxx",
+    "model_config": "config/uniter-base.json",
     "checkpoint": "/data7/emobert/exp/pretrain/xxx",
     "mrm_prob": 0.15,
     "itm_neg_prob": 0.5,
@@ -34,7 +34,7 @@
         {
             "name": "msp_trn",
             "db": [
-                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/trn_emowords_sentiword.db"
+                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/trn_emowords_sentiword_emocls.db"
             ],
             "img": [
                 "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/"
@@ -43,14 +43,16 @@
                 "/data7/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/"
             ],
             "tasks": [
-                "itm",
                 "mlm",
+                "msrfr",
                 "mrfr",
-                "mrckl"     
+                "mrckl",     
+                "emocls"     
             ],
             "mix_ratio": [
-                2,
-                2,
+                1,
+                1,
+                1,
                 1,
                 1
             ]
@@ -58,7 +60,7 @@
         {
             "name": "msp_trnval",
             "db": [
-                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/val_emowords_sentiword.db"
+                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/val_emowords_sentiword_emocls.db"
             ],
             "img": [
                 "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/"
@@ -67,14 +69,16 @@
                 "/data7/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/"
             ],
             "tasks": [
-                "itm",
                 "mlm",
+                "msrfr",
                 "mrfr",
-                "mrckl"     
+                "mrckl",
+                "emocls"     
             ],
             "mix_ratio": [
-                2,
-                2,
+                1,
+                1,
+                1,
                 1,
                 1
             ]
@@ -84,7 +88,7 @@
         {
             "name": "msp_val",
             "db": [
-                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/val_emowords_sentiword.db"
+                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/val_emowords_sentiword_emocls.db"
             ],
             "img": [
                 "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/"
@@ -93,16 +97,17 @@
                 "/data7/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/"
             ],
             "tasks": [
-                "itm",
                 "mlm",
+                "msrfr",
                 "mrfr",
-                "mrckl"             
+                "mrckl",             
+                "emocls"             
             ]
         },
         {
             "name": "msp_tst",
             "db": [
-                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/tst_emowords_sentiword.db"
+                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/tst_emowords_sentiword_emocls.db"
             ],
             "img": [
                 "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/"
@@ -111,10 +116,11 @@
                 "/data7/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/"
             ],
             "tasks": [
-                "itm",
                 "mlm",
+                "msrfr",
                 "mrfr",
-                "mrckl"           
+                "mrckl",
+                "emocls"           
             ]
         }
     ]

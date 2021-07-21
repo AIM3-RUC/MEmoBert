@@ -43,15 +43,13 @@
                 "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_db_3mean/"
             ],
             "tasks": [
-                "itm",
                 "mlm",
-                "melm",
+                "msrfr",
                 "mrfr",
                 "mrckl",     
                 "emocls"     
             ],
             "mix_ratio": [
-                2,
                 1,
                 1,
                 1,
@@ -71,15 +69,13 @@
                 "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_db_3mean/"
             ],
             "tasks": [
-                "itm",
                 "mlm",
-                "melm",
+                "msrfr",
                 "mrfr",
                 "mrckl",
                 "emocls"     
             ],
             "mix_ratio": [
-                2,
                 1,
                 1,
                 1,
@@ -101,9 +97,8 @@
                 "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_db_3mean/"
             ],
             "tasks": [
-                "itm",
                 "mlm",
-                "melm",
+                "msrfr",
                 "mrfr",
                 "mrckl",             
                 "emocls"             
@@ -121,9 +116,8 @@
                 "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_db_3mean/"
             ],
             "tasks": [
-                "itm",
                 "mlm",
-                "melm",
+                "msrfr",
                 "mrfr",
                 "mrckl",
                 "emocls"           

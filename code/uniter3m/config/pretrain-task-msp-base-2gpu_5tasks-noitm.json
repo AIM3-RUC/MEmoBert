@@ -32,49 +32,49 @@
     "pin_mem": true,
     "train_datasets": [
         {
-            "name": "iemocap_trn",
+            "name": "msp_trn",
             "db": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/trn_emowords_sentiword.db"
+                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/trn_emowords_sentiword_emocls.db"
             ],
             "img": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/"
+                "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/"
             ],
             "speech": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_db_3mean/"
+                "/data7/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/"
             ],
             "tasks": [
-                "itm",
                 "mlm",
+                "msrfr",
                 "mrfr",
-                "mrckl"     
+                "mrckl"   
             ],
             "mix_ratio": [
-                2,
-                2,
+                1,
+                1,
                 1,
                 1
             ]
         },
         {
-            "name": "iemocap_trnval",
+            "name": "msp_trnval",
             "db": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val_emowords_sentiword.db"
+                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/val_emowords_sentiword_emocls.db"
             ],
             "img": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/"
+                "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/"
             ],
             "speech": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_db_3mean/"
+                "/data7/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/"
             ],
             "tasks": [
-                "itm",
                 "mlm",
+                "msrfr",
                 "mrfr",
-                "mrckl"     
+                "mrckl"    
             ],
             "mix_ratio": [
-                2,
-                2,
+                1,
+                1,
                 1,
                 1
             ]
@@ -82,39 +82,39 @@
     ],
     "val_datasets": [
         {
-            "name": "iemocap_val",
+            "name": "msp_val",
             "db": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val_emowords_sentiword.db"
+                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/val_emowords_sentiword_emocls.db"
             ],
             "img": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/"
+                "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/"
             ],
             "speech": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_db_3mean/"
+                "/data7/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/"
             ],
             "tasks": [
-                "itm",
                 "mlm",
+                "msrfr",
                 "mrfr",
                 "mrckl"             
             ]
         },
         {
-            "name": "iemocap_tst",
+            "name": "msp_tst",
             "db": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst_emowords_sentiword.db"
+                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/tst_emowords_sentiword_emocls.db"
             ],
             "img": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/"
+                "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/"
             ],
             "speech": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_db_3mean/"
+                "/data7/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/"
             ],
             "tasks": [
-                "itm",
                 "mlm",
+                "msrfr",
                 "mrfr",
-                "mrckl"           
+                "mrckl"          
             ]
         }
     ]
