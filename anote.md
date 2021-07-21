@@ -347,6 +347,33 @@ f_config 对应 cross-transformer, 6层，但是采用 robota base 中的6层作
 wav2vec2.0 CNN 的输出。 以及 densenet2.0 中间层的输出。
 
 
+## Explore different ITM tasks
+目前的ITM任务是以文本最强的模态作为anchor, 然后随机选其他样本的 视觉和语音 作为负例。
+1. 存在的问题是视觉和语音作为一个整体出现的，
+2. 还是相当于跨模态的对比，没有用到融合/协同的方法。
+
+### Method1: 分解构建负面例子的时候替换其中的一个或者多个模态是构建负面例子. --Done
+Case1: 随机替换其中的语音模态
+Case2: 随机替换其中的视觉模态
+Case3: 随机替换其中的语音和视觉模态
+Case4: 随机替换其中的文本模态 -- 也就是文本和语音不同跟Case3是一样的。
+code/uniter3m/data/onemodalnegitm.py
+
+### Method2: Contrastive+HardNegative . --Going
+目前的做法是 每个正面例子构建150个负例(由batch-szie大小决定)
+
+
+## Contrastive Learning For multimodal Fusion --Going
+参考构建更加challenging负例进行
+P4Contrast: Contrastive Learning with Pairs of Point-Pixel Pairs for RGB-D Scene Understanding.
+Contrastive Multimodal Fusion with TupleInfoNCE. 2021
+目前的ITM任务是 Cross-modality 的预训练任务，只要用于模态检索。
+构建Contrastive Learning, 参考并对比 hard-negative itm.
+
+
+## EmoWords 也可以再加进来试试，但是EmoWords说到底还是再文本段进行增强，但是文本模态已经很强了。
+
+
 ## <分析1> 加入 EmoCls 任务会带来性能的下降？（EmoCls任务探究 Sheet）
 根据实验结果进行总结，在什么情况下文本的EmoCls会带来提升？ 在什么情况下会带来下降？
 ---- 感觉EmoCls任务和某些预训练任务会产生冲突。
@@ -360,20 +387,23 @@ Note: 问题的原因可能不在EmoCls，可能在三个模态融合的时候�
 ## <分析2.2> 在纯语音端的加强（单模态输入加强 Sheet）
 将 VoxCeleb2 的语音和文本输入加入训练.
 
-
 ## <分析3> 三个模态和两个模态同时使用需要注意什么，很多两个模态work的结论，放到三个模态的情况下反而不work.  --Going
 一些其他的方法在 LA LV 中work，但是在 AVL 中就不work.
 在 AVL 三个模态的情况下, 构建 LA 和 LV 模态输入模型的情况.
+
 
 ## <分析4> 多模态效果的Upper-Bound 在哪？ -- Done.
 将测试集合加入训练，然后看看在测试集合上的效果。 基本都能到100%.
 添加 inference-emo 阶段的代码，加载模型直接测试，不用再训练了，也方便进行half-set或者部分缺失模态的测评。
 训练的时候同时使用 trn + val + tst 进行训练，为啥差异会这么大，数据集合并部分代码有问题？[Bug]
 果然是，训练的时候只用到了训练集合的数据，并没有用到验证集的数据。
-配置文件中的必须要     assert len(opts.train_txt_dbs) == len(opts.train_img_dbs) == len(opts.train_speech_dbs)
+配置文件中的必须要 assert len(opts.train_txt_dbs) == len(opts.train_img_dbs) == len(opts.train_speech_dbs)
 否则会zip函数会根据长度短的列表进行对齐，会导致数据缺失.
-训练的时候必须要 max_txt_len，否则最大长度就是30，损失好多数据呢。
+训练的时候必须要 max_txt_len，否则最大长度就是30，损失好多数据呢 [Bug], 目前都修改了最大长度是 120.
+
+## <分析4.1> 纯文本的Upper-Bound 在哪？ -- Going.
 
 
-## <分析5> ITM 任务到底需要不需要？
-经过一些实验发现，ITM任务去掉，效果反而更好。。
+
+## <分析5> ITM 任务到底需要不需要？ --Done
+经过一些实验发现，ITM任务去掉，效果反而更好。 直接去掉吧，基本没啥影响。

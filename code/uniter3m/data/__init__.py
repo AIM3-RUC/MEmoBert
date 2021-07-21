@@ -21,3 +21,4 @@ from .mspansrm import MSpansrfrDataset, mspansrfr_collate
 from .mlm_wwm import MlmWWMDataset, mlm_wwm_collate
 from .vfom import VFOMDataset, vfom_collate
 from .sfom import SFOMDataset, sfom_collate
+from .onemodalnegitm import OneModalNegItmDataset, onemodal_negitm_collate

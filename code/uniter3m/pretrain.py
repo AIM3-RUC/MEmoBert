@@ -33,6 +33,7 @@ from code.uniter3m.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   EmoClsDataset, emocls_collate,
                   EmoLareDataset, emolare_collate,
                   EItmDataset, eitm_collate,
+                  OneModalNegItmDataset, onemodal_negitm_collate,
                   MerfrDataset, MercDataset,
                   MSpanrfrDataset, mspanrfr_collate, MSpanrcDataset, mspanrc_collate,
                   MSpansrfrDataset, mspansrfr_collate,
@@ -336,6 +337,18 @@ def build_itm_dataset(txt_db, img_db, speech_db, is_train, opts):
     collate_fn = itm_collate
     return dataset, collate_fn
 
+def build_onemodalnegitm_dataset(txt_db, img_db, speech_db, is_train, opts):
+    if is_train:
+        if img_db is not None and speech_db is not None:
+            datasets = [OneModalNegItmDataset(t, i, s, opts.itm_neg_prob, opts.itm_neg_img_prob) for t, i, s in zip(txt_db, img_db, speech_db)]
+        else:
+            LOGGER.info('[Error] Error itm datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = OneModalNegItmDataset(txt_db, img_db, speech_db, opts.itm_neg_prob, opts.itm_neg_img_prob)
+    collate_fn = onemodal_negitm_collate
+    return dataset, collate_fn
+
 def build_vtm_dataset(txt_db, img_db, is_train, opts):
     # only consider the visual and txt matching
     if is_train:
@@ -456,11 +469,13 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
                 dataset = build_eitm_dataset(txt_db, img_db, speech_db, emo2img_fname_path, is_train, opts)
             elif task.startswith('emolare'):
                 dataset = build_emolare_dataset(txt_db, img_db, speech_db, is_train, opts)
+            elif task.startswith('onemodalnegitm'):
+                dataset = build_onemodalnegitm_dataset(txt_db, img_db, speech_db, is_train, opts)
             else:
                 raise ValueError(f'Undefined task {task}')
 
             LOGGER.info(f"{len(dataset[0])*hvd.size()} samples loaded")
-            if task.startswith('itm'):
+            if task.startswith('itm') or task.startswith('onemodalnegitm'):
                 # itm handles distributed training in dset not sampler
                 loader = build_dataloader_itm(*dataset, is_train, opts)
             elif task.startswith('vtm'):
@@ -700,6 +715,8 @@ def validate(model, val_dataloaders):
         elif task.startswith('itm'):
             val_log = validate_itm(model, loader, task)
         elif task.startswith('eitm'):
+            val_log = validate_itm(model, loader, task)
+        elif task.startswith('onemodalnegitm'):
             val_log = validate_itm(model, loader, task)
         elif task.startswith('vtm') and args.use_visual:
             val_log = validate_itm(model, loader, task)
@@ -1124,6 +1141,8 @@ def validate_itm(model, val_loader, task):
             scores = model(batch, task='vtm', compute_loss=False)
         elif task.startswith('stm'):
             scores = model(batch, task='stm', compute_loss=False)
+        elif task.startswith('onemodalnegitm'):
+            scores = model(batch, task='onemodalnegitm', compute_loss=False)
         else:
             LOGGER.info(f'[Error in valid_itm] Error task name {task}')
         targets = batch['targets']
@@ -1177,6 +1196,9 @@ if __name__ == "__main__":
                         help='probability to mask in MRM training')
     parser.add_argument('--itm_neg_prob', default=0.5, type=float,
                         help='probability to make negative examples'
+                             'in ITM training')
+    parser.add_argument('--itm_neg_img_prob', default=0.5, type=float,
+                        help='probability to instead img modality as negative examples'
                              'in ITM training')
     parser.add_argument('--itm_ot_lambda', default=0.0, type=float,
                         help='weight of OT (optimal transport) loss (WRA)')

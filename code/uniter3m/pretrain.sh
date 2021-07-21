@@ -38,6 +38,7 @@ export PYTHONPATH=/data7/MEmoBert
 #         --num_train_steps 30000 --warmup_steps 3000 --valid_steps 5000 \
 #         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_visual_speech_text_5tasks_noitm_lr5e5_bs800
 
+
 ## case1: visual + text running on gpu0
 # CUDA_VISIBLE_DEVICES=0 horovodrun -np 1 python pretrain.py \
 #         --cvNo 0 --n_workers 4  --use_visual  \
