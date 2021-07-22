@@ -62,3 +62,22 @@ export PYTHONPATH=/data7/MEmoBert
 #                 --include_path /data7/emobert/txt_db/voxceleb2_v1_th1.0_wwm_all_trn.db/img2txts.json \
 #                 --toker bert-base-uncased  --dataset_name voxceleb2_v1_all_trn3k \
 #                 --num_samples 3000 
+
+
+# for iemocap
+# for i in `seq 3 10`; do
+#   for setname in val tst trn; do
+#     python mk_txtdb_by_names_wwm.py --input /data7/emobert/exp/evaluation/IEMOCAP/refs/${i}/${setname}_ref.json \
+#                     --output /data7/emobert/exp/evaluation/IEMOCAP/txt_db/${i}/${setname}_wwm.db \
+#                     --toker bert-base-uncased  --dataset_name iemocap_${setname} 
+#   done
+# done
+
+# ### for msp
+# for i in `seq 1 12`; do
+#   for setname in val tst trn; do
+#     python mk_txtdb_by_names_wwm.py --input /data7/emobert/exp/evaluation/MSP/refs/${i}/${setname}_ref.json \
+#                     --output /data7/emobert/exp/evaluation/MSP/txt_db/${i}/${setname}_wwm.db \
+#                     --toker bert-base-uncased  --dataset_name msp_${setname} 
+#   done
+# done

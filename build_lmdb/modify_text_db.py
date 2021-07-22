@@ -344,8 +344,8 @@ def get_weak_lable_list(corpus_name):
 
 def modify_emotype_downstream(corpus_name, cvNo, setname):
     # target 关键词是留给下游任务的真实标注的。
-    txt_db_dir = f'/data7/emobert/exp/evaluation/{corpus_name.upper()}/txt_db/{cvNo}/{setname}_emowords_sentiword.db'
-    txt_db_dir_new = f'/data7/emobert/exp/evaluation/{corpus_name.upper()}/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls.db'
+    txt_db_dir = f'/data7/emobert/exp/evaluation/{corpus_name.upper()}/txt_db/{cvNo}/{setname}_wwm.db'
+    txt_db_dir_new = f'/data7/emobert/exp/evaluation/{corpus_name.upper()}/txt_db/{cvNo}/{setname}_wwm_emocls.db'
     shutil.copytree(txt_db_dir, txt_db_dir_new)
     text2img_path = os.path.join(txt_db_dir, 'txt2img.json')
     txn = read_txt_db(txt_db_dir)
@@ -364,6 +364,7 @@ def modify_emotype_downstream(corpus_name, cvNo, setname):
             example['soft_labels'] = np.array(pred)
             example['logits'] = np.array(logits)
             db[textId] = example
+    os.system(f'cp {txt_db_dir}/*.json {txt_db_dir_new}/')
 
 def modify_emotype_vox(setname):
     txt_db_dir = f'/data7/emobert/txt_db/voxceleb2_v1_th1.0_emowords_sentiword_all_{setname}.db/'
@@ -446,23 +447,22 @@ if __name__ == '__main__':
     #         get_high_quality_data(txt_db_dir, output_txt_db_dir_short, max_len=3, save_long=False)
 
     ## for iemocap or msp data
-    # corpus_name = 'msp'
+    # corpus_name = 'iemocap'
     # imgId2target = get_weak_lable_list(corpus_name)
-    # for cvNo in range(1, 13):
+    # for cvNo in range(1, 11):
     #     for setname in ['trn', 'tst', 'val']:
     #         print(f'current cv {cvNo} and set {setname}')
     #         modify_emotype_downstream(corpus_name, cvNo, setname)
 
-
     ### for half the downstream data on trn and val set for iemocap
-    for cvNo in range(1, 11):
-        for setname in ['trn', 'val']:
-            print(f'cur cvNo {cvNo} setnemt {setname}')
-            txt_db_dir = f'/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls.db'
-            output_txt_db_dir = f'/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls_half1.db'
-            get_half_data(txt_db_dir, output_txt_db_dir, use_half1=True)
-            output_txt_db_dir = f'/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls_half2.db'
-            get_half_data(txt_db_dir, output_txt_db_dir, use_half1=False)
+    # for cvNo in range(1, 11):
+    #     for setname in ['trn', 'val']:
+    #         print(f'cur cvNo {cvNo} setnemt {setname}')
+    #         txt_db_dir = f'/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls.db'
+    #         output_txt_db_dir = f'/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls_half1.db'
+    #         get_half_data(txt_db_dir, output_txt_db_dir, use_half1=True)
+    #         output_txt_db_dir = f'/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls_half2.db'
+    #         get_half_data(txt_db_dir, output_txt_db_dir, use_half1=False)
 
     # if True:
     #     for setname in ['val3k', 'trn3k', 'trn']:
