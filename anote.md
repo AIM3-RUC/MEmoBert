@@ -370,7 +370,6 @@ Contrastive Multimodal Fusion with TupleInfoNCE. 2021
 目前的ITM任务是 Cross-modality 的预训练任务，只要用于模态检索。
 构建Contrastive Learning, 参考并对比 hard-negative itm.
 
-
 ## EmoWords 也可以再加进来试试，但是EmoWords说到底还是再文本段进行增强，但是文本模态已经很强了。
 
 
@@ -401,9 +400,10 @@ Note: 问题的原因可能不在EmoCls，可能在三个模态融合的时候�
 否则会zip函数会根据长度短的列表进行对齐，会导致数据缺失.
 训练的时候必须要 max_txt_len，否则最大长度就是30，损失好多数据呢 [Bug], 目前都修改了最大长度是 120.
 
-## <分析4.1> 纯文本的Upper-Bound 在哪？ -- Going.
-
-
+## <分析4.1> 纯文本的Upper-Bound 在哪？ -- training.
+将测试集合加入训练集合训练，并进行测试，看看结果, 结果也很好，都是epoch=4/6的结果，当epoch=0的时候结果70不到。
+IEMOCAP: UA=0.95155
+MSP: UA=0.97278
 
 ## <分析5> ITM 任务到底需要不需要？ --Done
-经过一些实验发现，ITM任务去掉，效果反而更好。 直接去掉吧，基本没啥影响。
+经过一些实验发现，目前的ITM任务去掉，效果反而更好。但是应该还有改进的空间。

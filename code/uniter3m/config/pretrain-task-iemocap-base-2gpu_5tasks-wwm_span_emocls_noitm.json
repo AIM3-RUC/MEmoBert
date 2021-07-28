@@ -37,10 +37,10 @@
                 "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/trn_wwm_emocls.db"
             ],
             "img": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/"
+                "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/feat_th0.0_max36_min10"
             ],
             "speech": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_db_3mean/"
+                "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10"
             ],
             "tasks": [
                 "mlm_wwm",
@@ -63,10 +63,10 @@
                 "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val_wwm_emocls.db"
             ],
             "img": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/"
+                "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/feat_th0.0_max36_min10"
             ],
             "speech": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_db_3mean/"
+                "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10"
             ],
             "tasks": [
                 "mlm_wwm",
@@ -91,10 +91,10 @@
                 "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val_wwm_emocls.db"
             ],
             "img": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/"
+                "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/feat_th0.0_max36_min10"
             ],
             "speech": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_db_3mean/"
+                "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10"
             ],
             "tasks": [
                 "mlm_wwm",
@@ -107,13 +107,13 @@
         {
             "name": "iemocap_tst",
             "db": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst_emowords_sentiword_emocls.db"
+                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst_wwm_emocls.db"
             ],
             "img": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/"
+                "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/feat_th0.0_max36_min10"
             ],
             "speech": [
-                "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_db_3mean/"
+                "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10"
             ],
             "tasks": [
                 "mlm_wwm",

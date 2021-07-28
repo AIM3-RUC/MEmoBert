@@ -34,14 +34,14 @@ corpus_name_L='IEMOCAP'
 #     done
 # done
 
-for cvNo in `seq 1 2`
+for cvNo in `seq 1 10`
 do
-    for lr in 3e-5 5e-5
+    for lr in 2e-5 3e-5 5e-5
     do
     bert_data_dir=/data7/emobert/exp/evaluation/${corpus_name_L}/bert_data/${cvNo}
     CUDA_VISIBLE_DEVICES=${gpuid} python run_cls.py \
         --corpus_name ${corpus_name} \
-        --model_name_or_path bert-base-uncased  \
+        --model_name_or_path /data7/emobert/resources/pretrained/bert_base_uncased/  \
         --cvNo ${cvNo} \
         --train_file ${bert_data_dir}/all.csv \
         --validation_file ${bert_data_dir}/val.csv \
