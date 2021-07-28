@@ -37,8 +37,9 @@ class OneModalNegItmDataset(DetectFeatTxtTokDataset):
 
         self.neg_sample_p = neg_sample_p
         self.neg_img_p = neg_img_p
+        print(f'[Info OneModalNegItmDataset] neg_sample_p {neg_sample_p} and neg_img_p {neg_img_p}')
         self.new_epoch()
-
+    
     def new_epoch(self):
         """ should be called every epoch for more randomness
         every epoch to random this

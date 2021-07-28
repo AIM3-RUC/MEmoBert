@@ -41,10 +41,10 @@ from code.uniter3m.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   VFOMDataset, vfom_collate,
                   SFOMDataset, sfom_collate)
 from code.uniter3m.model.pretrain import UniterForPretraining
+from code.uniter3m.optim.misc import build_optimizer
 
 # from uniter
 from code.uniter.optim import get_lr_sched
-from code.uniter.optim.misc import build_optimizer
 from code.uniter.utils.const import IMG_LABEL_DIM, BUCKET_SIZE
 from code.uniter.utils.misc import NoOp, parse_with_config, set_dropout, set_random_seed
 from code.uniter.utils.distributed import (all_reduce_and_rescale_tensors, all_gather_list,

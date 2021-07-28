@@ -819,11 +819,11 @@ corpus_name_L='MSP'
 
 ################# Part9: Explore task pretrain ################################################### 
 # # # case1: task-pretrained no itm  finetune text + wav2vec + visual, fintune on AVL --task finetune
-# for lr in 2e-5 3e-5
+# for lr in 5e-5
 # do
 #         for cvNo in $(seq 1 12)
 #         do
-#         num_train_steps=1200
+#         num_train_steps=1000
 #         valid_steps=100
 #         train_batch_size=32
 #         inf_batch_size=32
@@ -844,11 +844,11 @@ corpus_name_L='MSP'
 # done
 
 # # # case2: task-pretrained no itm + emocls finetune text + wav2vec + visual, fintune on AVL --task finetune
-# for lr in 2e-5 3e-5
+# for lr in 5e-5
 # do
 #         for cvNo in $(seq 1 12)
 #         do
-#         num_train_steps=1200
+#         num_train_steps=1000
 #         valid_steps=100
 #         train_batch_size=32
 #         inf_batch_size=32
@@ -869,11 +869,11 @@ corpus_name_L='MSP'
 # done
 
 # # # case3: task-pretrained no itm + www + span + finetune text + wav2vec + visual, fintune on AVL --task finetune
-# for lr in 2e-5 3e-5
+# for lr in 5e-5
 # do
-#         for cvNo in $(seq 7 7)
+#         for cvNo in $(seq 1 12)
 #         do
-#         num_train_steps=1200
+#         num_train_steps=1000
 #         valid_steps=100
 #         train_batch_size=32
 #         inf_batch_size=32
@@ -894,29 +894,29 @@ corpus_name_L='MSP'
 # done
 
 # # # case4: task-pretrained no itm + www + span + emocls + finetune text + wav2vec + visual, fintune on AVL --task finetune
-for lr in 2e-5 3e-5
-do
-        for cvNo in $(seq 3 3)
-        do
-        num_train_steps=1200
-        valid_steps=100
-        train_batch_size=32
-        inf_batch_size=32
-        frozens=0
-        CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
-                --cvNo ${cvNo} --use_text --use_visual --use_speech  \
-                --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
-                --corpus_name ${corpus_name} --cls_num 4 \
-                --config config/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_sentiword.json \
-                --checkpoint /data7/emobert/exp/task_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_emocls_noitm-5tasks_wwm_span_emocls_noitm_trnval/${cvNo}/ckpt/model_step_2000.pt \
-                --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
-                --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
-                --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
-                --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
-                --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-                --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-taskpretrain-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_emocls_noitm-5tasks_wwm_span_emocls_noitm_trnval-lr${lr}_trnval
-        done
-done
+# for lr in 5e-5
+# do
+#         for cvNo in $(seq 1 12)
+#         do
+#         num_train_steps=1000
+#         valid_steps=100
+#         train_batch_size=32
+#         inf_batch_size=32
+#         frozens=0
+#         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
+#                 --cvNo ${cvNo} --use_text --use_visual --use_speech  \
+#                 --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#                 --corpus_name ${corpus_name} --cls_num 4 \
+#                 --config config/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_sentiword.json \
+#                 --checkpoint /data7/emobert/exp/task_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_emocls_noitm-5tasks_wwm_span_emocls_noitm_trnval/${cvNo}/ckpt/model_step_2000.pt \
+#                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
+#                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
+#                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-taskpretrain-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_emocls_noitm-5tasks_wwm_span_emocls_noitm_trnval-lr${lr}_trnval
+#         done
+# done
 
 
 # case1: text + wav2vec - finetune on gpu2
