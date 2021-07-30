@@ -62,17 +62,26 @@ export PYTHONPATH=/data7/MEmoBert
 #         --num_train_steps 25000 --warmup_steps 3000 --valid_steps 5000 \
 #         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_onemodalnegitm_neg0.9_lr5e5_bs800
 
-# HOROVOD_CACHE_CAPACITY=0 or HOROVOD_CACHE_CAPACITY>1024
 # ## case6: visual + text + speech + only onemodalnegitm + more negative samples
-CUDA_VISIBLE_DEVICES=2,3 HOROVOD_CACHE_CAPACITY=1024 horovodrun -np 2 python pretrain.py \
-        --cvNo 0 --n_workers 4 --use_visual --use_speech \
-        --itm_neg_prob 0.9 \
-        --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks_wwm_span_only_onemodalnegitm.json \
-        --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
-        --learning_rate 5e-05 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
-        --max_txt_len 50 --IMG_DIM 342 --Speech_DIM 768 \
-        --train_batch_size 150 --val_batch_size 150 \
-        --num_train_steps 25000 --warmup_steps 3000 --valid_steps 5000 \
-        --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_only_onemodalnegitm_neg0.9_lr5e5_bs800
+# CUDA_VISIBLE_DEVICES=2,3 HOROVOD_CACHE_CAPACITY=1024 horovodrun -np 2 python pretrain.py \
+#         --cvNo 0 --n_workers 4 --use_visual --use_speech \
+#         --itm_neg_prob 0.9 \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks_wwm_span_only_onemodalnegitm.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --learning_rate 5e-05 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --max_txt_len 50 --IMG_DIM 342 --Speech_DIM 768 \
+#         --train_batch_size 150 --val_batch_size 150 \
+#         --num_train_steps 25000 --warmup_steps 3000 --valid_steps 5000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_only_onemodalnegitm_neg0.9_lr5e5_bs800
 
-# ## case7: visual + text + speech + only onemodalnegitm + more negative samples
+# ## case5: visual + text + speech + itm + hard-negative
+# CUDA_VISIBLE_DEVICES=4,5 HOROVOD_CACHE_CAPACITY=1024 horovodrun -np 2 python pretrain.py \
+#         --cvNo 0 --n_workers 4 --use_visual --use_speech \
+#         --itm_neg_samples 150 \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks_wwm_span_onemodalnegitm.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --learning_rate 5e-05 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --max_txt_len 50 --IMG_DIM 342 --Speech_DIM 768 \
+#         --train_batch_size 150 --val_batch_size 150 \
+#         --num_train_steps 25000 --warmup_steps 3000 --valid_steps 5000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_onemodalnegitm_neg0.9_lr5e5_bs800

@@ -1,5 +1,6 @@
 export PYTHONPATH=/data7/MEmoBert
 
+# HOROVOD_CACHE_CAPACITY=0 or HOROVOD_CACHE_CAPACITY>1024
 
 ################# Part4: Explore the ITM task ################################################### 
 ## case1: visual + text - itm

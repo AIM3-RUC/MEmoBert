@@ -1200,6 +1200,8 @@ if __name__ == "__main__":
     parser.add_argument('--itm_neg_img_prob', default=0.5, type=float,
                         help='probability to instead img modality as negative examples'
                              'in ITM training')
+    parser.add_argument('--itm_neg_samples', default=150, type=int,
+                        help='batch negative examples ITM training')
     parser.add_argument('--itm_ot_lambda', default=0.0, type=float,
                         help='weight of OT (optimal transport) loss (WRA)')
     parser.add_argument('--msrm_prob', default=0.15, type=float,
