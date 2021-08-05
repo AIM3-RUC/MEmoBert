@@ -114,13 +114,19 @@ class MSpansrfrDataset(DetectFeatTxtTokDataset):
         """
         example = super().__getitem__(i)
 
-        # text input
-        input_ids = example['input_ids']
-        if isinstance(input_ids[0], list):
-            input_ids = [y for x in input_ids for y in x]
-        input_ids = self.txt_db.combine_inputs(input_ids)
-        attn_masks = torch.ones(len(input_ids), dtype=torch.long)
+        if self.no_text:
+            # 只保留cls分类位置.
+            # print('[Debug in MSpansrfrDataset] no text info!!!')
+            input_ids = [self.txt_db.cls_]
+            input_ids = torch.tensor(input_ids)
+        else:
+            # text input
+            input_ids = example['input_ids']
+            if isinstance(input_ids[0], list):
+                input_ids = [y for x in input_ids for y in x]
+            input_ids = self.txt_db.combine_inputs(input_ids)
 
+        attn_masks = torch.ones(len(input_ids), dtype=torch.long)
         speech_feat, num_frame = self._get_speech_feat(example['img_fname'])
         speech_attn_masks = torch.ones(num_frame, dtype=torch.long)
 

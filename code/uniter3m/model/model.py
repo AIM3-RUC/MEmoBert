@@ -376,13 +376,10 @@ class UniterImageEmbeddings(nn.Module):
 
         if shuffled_orders is not None:
             # logger.info(['[Debug in UniterImageEmbeddings] using shuffled_orders'])
-            shuffled_orders_expanded = shuffled_orders.unsqueeze(-1).expand_as(
-                embeddings)
+            shuffled_orders_expanded = shuffled_orders.unsqueeze(-1).expand_as(embeddings)
             v_feats_shuffled = torch.zeros_like(embeddings, dtype=embeddings.dtype,
                                                                 device=embeddings.device)
-            embeddings = v_feats_shuffled.scatter_(
-                1, shuffled_orders_expanded, embeddings)
-
+            embeddings = v_feats_shuffled.scatter_(1, shuffled_orders_expanded, embeddings)
         return embeddings
 
 class UniterSpeechEmbeddings(nn.Module):

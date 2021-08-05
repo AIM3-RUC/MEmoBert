@@ -302,6 +302,52 @@ def build_mspanrc_dataset(txt_db, img_db, speech_db, is_train, opts):
 
     return dataset, mspanrc_collate
 
+def build_mspansrfrnotext_dataset(txt_db, img_db, speech_db, is_train, opts):
+    assert speech_db != None
+    if is_train:
+        if img_db is not None:
+            datasets = [MSpansrfrDataset(opts.mask_speech_consecutive, t, i, s, no_text=True) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif img_db is None:
+            datasets = [MSpansrfrDataset(opts.mask_speech_consecutive, t, None, s, no_text=True) for t, s in zip(txt_db, speech_db)]
+        else:
+            LOGGER.info('[Error] Error mspansrfrnotext datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = MSpansrfrDataset(opts.mask_speech_consecutive, txt_db, img_db, speech_db, no_text=True)
+
+    return dataset, mspansrfr_collate
+
+def build_mspanrcnotext_dataset(txt_db, img_db, speech_db, is_train, opts):
+    assert img_db != None
+    if is_train:
+        if speech_db is not None:
+            datasets = [MSpanrcDataset(opts.mask_visual_consecutive, t, i, s, no_text=True) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif speech_db is None:
+            datasets = [MSpanrcDataset(opts.mask_visual_consecutive, t, i, None, no_text=True) for t, i in zip(txt_db, img_db)]
+        else:
+            LOGGER.info('[Error] Error mspanrcklnotext datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = MSpanrcDataset(opts.mask_visual_consecutive, txt_db, img_db, speech_db, no_text=True)
+    return dataset, mspanrc_collate
+
+def build_mspanrfrnotext_dataset(txt_db, img_db, speech_db, is_train, opts):
+    # use the mrfr collection function
+    # 提供 textdb 只是为了获取 cls 的信息
+    assert img_db != None
+    if is_train:
+        if speech_db is not None:
+            LOGGER.info('[Info] only both speech and img modaity')
+            datasets = [MSpanrfrDataset(opts.mask_visual_consecutive, t, i, s, no_text=True) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif speech_db is None:
+            datasets = [MSpanrfrDataset(opts.mask_visual_consecutive, t, i, None, no_text=True) for t, i in zip(txt_db, img_db)]
+        else:
+            LOGGER.info('[Error] Error mspanrfrnotext datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = MSpanrfrDataset(opts.mask_visual_consecutive, txt_db, img_db, speech_db, no_text=True)
+    return dataset, mspanrfr_collate
+    
 def build_emocls_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:
         if img_db is not None and speech_db is not None:
@@ -449,6 +495,12 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
                 dataset = build_vfom_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('sfom'):
                 dataset = build_sfom_dataset(txt_db, img_db, speech_db, is_train, opts)
+            elif task.startswith('mspanrfrnotext'):
+                dataset = build_mspanrfrnotext_dataset(txt_db, img_db, speech_db, is_train, opts)
+            elif task.startswith('mspanrcklnotext'):
+                dataset = build_mspanrcnotext_dataset(txt_db, img_db, speech_db, is_train, opts)
+            elif task.startswith('mspansrfrnotext'):
+                dataset = build_mspansrfrnotext_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('mspanrfr'):
                 dataset = build_mspanrfr_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('mspanrc'):
@@ -695,6 +747,7 @@ def validate(model, val_dataloaders):
         elif task.startswith('merfr') and args.use_visual:
             val_log = validate_mrfr(model, loader, task)
         elif task.startswith('mspanrfr') and args.use_visual:
+            # LOGGER.info('In mspanrfr and task name {}'.format(task))
             val_log = validate_mrfr(model, loader, task)
         elif task.startswith('mrc') and args.use_visual:
             val_log = validate_mrc(model, loader, task)

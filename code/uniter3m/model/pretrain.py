@@ -31,6 +31,7 @@ class EmoClassification(nn.Module):
                 nn.Linear(hidden_size, label_dim)
                 )
         elif cls_type == 'vqa':
+            # also same as https://github.com/linjieli222/HERO/blob/7be5e039361ef2afbc2ce1323dcb1ad927034f5b/model/layers.py#L48
             self.output = nn.Sequential(
                 nn.Linear(hidden_size, hidden_size*2), 
                 GELU(),
@@ -129,13 +130,14 @@ class UniterForPretraining(UniterPreTrainedModel):
                 txt_emo_labels = None
             # print('[Debug in MELM forward] the txt_emo_labels {}'.format(txt_emo_labels))
             return self.forward_melm(batch, txt_labels, txt_emo_labels, compute_loss=compute_loss)
-        elif task == 'mrfr' or task == 'merfr' or task == 'mspanrfr':
+        elif task == 'mrfr' or task == 'merfr' or task == 'mspanrfr' or task == 'mspanrfrnotext':
             img_mask_tgt = batch['img_mask_tgt']
             img_masks = batch['img_masks']
             mrfr_feat_target = batch['feat_targets']
             return self.forward_mrfr(batch, img_masks, img_mask_tgt,
                                      mrfr_feat_target, compute_loss=compute_loss)
-        elif task == 'msrfr' or task == 'mspansrfr':
+        elif task == 'msrfr' or task == 'mspansrfr' or task == 'mspansrfrnotext':
+            # mspansrfr includes mspansrfrnotext
             speech_mask_tgt = batch['speech_mask_tgt']
             speech_masks = batch['speech_masks']
             msrfr_feat_target = batch['feat_targets']
@@ -147,7 +149,7 @@ class UniterForPretraining(UniterPreTrainedModel):
         elif task == 'eitm':
             targets = batch['targets']
             return self.forward_eitm(batch, targets, compute_loss=compute_loss)
-        elif task.startswith('mrc') or task.startswith('merc') or task.startswith('mspanrc'):
+        elif task.startswith('mrc') or task.startswith('merc') or task.startswith('mspanrc')  or task.startswith('mspanrcnotext'):
             img_mask_tgt = batch['img_mask_tgt']
             img_masks = batch['img_masks']
             mrc_label_target = batch['label_targets']

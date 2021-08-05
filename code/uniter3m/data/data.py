@@ -89,9 +89,10 @@ class DetectFeatLmdb(object):
         return img_feat
 
 class DetectFeatTxtTokDataset(Dataset):
-    def __init__(self, txt_db, img_db=None, speech_db=None):
+    def __init__(self, txt_db, img_db=None, speech_db=None, no_text=False):
         '''
         所有的数据检索都以以txt作为标准，所以txt_db不能为None, 可以通过其他方法进行控制
+        no_text: 没有文本模态
         '''
         assert isinstance(txt_db, TxtTokLmdb)
         if img_db:
@@ -101,6 +102,7 @@ class DetectFeatTxtTokDataset(Dataset):
         self.txt_db = txt_db
         self.img_db = img_db
         self.speech_db = speech_db
+        self.no_text = no_text
         self.txt_lens, self.ids = get_ids_and_lens(txt_db)
         self.lens = copy.deepcopy(self.txt_lens)
         txt2img = txt_db.txt2img

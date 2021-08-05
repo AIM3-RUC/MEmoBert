@@ -11,10 +11,9 @@ https://github.com/linjieli222/HERO/blob/7be5e039361ef2afbc2ce1323dcb1ad927034f5
 输入是原始的顺序的feature序列，经过网络得到输出。
 shuffle_output_order: [4, 7, 2, 3, 8, 5, 6, 0, 1]
 orderindex=4的部分真实的序号是0, orderindex=7的真实的1, orderindex=8的真实位置是4
+
 output_target: [7, 8, -1, -1, 0, -1, -1, 1, 4]
 然后经过 scatter 函数将输入特征按照 shuffle_output_order 进行乱序，然后经过网络之后预测当前位置特征的真实的顺序。
-output_target: [7, 8, -1, -1, 0, -1, -1, 1, 4]
-
 """
 import random
 from numpy.core.fromnumeric import size
@@ -35,13 +34,15 @@ def random_reorder(pos_ids, random_reorder_p=0.15):
                  target pos: [0, 1, 4, 7, 8]
          shuffle target pos: [4, 7, 8, 0, 1]
    将shuffle后的位置放到原来的序列中, 然后其中23和56不会变.
-   output_order: [4, 7, 2, 3, 8, 5, 6, 0, 1]
-    按照shuffle order将输入的特征序列进行打乱，所以此时0号位置应该是time=4的特征，1号位置是time=7的特征
+   output_order = shuffled_order: [4, 7, 2, 3, 8, 5, 6, 0, 1]
+    按照shuffle order将输入的特征序列按照以上的顺序重新组合，所以此时0号位置应该是放time=4的特征，1号位置是time=7的特征
+   那 output_target 和 output_order 的对应关系是什么？
+   time=0的特征在7号位置上，time=1的特征在8号位置上。 预测真实的时刻的特征所在的位置。
    output_target: [7, 8, -1, -1, 0, -1, -1, 1, 4]
     """
     selected_pos = []
     target_pos = []
-    # step1: 选择哪些位置的id将会被打乱
+    # step1: 选择哪些位置的 id 将会被打乱
     count = 0
     for i, pos_id in enumerate(pos_ids):    
         prob = random.random()

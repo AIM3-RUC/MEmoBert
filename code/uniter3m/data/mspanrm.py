@@ -115,6 +115,7 @@ class MSpanrfrDataset(DetectFeatTxtTokDataset):
 
     def __getitem__(self, i):
         """
+        # consider the situation of no text
         Return:
         - input_ids    : (L, ), i.e., [cls, wd, wd, ..., sep, 0, 0], 0s padded
         - img_feat     : (num_bb, d)
@@ -124,11 +125,17 @@ class MSpanrfrDataset(DetectFeatTxtTokDataset):
         """
         example = super().__getitem__(i)
 
-        # text input
-        input_ids = example['input_ids']
-        if isinstance(input_ids[0], list):
-            input_ids = [y for x in input_ids for y in x]
-        input_ids = self.txt_db.combine_inputs(input_ids)
+        if self.no_text:
+            # 只保留cls分类位置.
+            # print('[Debug in MSpanrfrDataset] no text info!!!')
+            input_ids = [self.txt_db.cls_]
+            input_ids = torch.tensor(input_ids)
+        else:
+            # text input
+            input_ids = example['input_ids']
+            if isinstance(input_ids[0], list):
+                input_ids = [y for x in input_ids for y in x]
+            input_ids = self.txt_db.combine_inputs(input_ids)
 
         img_feat, num_bb = self._get_img_feat(example['img_fname'], self.img_shape)
         self.img_shape = img_feat.shape[1:]
@@ -183,8 +190,7 @@ def mspanrfr_collate(inputs):
     txt_lens = [i.size(0) for i in input_ids]
 
     input_ids = pad_sequence(input_ids, batch_first=True, padding_value=0)
-    position_ids = torch.arange(0, input_ids.size(1), dtype=torch.long
-                                ).unsqueeze(0)
+    position_ids = torch.arange(0, input_ids.size(1), dtype=torch.long).unsqueeze(0)
 
     num_bbs = [f.size(0) for f in img_feats]
     img_feat = pad_tensors(img_feats, num_bbs)
@@ -259,11 +265,18 @@ class MSpanrcDataset(DetectFeatTxtTokDataset):
         img_feat, img_soft_labels, num_bb = self._get_img_feat(example['img_fname'], self.img_shape)
         self.img_shape = img_feat.shape[1:]
 
-        # text input
-        input_ids = example['input_ids']
-        if isinstance(input_ids[0], list):
-            input_ids = [y for x in input_ids for y in x]
-        input_ids = self.txt_db.combine_inputs(input_ids)
+        if self.no_text:
+            # 只保留cls分类位置.
+            # print('[Debug in MSpanrfrDataset] no text info!!!')
+            input_ids = [self.txt_db.cls_]
+            input_ids = torch.tensor(input_ids)
+        else:
+            # text input
+            input_ids = example['input_ids']
+            if isinstance(input_ids[0], list):
+                input_ids = [y for x in input_ids for y in x]
+            input_ids = self.txt_db.combine_inputs(input_ids)
+
         attn_masks = torch.ones(len(input_ids) + num_bb, dtype=torch.long)
 
         if self.speech_db:
