@@ -520,6 +520,7 @@ class UniterModel(UniterPreTrainedModel):
 
     def _compute_img_embeddings(self, img_feat, img_position_ids, img_masks=None,
                                 img_type_ids=None, shuffled_orders=None):
+        # logger.info('[Debug in _compute_img_embeddings] shuffled_orders: {}'.format(shuffled_orders))
         if img_type_ids is None:
             img_type_ids = torch.ones_like(img_feat[:, :, 0].long())
         # share the embedding defined in txtEmbedding
@@ -709,15 +710,13 @@ class UniterModel(UniterPreTrainedModel):
                         # logger.info('\t [Debug] Only the visual feat Avaiable')
                         embedding_output = self._compute_img_embeddings(
                                     img_feat, img_position_ids,
-                                    img_masks, img_type_ids, token_pos_tag_ids, 
-                                    token_senti_ids, token_utt_senti_ids, 
+                                    img_masks, img_type_ids, 
                                     shuffled_orders=v_shuffled_orders)
                     elif speech_feat is not None and img_feat is None:
                         # logger.info('\t[Debug] Only the speech feat Avaiable')
                         embedding_output = self._compute_speech_embeddings(
                             speech_feat, speech_position_ids,
-                            speech_masks, speech_type_ids, token_pos_tag_ids, 
-                            token_senti_ids, token_utt_senti_ids, 
+                            speech_masks, speech_type_ids, 
                             shuffled_orders=s_shuffled_orders)
                     # add on case on not none and not None
                     else:
@@ -728,8 +727,6 @@ class UniterModel(UniterPreTrainedModel):
                                 gather_index,
                                 img_masks, speech_masks, 
                                 img_type_ids, speech_type_ids,
-                                token_pos_tag_ids, 
-                                token_senti_ids, token_utt_senti_ids, 
                                 v_shuffled_orders = v_shuffled_orders, 
                                 s_shuffled_orders = s_shuffled_orders)
         else:
@@ -782,16 +779,12 @@ class UniterModel(UniterPreTrainedModel):
                     embedding_output = self._compute_img_embeddings(
                                 img_feat, img_position_ids,
                                 img_masks, img_type_ids,
-                                token_pos_tag_ids, 
-                                token_senti_ids, token_utt_senti_ids, 
-                                shuffled_orders = v_shuffled_orders)
+                                shuffled_orders=v_shuffled_orders)
                 elif speech_feat is not None and img_feat is None:
                     # logger.info('\t[Debug] Only the speech feat Avaiable')
                     embedding_output = self._compute_speech_embeddings(
                         speech_feat, speech_position_ids,
                         speech_masks, speech_type_ids,
-                        token_pos_tag_ids, 
-                        token_senti_ids, token_utt_senti_ids,
                         shuffled_orders = s_shuffled_orders)
                 else:
                     # logger.info('\t[Debug] both the visual and speech feat Avaiable')
@@ -801,8 +794,6 @@ class UniterModel(UniterPreTrainedModel):
                             gather_index,
                             img_masks, speech_masks, 
                             img_type_ids, speech_type_ids,
-                            token_pos_tag_ids, 
-                            token_senti_ids, token_utt_senti_ids, 
                             v_shuffled_orders = v_shuffled_orders, 
                             s_shuffled_orders = s_shuffled_orders)       
         # for model output

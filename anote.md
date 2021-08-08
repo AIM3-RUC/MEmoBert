@@ -273,10 +273,23 @@ text_filepath = '/data7/emobert/exp/mlm_pretrain/datasets/OpenSubtitlesV2018/Ope
 /data7/emobert/exp/mlm_pretrain/datasets/OpenSubtitlesV2018/opensub1000w_p3.csv
 /data7/emobert/exp/mlm_pretrain/datasets/OpenSubtitlesV2018/opensub1000w_p4.csv
 分别构建txtdb，然后用模型提取weak-label. 
-## Note： 做数据质量以及情感类别的筛选，保证类别是均衡的。-- #Going
-## 预训练的时候的EmoCls单独做一个数据集合（只用质量高的数据做）neu 概率大于 80% 其他类别的概率大于 40%. 
+预训练的时候的EmoCls单独做一个数据集合（只用质量高的数据做）neu 概率大于 80% 其他类别的概率大于 40%.
+
+### 可以提升模型对模态适应能力，加入单独的单模态和双模态的结果，测试不同模态组合情感下的结果 --Done
+加入单独的 A V L AV AL LV 的训练 --Done
+taskname: 
+    mspansrfrnotext
+    mspanrfrnotext
+    mspanrcklnotext
+
+## 重新加入EmoWords的训练
+https://d3smihljt9218e.cloudfront.net/lecture/26027/slideshow/513b2b4eb1663f1d965efce4a34d97b6.pdf
+ACL 2021 paper entitled: "eMLM: A New Pre-training Objective for Emotion Related Tasks".
+采用的词典是： http://saifmohammad.com/WebPages/lexicons.html
 
 
+
+## 更强的文本情感分类模型
 /data6/lrc/EmotionXED/combined 5分类。
 BertMovie模型的结果是 69.4%  其中有200多数据是重复的，另外里面还有类别6的，重新评测一下。
 BertMovie模型评测根据 preprocess/get_text_weak_label.py
@@ -338,10 +351,16 @@ Cross-encoder model, may including 2~4 transformer layers.
 f_config 对应 cross-transformer, 6层，但是采用 robota base 中的6层作为初始化, 1 3 5 7 9 11 层的参数进行初始化。type_vocab_size=1.
 首先是视觉的信息经过跨模态的特征编码层，进行编码。
     self.f_encoder = CrossModalTrm(config.f_config, vfeat_dim, max_frm_seq_len)
-    CrossModalTrm中包含 compute_img_embedding 并且经过了一个 CrossModalTrm 的编码
+    CrossModalTrm 中包含 compute_img_embedding 并且经过了一个 CrossModalTrm 的编码
 然后经过进行shuffle, 然后送入 c_encoder, 然后预测真实的序列的Index.
-
 而在Uniter结构要做的话，没有单独的模态Encoder, 只能在输入Uniter之前进行shuffle.
+FOM中任务的理解:
+output_order = shuffled_order: [4, 7, 2, 3, 8, 5, 6, 0, 1]
+按照shuffle order将输入的特征序列按照以上的顺序重新组合，所以此时0号位置应该是放time=4的特征，1号位置是time=7的特征
+那 output_target 和 output_order 的对应关系是什么？
+time=0的特征在7号位置上，time=1的特征在8号位置上。 预测真实的时刻的特征所在的位置。
+output_target: [7, 8, -1, -1, 0, -1, -1, 1, 4]
+
 
 ## 语音和视觉采用更多的特征 --Done
 wav2vec2.0 CNN 的输出。 以及 densenet2.0 中间层的输出。
@@ -358,9 +377,13 @@ Case2: 随机替换其中的视觉模态
 Case3: 随机替换其中的语音和视觉模态
 Case4: 随机替换其中的文本模态 -- 也就是文本和语音不同跟Case3是一样的。
 code/uniter3m/data/onemodalnegitm.py
+neg_sample_p = 0.5 
+neg_sample_p = 0.9
 
-### Method2: Contrastive+HardNegative . --Going
+### Method2: Contrastive+HardNegative . -- Done
 目前的做法是 每个正面例子构建150个负例(由batch-szie大小决定)
+itm_neg_samples = 150
+
 
 
 ## Contrastive Learning For multimodal Fusion --Going
