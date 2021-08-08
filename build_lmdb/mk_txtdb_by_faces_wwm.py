@@ -9,6 +9,7 @@ Id2Len 还是保存token的长度，但是input_ids保存的是whole-word
 
 import argparse
 import os
+import re
 from collections import defaultdict
 import json
 from cytoolz import curry
@@ -17,6 +18,7 @@ from tqdm import tqdm
 import random
 from pytorch_pretrained_bert import BertTokenizer
 from code.uniter.data.data import open_lmdb
+from preprocess.tools.get_emo_words import EmoSentiWordLexicon, NRCEmoLexicon
 
 '''
 WhoWordMasking, 构建textdb的时候按word进行保存，方便就行Mask.
@@ -44,8 +46,29 @@ def bert_id2token(tokenizer, ids):
         tokens.append(word_tokens)
     return tokens
 
+def get_emo_words(emol, input_ids, tokens):
+    '''
+    tokens = [word1tokens, word2tokens, word3tokens]
+    input_ids = [word_input_ids, word_input_ids, word_input_ids]
+    word2emo: {word:label, word:label}
+    return: emoword and it's category
+    '''
+    emo_input_ids = []
+    emo_input_ids_labels = []
+    for i in range(len(tokens)):
+        # 合并成原来的word
+        sub_words = re.findall(r'\w+', ''.join(tokens[i]), re.UNICODE)
+        word = ''.join(sub_words)
+        if emol.word2emo.get(word) is not None:
+            emo_input_ids.append(input_ids[i])
+            emo = emol.word2emo[word]
+            emo_index = emol.emo_category_list.index(emo)
+            emo_input_ids_labels.append(emo_index)
+    assert len(emo_input_ids) == len(emo_input_ids_labels)
+    return emo_input_ids, emo_input_ids_labels
+
 def process_jsonl(jsonf, db, toker, max_tokens=100, dataset_name="", filter_path=None, filter_path_val=None, \
-                include_path=None, num_samples=0):
+                include_path=None, num_samples=0, use_emo_words=False):
     '''
     {
         "segmentId": [
@@ -70,6 +93,12 @@ def process_jsonl(jsonf, db, toker, max_tokens=100, dataset_name="", filter_path
         print('include dict has {} imgs'.format(len(include_dict)))
     else:
         include_dict = None
+    
+    if use_emo_words:
+        print("*********** Use Emo Words ************")
+        emol = NRCEmoLexicon(is_bert_token=False)
+    else:
+        emol = None
 
     id2len = {}
     txt2img = {}  # not sure if useful
@@ -78,6 +107,8 @@ def process_jsonl(jsonf, db, toker, max_tokens=100, dataset_name="", filter_path
     less3 = 0
     count_img = 0
     _id = 0
+    count_emo_words = 0
+    count_emo_utts = 0
     segmentIds = list(contents.keys())
     random.shuffle(segmentIds) # 无返回值
     for segmentId in tqdm(segmentIds, total=len(segmentIds)):
@@ -98,15 +129,22 @@ def process_jsonl(jsonf, db, toker, max_tokens=100, dataset_name="", filter_path
             if len(input_ids) == 0:
                 # print(f'[Debug] {segmentId} inputs len {len(input_ids)}')
                 continue
-
             if len(input_ids) < 3:
                 less3 += 1
             tokens = bert_id2token(toker, input_ids)
             txt2img[_id] = img_fname
             img2txt[img_fname].append(str(_id))
-            # 长度还是保留原来的长度
-            # # modified
+            # 长度还是保留原来的长度 # modified
             id2len[_id] = sum([len(word_input_ids) for word_input_ids in input_ids])
+
+            if use_emo_words:
+                # for emo-words word-level
+                emo_input_ids, emo_input_ids_labels = get_emo_words(emol, input_ids, tokens)
+                example['emo_input_ids'] = emo_input_ids 
+                example['emo_labels'] = emo_input_ids_labels
+                if len(emo_input_ids) > 0:
+                    count_emo_utts += 1
+                    count_emo_words += len(emo_input_ids)
             example['id'] = str(_id)
             example['dataset'] = dataset_name
             example['file_path'] = img_fname
@@ -120,6 +158,7 @@ def process_jsonl(jsonf, db, toker, max_tokens=100, dataset_name="", filter_path
             print('just sample {} as the part val set'.format(num_samples))
             break
     print(f'words len less than 3 are {less3}')
+    print(f'emoword and emo utts {count_emo_words} {count_emo_utts}')
     return id2len, txt2img, img2txt
 
 def main(opts):
@@ -144,7 +183,8 @@ def main(opts):
     with open_db() as db:
         id2lens, txt2img, img2txt = process_jsonl(opts.input, db, toker, dataset_name=opts.dataset_name, \
                                 filter_path=opts.filter_path, filter_path_val=opts.filter_path_val, \
-                                include_path=opts.include_path, num_samples=opts.num_samples)
+                                include_path=opts.include_path, num_samples=opts.num_samples, \
+                                use_emo_words=opts.use_emo)
     print('generate id2lens {} txt2img {} img2txt {}'.format(len(id2lens), len(txt2img), len(img2txt)))
     with open(f'{opts.output}/id2len.json', 'w') as f:
         json.dump(id2lens, f)
@@ -173,5 +213,7 @@ if __name__ == '__main__':
                         help='which BERT tokenizer to used')
     parser.add_argument('--dataset_name', default='movies_v1',
                         help='which dataset to be processed')
+    parser.add_argument('--use_emo',  action='store_true',
+                        help='store the emotion words and corresding labels') 
     args = parser.parse_args()
     main(args)

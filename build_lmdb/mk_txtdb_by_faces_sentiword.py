@@ -13,7 +13,7 @@ from requests.api import options
 from tqdm import tqdm
 import random
 from pytorch_pretrained_bert import BertTokenizer
-from preprocess.tools.get_emo_words import EmoSentiWordLexicon
+from preprocess.tools.get_emo_words import EmoSentiWordLexicon, NRCEmoLexicon
 from code.uniter.data.data import open_lmdb
 
 def bert_tokenize(tokenizer, text):

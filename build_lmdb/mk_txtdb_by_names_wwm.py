@@ -13,8 +13,8 @@ from cytoolz import curry
 from tqdm import tqdm
 from pytorch_pretrained_bert import BertTokenizer
 import sys
-from preprocess.tools.get_emo_words import EmoLexicon
-from build_lmdb.mk_txtdb_by_faces import get_emo_words, get_emo_type_ids
+from preprocess.tools.get_emo_words import EmoSentiWordLexicon, NRCEmoLexicon
+from build_lmdb.mk_txtdb_by_faces_wwm import get_emo_words
 from code.uniter.data.data import open_lmdb
 
 '''
@@ -42,7 +42,7 @@ def bert_id2token(tokenizer, ids):
         tokens.append(word_tokens)
     return tokens
 
-def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_samples=0):
+def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_samples=0, use_emo_words=False):
     '''
     {
         "segmentId": [
@@ -55,12 +55,20 @@ def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_sampl
         print('filter_dict has {} imgs'.format(len(filter_dict)))
     else:
         filter_dict = None
+        
+    if use_emo_words:
+        print("*********** Use Emo Words ************")
+        emol = NRCEmoLexicon(is_bert_token=False)
+    else:
+        emol = None
 
     id2len = {}
     txt2img = {}  # not sure if useful
     img2txt = defaultdict(list)
     contents = json.load(open(jsonf))
     count_img = 0
+    count_emo_words = 0
+    count_emo_utts = 0
     _id = 0
     for segmentId, value in tqdm(contents.items(), desc='building txtdb', total=len(contents.keys())):
         img_fname = segmentId + '.npz'
@@ -84,6 +92,15 @@ def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_sampl
             if isinstance(value['label'], str):
                 value['label'] = int(value['label'])
             example['target'] = value['label']
+
+            if use_emo_words:
+                # for emo-words word-level
+                emo_input_ids, emo_input_ids_labels = get_emo_words(emol, input_ids, tokens)
+                example['emo_input_ids'] = emo_input_ids 
+                example['emo_labels'] = emo_input_ids_labels
+                if len(emo_input_ids) > 0:
+                    count_emo_utts += 1
+                    count_emo_words += len(emo_input_ids)
             db[str(_id)] = example
             _id += 1
         count_img += 1
@@ -113,7 +130,8 @@ def main(opts):
     open_db = curry(open_lmdb, opts.output, readonly=False)
     with open_db() as db:
         id2lens, txt2img, img2txt = process_jsonl(opts.input, db, toker, dataset_name=opts.dataset_name, \
-                                filter_path=opts.filter_path, num_samples=opts.num_samples)
+                                filter_path=opts.filter_path, num_samples=opts.num_samples, \
+                                use_emo_words=opts.use_emo)
     print('generate id2lens {} txt2img {} img2txt {}'.format(len(id2lens), len(txt2img), len(img2txt)))
     with open(f'{opts.output}/id2len.json', 'w') as f:
         json.dump(id2lens, f)
@@ -136,5 +154,7 @@ if __name__ == '__main__':
                         help='which BERT tokenizer to used')
     parser.add_argument('--dataset_name', default='movies_v1',
                         help='which dataset to be processed')
+    parser.add_argument('--use_emo',  action='store_true',
+                        help='store the emotion words and corresding labels') 
     args = parser.parse_args()
     main(args)

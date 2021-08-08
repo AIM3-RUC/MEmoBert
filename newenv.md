@@ -34,7 +34,7 @@ apt-get install -y --allow-downgrades --allow-change-held-packages --no-install-
         python${PYTHON_VERSION} \
         python${PYTHON_VERSION}-dev 
 
- apt-get install python3-distutils \
+apt-get install python3-distutils \
         librdmacm1 \
         libibverbs1 \
         ibverbs-providers
@@ -54,25 +54,31 @@ PYTAGS=$(python -c "from packaging import tags; tag = list(tags.sys_tags())[0]; 
         https://download.pytorch.org/whl/cu101/torchvision-${TORCHVISION_VERSION}%2Bcu101-${PYTAGS}-linux_x86_64.whl
 
 
-# Install Open MPI
-mkdir /tmp/openmpi && \
-    cd /tmp/openmpi && \
-    wget https://www.open-mpi.org/software/ompi/v4.0/downloads/openmpi-4.0.0.tar.gz && \
-    tar zxf openmpi-4.0.0.tar.gz && \
-    cd openmpi-4.0.0 && \
-    ./configure --enable-orterun-prefix-by-default && \
-    make -j $(nproc) all && \
-    make install && \
-    ldconfig && \
-    rm -rf /tmp/openmpi
+# Install Open MPI --Update to 4.1
+cd /data7/emobert/resources/openmpi 
+wget https://www.open-mpi.org/software/ompi/v4.1/downloads/openmpi-4.1.0.tar.gz
+tar zxf openmpi-4.1.0.tar.gz
+cd openmpi-4.1.0
+./configure --prefix=/usr/local
+make -j $(nproc) all
+make -j $(nproc) install
+ldconfig
+
+OPENMPI_VERSION=4.1.0
 
 # Install Horovod, temporarily using CUDA stubs
 ldconfig /usr/local/cuda/targets/x86_64-linux/lib/stubs && \
-    HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_PYTORCH=1 \
-         pip install --no-cache-dir horovod[all-frameworks] && \
+   HOROVOD_GPU_ALLREDUCE=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITH_PYTORCH=1 HOROVOD_WITHOUT_MXNET=1 \
+    pip install --no-cache-dir horovod==0.22.1 &&\
     ldconfig
+
+[Bug1] Horovod build with GPU support was requested but this MXNet installation does not support CUDA.
+HOROVOD_WITHOUT_MXNET=1
+
+# 这个也需要装的
 apt-get install -y --no-install-recommends openssh-client openssh-server && \
     mkdir -p /var/run/sshd
+
 
 最后需要安装apex.
 git clone https://github.com/NVIDIA/apex.git 

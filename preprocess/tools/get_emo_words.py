@@ -4,7 +4,7 @@ import os
 import liwc
 from collections import Counter
 from preprocess.tools.bert_tokenization import load_vocab, WordpieceTokenizer
-from preprocess.FileOps import read_pkl
+from preprocess.FileOps import read_pkl, read_file
 
 '''
 根据情感词典，获取句子中的情感词，三个不同的词典
@@ -165,6 +165,57 @@ class EmoSentiWordLexicon():
             word2emocate[ori_word] = category
         return word2emocate
 
+class NRCEmoLexicon():
+    def __init__(self, is_bert_token=False, bert_vocab_filepath=None):
+        # 由于选用的字典是 WordLevel 的所以不需要进行bert tokenize.
+        # /data2/zjm/tools/EmoLexicons/NRCHashtagEmotionLexiconv022/NRCHashtagEmotionLexiconv02.txt
+        # 下游任务的序列: ang hap neu sad
+        self.emo_category_list = ['anger', 'joy', 'sadness', 'surprise', 'fear', 'disgust']
+        filepath = '/data2/zjm/tools/EmoLexicons/NRCEmotionLexicon/NRCEmotionLexiconv0.92/NRCEmotionLexiconWordlevelv0.92.txt'
+        self.word2emo = self.get_word2emo(filepath)
+        self.is_bert_token = is_bert_token
+        if self.is_bert_token:
+            bert_vocab = load_vocab(bert_vocab_filepath)
+            self.bert_tokenizer = WordpieceTokenizer(bert_vocab)
+        
+    def get_word2emo(self, filepath):
+        lines = read_file(filepath)
+        word2emo = {}
+        for line in lines:
+            splits = line.strip().split('\t')
+            word, emo, score = splits
+            score = float(score)
+            if score < 1.0:
+                continue
+            if emo in self.emo_category_list:
+                word2emo[word] = emo
+        return word2emo
+
+    def tokenize(self, utterance):
+        # you may want to use a smarter tokenizer
+        for match in re.finditer(r'\w+', utterance, re.UNICODE):
+            yield match.group(0)        
+    
+    def get_emo_words(self, utterance):
+        '''
+        return:
+            emo_words: all emotional words with category 'affect' 
+            word2affect: word to emotion category
+        '''
+        word2affect = {}
+        emo_words = []
+        if self.is_bert_token:
+            utt_tokens = list(self.bert_tokenizer.tokenize(utterance))
+        else:
+            utt_tokens = list(self.tokenize(utterance))
+        print(utt_tokens)
+        for ind in range(len(utt_tokens)):
+            token = utt_tokens[ind]
+            if self.word2emo.get(token) is not None:
+                emo_words.append(token)
+                word2affect[token] = self.word2emo[token]
+        return emo_words, word2affect
+
 if __name__ == "__main__":
     # lexicon_dir = '/data2/zjm/tools/EmoLexicons'
     # lexicon_name = 'LIWC2015Dictionary.dic'
@@ -173,9 +224,52 @@ if __name__ == "__main__":
     # emol = EmoLexicon(lexicon_dir, lexicon_name, is_bert_token=True, bert_vocab_filepath=bert_vocab_filepath)
     # emo_words, word2affect = emol.get_emo_words(utterance)
     # print(word2affect)
-    bert_vocab_filepath = '/data2/zjm/tools/LMs/bert_base_en/vocab.txt'
-    word2score_path = '/data2/zjm/tools/EmoLexicons/sentiword2score.pkl'
-    utterance = "Because you're going to get us all fucking pinched and embarrassing. What are you, so stupid?".lower()
-    emos = EmoSentiWordLexicon(word2score_path, bert_vocab_filepath)
-    word2emo = emos.score(utterance)
-    print(word2emo)
+    # bert_vocab_filepath = '/data2/zjm/tools/LMs/bert_base_en/vocab.txt'
+    # word2score_path = '/data2/zjm/tools/EmoLexicons/sentiword2score.pkl'
+    # utterance = "Because you're going to get us all fucking pinched and embarrassing. What are you, so stupid?".lower()
+    # emos = EmoSentiWordLexicon(word2score_path, bert_vocab_filepath)
+    # word2emo = emos.score(utterance)
+    # print(word2emo)
+    # export PYTHONPATH=/data7/MEmoBert
+    # filepath = '/data2/zjm/tools/EmoLexicons/NRCHashtagEmotionLexiconv022/NRCHashtagEmotionLexiconv02.txt'
+    # lines = read_file(filepath)
+    # emo_list = ['sadness', 'anger', 'joy', 'surprise', 'fear', 'disgust']
+    # emo2words = {}
+    # for line in lines:
+    #     splits = line.strip().split('\t')
+    #     emo, word, score = splits
+    #     score = float(score)
+    #     if score < 1.0:
+    #         continue
+    #     if emo in emo_list:
+    #         if emo2words.get(emo) is None:
+    #             emo2words[emo] = [word]
+    #         else:
+    #             emo2words[emo] += [word]
+    # for emo in emo2words.keys():
+    #     print('emo {}: {}'.format(emo, len(emo2words[emo])))
+        # print('emo {}: {} {}'.format(emo, len(emo2words[emo]), emo2words[emo]))
+    # emo fear: 797 emo anger: 576  emo surprise: 526 emo sadness: 463 emo joy: 1089 emo disgust: 1085
+
+    # filepath = '/data2/zjm/tools/EmoLexicons/NRCEmotionLexicon/NRCEmotionLexiconv0.92/NRCEmotionLexiconWordlevelv0.92.txt'
+    # lines = read_file(filepath)
+    # emo_list = ['sadness', 'anger', 'joy', 'surprise', 'fear', 'disgust']
+    # emo2words = {}
+    # for line in lines:
+    #     splits = line.strip().split('\t')
+    #     word, emo, score = splits
+    #     score = float(score)
+    #     if score < 1.0:
+    #         continue
+    #     if emo in emo_list:
+    #         if emo2words.get(emo) is None:
+    #             emo2words[emo] = [word]
+    #         else:
+    #             emo2words[emo] += [word]
+    # for emo in emo2words.keys():
+    #     print('emo {}: {}'.format(emo, len(emo2words[emo])))
+    # emo fear: 1474 emo sadness: 1187 emo anger: 1245 emo surprise: 532 emo disgust: 1056 emo joy: 687
+    emocls = NRCEmoLexicon(is_bert_token=False)
+    emo_words, word2affect = emocls.get_emo_words('this is a happy time.')
+    print(emo_words)
+    print(word2affect)

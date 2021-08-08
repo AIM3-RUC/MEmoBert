@@ -286,7 +286,7 @@ taskname:
 https://d3smihljt9218e.cloudfront.net/lecture/26027/slideshow/513b2b4eb1663f1d965efce4a34d97b6.pdf
 ACL 2021 paper entitled: "eMLM: A New Pre-training Objective for Emotion Related Tasks".
 采用的词典是： http://saifmohammad.com/WebPages/lexicons.html
-
+sadness, anger, joy, surprise, anticipation, trust, fear, disgust 大约共 6000 词
 
 
 ## 更强的文本情感分类模型
