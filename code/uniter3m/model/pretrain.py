@@ -121,7 +121,7 @@ class UniterForPretraining(UniterPreTrainedModel):
         if task.startswith('mlm'):
             txt_labels = batch['txt_labels']
             return self.forward_mlm(batch, txt_labels, compute_loss=compute_loss)
-        elif task == 'melm':
+        elif task.startswith('melm'):
             txt_labels = batch['txt_labels']
             # jinming: add emo labels is None or int
             if self.config.melm_multitask:

@@ -16,7 +16,7 @@
   "use_emo_type_emb": false,
   "melm_multitask": false,
   "melm_multitask_rate": 1.0,
-  "melm_emo_category_size": 3,
+  "melm_emo_category_size": 6,
   "weak_emo_category_size": 5,
   "emocls_type": "soft",
   "vocab_size": 30522,

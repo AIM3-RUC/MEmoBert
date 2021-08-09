@@ -39,7 +39,8 @@ from code.uniter3m.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   MSpansrfrDataset, mspansrfr_collate,
                   MlmWWMDataset, mlm_wwm_collate,
                   VFOMDataset, vfom_collate,
-                  SFOMDataset, sfom_collate)
+                  SFOMDataset, sfom_collate,
+                  MelmWWMDataset, melm_wwm_collate)
 from code.uniter3m.model.pretrain import UniterForPretraining
 from code.uniter3m.optim.misc import build_optimizer
 
@@ -88,6 +89,25 @@ def build_mlm_wwm_dataset(txt_db, img_db, speech_db, is_train, opts):
     else:
         dataset = MlmWWMDataset(txt_db, img_db, speech_db)
     return dataset, mlm_wwm_collate
+
+
+def build_melm_wwm_dataset(txt_db, img_db, speech_db, is_train, opts):
+    if is_train:
+        if img_db is not None and speech_db is not None:
+            datasets = [MelmWWMDataset(t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif img_db is None and speech_db is not None:
+            datasets = [MelmWWMDataset(t, None, s) for t, s in zip(txt_db, speech_db)]
+        elif img_db is not None and speech_db is None:
+            datasets = [MelmWWMDataset(t, i, None) for t, i in zip(txt_db, img_db)]
+        elif img_db is None and speech_db is None:
+            LOGGER.info('[Debug in mlm dataset] the img and speech modality are None!')
+            datasets = [MelmWWMDataset(t, None, None) for t in txt_db]
+        else:
+            LOGGER.info('[Error] Error mlm_wwm datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = MelmWWMDataset(txt_db, img_db, speech_db)
+    return dataset, melm_wwm_collate
 
 def build_melm_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:
@@ -479,6 +499,9 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
                 dataset = build_mlm_wwm_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('mlm'):
                 dataset = build_mlm_dataset(txt_db, img_db, speech_db, is_train, opts)
+            if task.startswith('melm_wwm'):
+                # 由于 melm_wwm 和 melm 都是melm开头，所以这里的顺序不能换
+                dataset = build_melm_wwm_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('melm'):
                 dataset = build_melm_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('mrfr'):
@@ -740,8 +763,10 @@ def validate(model, val_dataloaders):
             val_log = validate_mlm(model, loader, task)
         elif task.startswith('mlm'):
             val_log = validate_mlm(model, loader, task)
+        elif task.startswith('melm_wwm'):
+            val_log = validate_melm(model, loader, task)
         elif task.startswith('melm'):
-            val_log = validate_melm(model, loader)
+            val_log = validate_melm(model, loader, task)
         elif task.startswith('mrfr') and args.use_visual:
             val_log = validate_mrfr(model, loader, task)
         elif task.startswith('merfr') and args.use_visual:
@@ -919,8 +944,8 @@ def validate_emolare(model, val_loader):
     return val_log
 
 @torch.no_grad()
-def validate_melm(model, val_loader):
-    LOGGER.info("start running MELM validation...")
+def validate_melm(model, val_loader, task='melm'):
+    LOGGER.info(f"start running {task} validation...")
     val_loss = 0
     n_correct = 0
     n_word = 0
@@ -931,7 +956,7 @@ def validate_melm(model, val_loader):
 
     st = time()
     for i, batch in enumerate(val_loader):
-        scores = model(batch, task='melm', compute_loss=False)
+        scores = model(batch, task=task, compute_loss=False)
         # Jinming: add emo-scores loss for melm multi-task
         if len(scores) == 2:
             use_melm_emo = True

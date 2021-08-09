@@ -11,7 +11,11 @@ from toolz.sandbox import unzip
 from code.uniter3m.data.data import (DetectFeatTxtTokDataset, TxtTokLmdb,
                    pad_tensors, get_gather_index)
 
-def random_wwm_word(tokens, vocab_range, mask):
+def compute_nonemo_word_prob(utt_len, emowords_len):
+    # ref acl2021 eMLM
+   return max(utt_len*0.15 - emowords_len * 0.5, 0) / (utt_len - emowords_len)
+
+def random_emo_wwm_word(tokens, vocab_range, mask, emo_tokens):
     """
     Masking some random tokens for Language Model task with probabilities as in
         the original BERT paper.
@@ -21,32 +25,40 @@ def random_wwm_word(tokens, vocab_range, mask):
         LM prediction
     """
     output_label = []
-
+    melm_prob = 0.5
     for i, word_tokens in enumerate(tokens):
         prob = random.random()
         # mask token with 15% probability
-        if prob < 0.15:
-            prob /= 0.15
-            # 80% randomly change token to mask token
-            if prob < 0.8:
-                # print('[Debug] 0.8 predict mask token {}'.format(token))
-                tokens[i] = [mask] * len(tokens[i])
-            # 10% randomly change token to random token
-            elif prob < 0.9:
-                # print('[Debug] 0.1 predict random token {}'.format(token))
-                tokens[i] = [random.choice(list(range(*vocab_range))) for i in range(len(tokens[i]))]
-            # -> rest 10% randomly keep current token
-            # append current token to output (we will predict these later)
-            output_label.append(word_tokens)
+        if word_tokens in emo_tokens:
+            # print('[Debug in melm_wwm] word is emoword')
+            if prob < melm_prob:
+                # mask 情感词汇
+                tokens[i] = [mask] * len(word_tokens)
+                output_label.append(word_tokens)
+            else:
+                # 不mask
+                output_label.append([-1] * len(word_tokens))
         else:
-            # no masking token (will be ignored by loss function later)
-            output_label.append([-1] * len(word_tokens))
+            # 非情感词，计算非情感词的mask概率
+            nonemo_prob = compute_nonemo_word_prob(len(tokens), len(emo_tokens))
+            if prob < nonemo_prob:
+                # print('[Debug in melm_wwm] word is not emoword')
+                # 正常 mask 非情感词
+                tokens[i] = [mask] * len(word_tokens)
+                # no masking token (will be ignored by loss function later)
+                output_label.append(word_tokens)
+            else:
+                # 不mask
+                output_label.append([-1] * len(word_tokens))
+                
     if all(o == -1 for o in output_label):
         # at least mask 1
         random_choice = random.choice(range(len(tokens)))
-        output_label[random_choice] = tokens[random_choice]
         tokens[random_choice] = [mask] * len(tokens[random_choice])
-        
+        output_label[random_choice] = tokens[random_choice]
+    # print(f'[Debug in melm_wwm] word tokens {tokens}')
+    # print(f'[Debug in melm_wwm] output labels {output_label}')
+    # extent the wordlevel to tokens-level
     assert len(output_label) == len(tokens)
     new_output_label, new_tokens = [], []
     for l, t in zip(output_label, tokens):
@@ -58,7 +70,7 @@ def random_wwm_word(tokens, vocab_range, mask):
     # print(f'[Debug in randomwwm] {new_tokens}')
     return new_tokens, new_output_label
 
-class MlmWWMDataset(DetectFeatTxtTokDataset):
+class MelmWWMDataset(DetectFeatTxtTokDataset):
     def __init__(self, txt_db, img_db, speech_db):
         assert isinstance(txt_db, TxtTokLmdb)
         super().__init__(txt_db, img_db, speech_db)
@@ -75,7 +87,7 @@ class MlmWWMDataset(DetectFeatTxtTokDataset):
         """
         example = super().__getitem__(i)
         # text input
-        input_ids, txt_labels = self.create_mlm_io(example['input_ids'])
+        input_ids, txt_labels = self.create_melm_io(example['input_ids'], example['emo_input_ids'])
         attn_masks = torch.ones(len(input_ids), dtype=torch.long)
         # print('[Debug] item {} text attn mask {} {}'.format(i, attn_masks, attn_masks.shape))
 
@@ -100,20 +112,20 @@ class MlmWWMDataset(DetectFeatTxtTokDataset):
 
         return input_ids, img_feat, speech_feat, attn_masks, txt_labels, i
         
-    def create_mlm_io(self, input_ids):
+    def create_melm_io(self, input_ids, emo_input_ids):
         # print('[Debug] In MLM, the original input ids: {}'.format(input_ids))
-        input_ids, txt_labels = random_wwm_word(input_ids,
+        input_ids, txt_labels = random_emo_wwm_word(input_ids,
                                             self.txt_db.v_range,
-                                            self.txt_db.mask)
+                                            self.txt_db.mask, emo_input_ids)
         input_ids = torch.tensor([self.txt_db.cls_]
                                  + input_ids
                                  + [self.txt_db.sep])
         txt_labels = torch.tensor([-1] + txt_labels + [-1])
-        # print('[Debug] In MLM, the input ids: {} {}'.format(len(input_ids[1:-1]), input_ids[1:-1]))
-        # print('[Debug] In MLM, the text labels: {} {}'.format(len(txt_labels[1:-1]), txt_labels[1:-1]))
+        # print('[Debug] In MeLM, the input ids: {} {}'.format(len(input_ids[1:-1]), input_ids[1:-1]))
+        # print('[Debug] In MeLM, the text labels: {} {}'.format(len(txt_labels[1:-1]), txt_labels[1:-1]))
         return input_ids, txt_labels
 
-def mlm_wwm_collate(inputs):
+def melm_wwm_collate(inputs):
     """
     Jinming: 关于 attn_masks 和 gather-index.
     attn_masks 是所有 a+b 的最大长度, 而 input-ids 是所有text的最大长度pad而成,  speech-feat 是所有speech的最大长度pad而成.
