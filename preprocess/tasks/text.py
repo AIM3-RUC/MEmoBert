@@ -20,7 +20,6 @@ from transformers import (
     BertModel, AlbertModel,
     BertTokenizer, TransfoXLTokenizer, AlbertTokenizer
 )
-
 from preprocess.tasks.base_worker import BaseWorker
 from preprocess.utils import get_basename, mkdir
 
@@ -189,7 +188,7 @@ class BertExtractor(object):
         """
         assert model_name in ['bert_base', 'bert_medium', 'bert_small', 
                 'bert_mini', 'bert_tiny', 'albert_base', 'albert_large',
-                'bert_base_arousal', 'bert_base_valence'], f'Model type not supported: {model_name}'
+                'bert_base_arousal', 'bert_base_valence', 'bert_base_chinese'], f'Model type not supported: {model_name}'
         self.model_name = model_name
         self.device = torch.device('cuda:{}'.format(device))
         self.pretrained_path = self.get_pretrained_path()
@@ -211,6 +210,7 @@ class BertExtractor(object):
             'bert_tiny': '/data7/hjw/Bert_pretrn/bert_tiny_uncased_L-2_H-128_A-2',
             'albert_base': '/data7/lrc/MuSe2020/hhh/pretrain_model/albert_base',
             'albert_large': '/data7/lrc/MuSe2020/hhh/pretrain_model/albert_large',
+            'bert_base_chinese': '/data2/zjm/tools/LMs/bert_base_chinese',
             # finetune on MuSe arousal label
             'bert_base_arousal': '/data7/lrc/MuSe2020/MuSe2020_features/code/finetune_bert/output/arousal',
             # finetune on MuSe valence label
@@ -299,7 +299,10 @@ if __name__ == "__main__":
     # process_transcripts = TranscriptPackager('data/transcripts/json')
     # a = process_transcripts('/data6/zjm/emobert/resources/raw_movies/No0022.Rent.srt')
 
-    a = read_lines('./data/transcripts/raw/No0047.Carol.srt')
-    # for x in a:
-    #     print(type(x))
-    print(a)
+    # a = read_lines('./data/transcripts/raw/No0047.Carol.srt')
+    # print(a)
+    # CUDA_VISIBLE_DEVICES=0 
+    sentence = '我们开始健身吧'
+    extract_bert = BertExtractor(device=0, model_name='bert_base_chinese')
+    feature = extract_bert(sentence)
+    print(feature.shape)

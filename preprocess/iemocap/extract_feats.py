@@ -87,7 +87,7 @@ def extract_one_video_mid_layers(video_dir, denseface_model, detect_type):
                 return None
         else:
             return None
-    feats, preds, trans1s, trans2s, raw_imgs = [], [], [], []
+    feats, preds, trans1s, trans2s, raw_imgs = [], [], [], [], []
     for img in imgs:
         feat, pred = denseface_model(img)
         feats.append(feat)
@@ -169,21 +169,27 @@ def get_all_utt_ids(target_root):
 if __name__ == '__main__':
     
     # for face
-    if False:
+    if True:
         detect_type = sys.argv[1]
-        output_dir = '/data7/MEmoBert/evaluation/IEMOCAP/feature'
+        output_dir = '/data7/emobert/exp/evaluation/IEMOCAP/feature'
         if detect_type == 'seetaface':
             name = "denseface_seetaface_iemocap_mean_std_torch"
+            model_path = None
         elif detect_type == 'openface':
             name = "denseface_openface_iemocap_mean_std_torch"
+            model_path = None
+        elif detect_type == 'openface_affectnet':
+            name = "denseface_affectnet_openface_iemocap_mean_std_torch"
+            model_path = '/data9/datasets/AffectNetDataset/combine_with_fer/results/densenet100_adam0.0002_0.0/ckpts/model_step_12.pt'
         else:
             raise ValueError('detect type must be openface or seetaface')
 
         if not os.path.exists(output_dir + '/' + name):
             os.mkdir(output_dir + '/' + name)
-        utt_ids = get_all_utt_ids()
+        utt_ids = get_all_utt_ids(target_root='/data7/emobert/exp/evaluation/IEMOCAP/target/1')
         images_mean = 131.0754
         images_std = 47.8581
+
         denseface = DensefaceExtractor(mean=images_mean, std=images_std)
         denseface.register_midlayer_hook([
             "features.transition1.relu",
@@ -252,7 +258,7 @@ if __name__ == '__main__':
         extract_features_h5(extract_rawwav, lambda x: os.path.join(audio_dir, x),  utt_ids, save_path)
 
 
-    if True:
+    if False:
         output_dir = '/data7/emobert/exp/evaluation/IEMOCAP/feature'
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
@@ -268,5 +274,5 @@ if __name__ == '__main__':
         print('total {} uttids'.format(len(utt_ids)))
         extract_features_h5(extract_wav2vec, lambda x: os.path.join(audio_dir, x),  utt_ids, save_path)
 
-    # PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=4 python extract_denseface.py openface/seetaface
+    # PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=0 python extract_feats.py openface_affectnet/openface/seetaface/
     # PYTHONPATH=/data7/MEmoBert CUDA_VISIBLE_DEVICES=4 python extract_feats.py
