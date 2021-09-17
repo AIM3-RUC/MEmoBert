@@ -1,15 +1,15 @@
 # basic paths
 dataset_name = 'IEMOCAP'
 # dataset_name = 'MSP-IMPROV'
-result_dir = '/data7/MEmoBert/evaluation/{}/results'.format(dataset_name)
-ft_dir = '/data7/MEmoBert/evaluation/{}/feature'.format(dataset_name)
-target_dir = '/data7/MEmoBert/evaluation/{}/target'.format(dataset_name)
+result_dir = '/data7/emobert/exp/evaluation/{}/results'.format(dataset_name)
+ft_dir = '/data7/emobert/exp/evaluation/{}/feature'.format(dataset_name)
+target_dir = '/data7/emobert/exp/evaluation/{}/target'.format(dataset_name)
 
 model_cfg = {
     # basic info
     'model_name': 'early_fusion_multi',
     'dataset_mode': 'iemocap_original', # use the original denseface features
-    'pretained_ft_type': 'denseface_seetaface_iemocap_mean_std_torch',
+    'pretained_ft_type': 'denseface_affectnet_openface_iemocap_mean_std_torch',
     # global training info
     'dropout_rate': 0.5,
     'modality':'VL',

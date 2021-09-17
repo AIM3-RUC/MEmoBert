@@ -54,7 +54,7 @@ def lambda_rule(epoch):
 def main(opt):
     ## for building the basic paths
     output_dir = join(config.result_dir, opt.pretained_ft_type, opt.model_name) # get logger path
-        # for testing the parameters of the model
+    # for testing the parameters of the model
     setting_name = '{}_dp{}_bn{}_A{}_V{}_L{}_F{}_run{}_{}'.format(opt.modality, opt.dropout_rate, \
         opt.bn, opt.a_hidden_size, opt.v_hidden_size, opt.l_hidden_size, \
         opt.mid_fusion_layers, opt.run_idx, opt.postfix)
