@@ -286,7 +286,10 @@ taskname:
 https://d3smihljt9218e.cloudfront.net/lecture/26027/slideshow/513b2b4eb1663f1d965efce4a34d97b6.pdf
 ACL 2021 paper entitled: "eMLM: A New Pre-training Objective for Emotion Related Tasks".
 采用的词典是： http://saifmohammad.com/WebPages/lexicons.html
-sadness, anger, joy, surprise, anticipation, trust, fear, disgust 大约共 6000 词
+[anger, joy, sadness, surprise, fear, disgust] 大约共 6000 词
+首先 emo-word 是 50% 的概率进行 mask.
+然后 nonemo-word 的概率是 max(句子长度*15% - emoword个数*50%, 0) /  (句子长度 - emoword个数)
+比如句子长度为10个word, 情感词是2个，那么 max(10*15% - 2*50%, 0) /  (句子长度 - emoword个数) = 0.5 / 8 = 0.0625概率。
 
 
 ## 更强的文本情感分类模型
