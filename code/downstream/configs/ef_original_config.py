@@ -18,12 +18,12 @@ model_cfg = {
     'bn':False,
     'batch_size':128,
     # for learning rate
-    'learning_rate':1e-3,
+    'learning_rate':1e-4,
     'lr_policy':'linear',
     # for training
     'fix_lr_epoch': 20, # real fix_lr_epoch = fix_lr_epoch - warmup_epoch
     'max_epoch': 40,
-    'patience':40,
+    'patience': 10,
     'warmup_epoch':0,
     'warmup_decay':0.001, # warmup_learning_rate = warmup_decay * learning_rate
     'optim':'adam',

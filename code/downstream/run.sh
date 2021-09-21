@@ -10,7 +10,7 @@ do
     for i in `seq 1 10`;
     do
         cmd="python run_baseline.py --gpu_id $gpu --modality=$modality 
-            --pretained_ft_type denseface_affectnet_openface_iemocap_mean_std_torch
+            --pretained_ft_type denseface_openface_iemocap_mean_std_torch
             --num_threads 0 --cvNo=$i --run_idx=$run_idx
             --dropout_rate 0.5 --postfix self
             --max_lexical_tokens 22

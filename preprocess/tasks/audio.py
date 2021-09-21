@@ -121,7 +121,8 @@ class VggishExtractor(BaseWorker):
         pad_context = (block_len - self.seg_len) // 2
         ans = []
         for timestamp in timestamps:
-            timestamp = int(timestamp / 1000 * sr)
+            # timestamp = int(timestamp / 1000 * sr)
+            timestamp = int(timestamp * sr) #hzp modified: 这里timestamp的单位应该是s而不是ms
             if timestamp >= len(wav_data) + pad_context: # 提供的部分音频长度比label的timestamp短
                 cur_time_wav_data = np.array([wav_data[-1]] * block_len)
             else:                                        # 正常情况, timestamp的时间没超过audio_length

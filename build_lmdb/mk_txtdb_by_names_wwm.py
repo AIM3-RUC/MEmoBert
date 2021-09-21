@@ -42,7 +42,13 @@ def bert_id2token(tokenizer, ids):
         tokens.append(word_tokens)
     return tokens
 
-def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_samples=0, use_emo_words=False):
+def get_prompt_text_input_ids(tokens, input_ids, prompt_type):
+
+    return tokens, input_ids
+
+
+def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_samples=0, 
+                            use_emo_words=False, prompt_type=None):
     '''
     {
         "segmentId": [
@@ -79,9 +85,11 @@ def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_sampl
             example = {}
             input_ids = bert_tokenize(toker, sent)
             tokens = bert_id2token(toker, input_ids)
+            if prompt_type is not None:
+                tokens, input_ids = get_prompt_text_input_ids(tokens, input_ids, prompt_type)
+
             txt2img[_id] = img_fname
             img2txt[img_fname].append(str(_id))
-            
             id2len[_id] = sum([len(word_input_ids) for word_input_ids in input_ids])
             example['id'] = str(_id)
             example['dataset'] = dataset_name
@@ -131,7 +139,7 @@ def main(opts):
     with open_db() as db:
         id2lens, txt2img, img2txt = process_jsonl(opts.input, db, toker, dataset_name=opts.dataset_name, \
                                 filter_path=opts.filter_path, num_samples=opts.num_samples, \
-                                use_emo_words=opts.use_emo)
+                                use_emo_words=opts.use_emo, prompt_type=opts.prompt_type)
     print('generate id2lens {} txt2img {} img2txt {}'.format(len(id2lens), len(txt2img), len(img2txt)))
     with open(f'{opts.output}/id2len.json', 'w') as f:
         json.dump(id2lens, f)
@@ -156,5 +164,6 @@ if __name__ == '__main__':
                         help='which dataset to be processed')
     parser.add_argument('--use_emo',  action='store_true',
                         help='store the emotion words and corresding labels') 
+    parser.add_argument('--prompt_type',  default=None, help='mask_iam, mask_itwas, nsp_iam, nsp_itwas')
     args = parser.parse_args()
     main(args)
