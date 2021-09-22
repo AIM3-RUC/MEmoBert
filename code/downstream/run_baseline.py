@@ -264,15 +264,11 @@ if __name__ == '__main__':
                         help='postfix for the output dir')
     main_args = parser.parse_args()
     # 根据主函数传入的参数判断采用的config文件
-    if 'uniter' in main_args.pretained_ft_type:
-        if 'self' in main_args.postfix:
-            print('**** use ef_pretrained_self_config')
-            from code.downstream.configs import ef_pretrained_self_config as config 
-        else:
-            print('**** use ef_pretrained_www_config')
-            from code.downstream.configs import ef_pretrained_www_config as config 
+    if 'self' == main_args.postfix:
+        print('**** use ef self config')
+        from code.downstream.configs import ef_original_config_self as config 
     else:
-        print('**** use ef_original_config')
-        from code.downstream.configs import ef_original_config as config
+        print('**** use ef www config')
+        from code.downstream.configs import ef_original_config_www as config 
     opt = parse_with_config(main_args)
     main(opt)

@@ -18,19 +18,19 @@ model_cfg = {
     'bn':False,
     'batch_size':128,
     # for learning rate
-    'learning_rate':1e-4,
+    'learning_rate':1e-3,
     'lr_policy':'linear',
     # for training
     'fix_lr_epoch': 20, # real fix_lr_epoch = fix_lr_epoch - warmup_epoch
     'max_epoch': 40,
     'patience': 10,
     'warmup_epoch':0,
-    'warmup_decay':0.001, # warmup_learning_rate = warmup_decay * learning_rate
+    'warmup_decay':0.01, # warmup_learning_rate = warmup_decay * learning_rate
     'optim':'adam',
-    'betas':[0.9, 0.98],
-    'grad_norm': 5.0,
+    'betas':[0.5, 0.98],
+    'grad_norm': 0.1,
     # for different module initializers:  none / orthogonal / xavier / normal / kaiming
-    'init_type': 'none',
+    'init_type': 'normal',
     # visual encoer info -- lstm
     'max_visual_tokens': 50,
     'v_input_size':342,
