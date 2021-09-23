@@ -396,9 +396,6 @@ Contrastive Multimodal Fusion with TupleInfoNCE. 2021
 目前的ITM任务是 Cross-modality 的预训练任务，只要用于模态检索。
 构建Contrastive Learning, 参考并对比 hard-negative itm.
 
-## EmoWords 也可以再加进来试试，但是EmoWords说到底还是再文本段进行增强，但是文本模态已经很强了。
-
-
 ## <分析1> 加入 EmoCls 任务会带来性能的下降？（EmoCls任务探究 Sheet）
 根据实验结果进行总结，在什么情况下文本的EmoCls会带来提升？ 在什么情况下会带来下降？
 ---- 感觉EmoCls任务和某些预训练任务会产生冲突。
@@ -406,10 +403,9 @@ Contrastive Multimodal Fusion with TupleInfoNCE. 2021
 但是在 LVA 三模态的实验中，加入 EmoCls 很多情况下效果反而变差。
 Note: 问题的原因可能不在EmoCls，可能在三个模态融合的时候时候还存在其他的问题？ 见<分析3>
 
-## <分析2.1> 在纯文本端的加强，对于多个模态的影响？（单模态输入加强 Sheet） --Going
+## <分析2.1> 在纯文本端的加强，对于多个模态的影响？（单模态输入加强 Sheet） --Done
 
-
-## <分析2.2> 在纯语音端的加强（单模态输入加强 Sheet）
+## <分析2.2> 在纯语音端的加强（单模态输入加强 Sheet）--Done
 将 VoxCeleb2 的语音和文本输入加入训练.
 
 ## <分析3> 三个模态和两个模态同时使用需要注意什么，很多两个模态work的结论，放到三个模态的情况下反而不work.  --Going
@@ -426,10 +422,24 @@ Note: 问题的原因可能不在EmoCls，可能在三个模态融合的时候�
 否则会zip函数会根据长度短的列表进行对齐，会导致数据缺失.
 训练的时候必须要 max_txt_len，否则最大长度就是30，损失好多数据呢 [Bug], 目前都修改了最大长度是 120.
 
-## <分析4.1> 纯文本的Upper-Bound 在哪？ -- training.
+## <分析4.1> 纯文本的Upper-Bound 在哪？ -- Done.
 将测试集合加入训练集合训练，并进行测试，看看结果, 结果也很好，都是epoch=4/6的结果，当epoch=0的时候结果70不到。
 IEMOCAP: UA=0.95155
 MSP: UA=0.97278
 
 ## <分析5> ITM 任务到底需要不需要？ --Done
 经过一些实验发现，目前的ITM任务去掉，效果反而更好。但是应该还有改进的空间。
+
+## <分析6> 采用prompt的mask机制尝试一下
+[Bug] 老版本的 pytorch_pretrained_bert.BertTokenizer 不能获取 [MASK] 整个词。
+toker = AutoTokenizer.from_pretrained('/data2/zjm/tools/LMs/bert_base_en')
+toker2 = BertTokenizer.from_pretrained('/data2/zjm/tools/LMs/bert_base_en')
+>>> toker2.tokenize('I love [MASK].')
+['i', 'love', '[', 'mask', ']', '.']
+>>> toker.tokenize('I love [MASK].')
+['i', 'love', '[MASK]', '.']
+但是如果手动把句号分开就可以了
+>>> toker2.tokenize('I love [MASK] .')
+['i', 'love', '[MASK]', '.']
+
+## <分析7> 基于NSP的机制也可以，可以把 prompt 放前面

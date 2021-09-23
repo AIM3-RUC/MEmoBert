@@ -6,7 +6,7 @@
 split_num=$1  # 8
 file_name=$2  # has_active_spk
 screen_name=MEmoBert_feature_extra
-gpus=(0 0 1 1 2 2 3 3)
+gpus=(6 6 7 7)
 for i in `seq 0 1 $(($split_num-1))`; 
     do
     {   

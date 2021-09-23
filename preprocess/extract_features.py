@@ -138,11 +138,10 @@ if __name__ == '__main__':
     utt_file_name = sys.argv[1]
     part_no, total = eval(sys.argv[2]), eval(sys.argv[3])
 
-    extact_face_features = False
-    extact_audio_features = True
+    extact_face_features = True
+    extact_audio_features = False
     audio_features_type = 'wav2vec-cnn'
     use_asr_based_model=False
-    # feature_audio_root = path_config.feature_audio_wav2vec_dir # should modify
     if audio_features_type == 'wav2vec-cnn':
         feature_audio_root = path_config.feature_audio_wav2vec_cnn_dir
     elif audio_features_type == 'wav2vec':
@@ -161,7 +160,7 @@ if __name__ == '__main__':
     ## for extracting face features
     mean = 63.987095
     std = 43.00519
-    denseface = DensefaceExtractor()
+    denseface = DensefaceExtractor(model_path=path_config.denseface_model_path)
     denseface.register_midlayer_hook([
         "features.transition1.relu",
         "features.transition2.relu"
@@ -173,18 +172,19 @@ if __name__ == '__main__':
     ## for extracting audio features
     # 偏函数: 主要目的是冻结固定参数？将所作用的函数作为 partial() 函数的第一个参数，原函数的各个参数依次作为 partial()函数的后续参数，
     # 原函数有关键字参数的一定要带上关键字，没有的话，按原有参数顺序进行补充.
-    if audio_features_type == 'comparE':
-        comparE_model = ComParEExtractor()
-        extract_comparE = partial(extract_comparE_file, extractor_model=comparE_model)
-    elif audio_features_type == 'wav2vec-cnn':
-        wav2vec_model = Wav2VecCNNExtractor(gpu=0, use_asr_based_model=use_asr_based_model)
-        extract_wav2vec = partial(extract_wav2vec_file, extractor_model=wav2vec_model)
-    elif audio_features_type == 'wav2vec':
-        wav2vec_model = Wav2VecExtractor(downsample=-1, gpu=0, use_asr_based_model=use_asr_based_model)
-        extract_wav2vec = partial(extract_wav2vec_file, extractor_model=wav2vec_model)
-    elif audio_features_type == 'rawwav':
-        rawwav_model = RawWavExtractor(model_path='/data7/MEmoBert/emobert/resources/pretrained/wav2vec_base')
-        extract_rawwav = partial(extract_rawwav_file, extractor_model=rawwav_model)
+    if extact_audio_features:
+        if audio_features_type == 'comparE':
+            comparE_model = ComParEExtractor()
+            extract_comparE = partial(extract_comparE_file, extractor_model=comparE_model)
+        elif audio_features_type == 'wav2vec-cnn':
+            wav2vec_model = Wav2VecCNNExtractor(gpu=0, use_asr_based_model=use_asr_based_model)
+            extract_wav2vec = partial(extract_wav2vec_file, extractor_model=wav2vec_model)
+        elif audio_features_type == 'wav2vec':
+            wav2vec_model = Wav2VecExtractor(downsample=-1, gpu=0, use_asr_based_model=use_asr_based_model)
+            extract_wav2vec = partial(extract_wav2vec_file, extractor_model=wav2vec_model)
+        elif audio_features_type == 'rawwav':
+            rawwav_model = RawWavExtractor(model_path='/data7/MEmoBert/emobert/resources/pretrained/wav2vec_base')
+            extract_rawwav = partial(extract_rawwav_file, extractor_model=rawwav_model)
 
     length = len(all_utt_files)
     start = int(part_no * length / total)

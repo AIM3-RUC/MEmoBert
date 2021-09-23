@@ -109,6 +109,7 @@ class DensefaceExtractor(BaseWorker):
             cfg = model_cfg
         if model_path is None:
             model_path = "/data7/MEmoBert/emobert/exp/face_model/densenet100_adam0.001_0.0/ckpts/model_step_43.pt"
+        print('Loading {}'.format(model_path))
         self.device = torch.device("cuda:{}".format(gpu_id))
         self.extractor = DenseNet(gpu_id, **cfg)
         self.extractor.to(self.device)
