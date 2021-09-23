@@ -19,6 +19,13 @@ from code.uniter.data.data import open_lmdb
 
 '''
 WhoWordMasking, 构建textdb的时候按word进行保存，方便就行Mask.
+[Bug] 
+toker = AutoTokenizer.from_pretrained('/data2/zjm/tools/LMs/bert_base_en')
+toker2 = BertTokenizer.from_pretrained('/data2/zjm/tools/LMs/bert_base_en')
+>>> toker2.tokenize('I love [MASK].')
+['i', 'love', '[', 'mask', ']', '.']
+>>> toker.tokenize('I love [MASK].')
+['i', 'love', '[MASK]', '.']
 '''
 # modified
 def bert_tokenize(tokenizer, text):
@@ -42,10 +49,34 @@ def bert_id2token(tokenizer, ids):
         tokens.append(word_tokens)
     return tokens
 
-def get_prompt_text_input_ids(tokens, input_ids, prompt_type):
+def get_prompt_mask_text(text, prompt_type):
+    '''
+    比如  i am happy. tokens=[i, am, happy, .] input_ids
+    '''
+    if prompt_type == 'mask_iam':
+        temp = ' I am [MASK] .'
+    elif prompt_type == 'mask_itwas':
+        temp = ' It was [MASK] .'
+    else:
+        print('Error of prompt_type')
+    if text[-1] not in ['?', '!', '.']:
+        text += '.'
+    text += temp
+    return text
 
-    return tokens, input_ids
-
+def get_prompt_text_labels(tokenizer, label, tokens, input_ids):
+    label_map = {0: 'anger', 1: 'happy', 2:'neutral', 3:'sad'}    
+    label_name = label_map[label]
+    label_ids = bert_tokenize(tokenizer, label_name)
+    txt_labels = []
+    for word_input_ids, sub_tokens in zip(input_ids, tokens):
+        if word_input_ids == [103] and sub_tokens == ['@@[MASK]']:
+            txt_labels.append(label_ids[0])
+        else:
+            # uniter结构中pad用-1表示
+            txt_labels.append([-1]*len(word_input_ids))
+    assert len(txt_labels) == len(input_ids)
+    return txt_labels
 
 def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_samples=0, 
                             use_emo_words=False, prompt_type=None):
@@ -83,24 +114,26 @@ def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_sampl
             continue
         for sent in value['txt']:
             example = {}
+            if prompt_type is not None:
+                sent = get_prompt_mask_text(sent, prompt_type)
             input_ids = bert_tokenize(toker, sent)
             tokens = bert_id2token(toker, input_ids)
-            if prompt_type is not None:
-                tokens, input_ids = get_prompt_text_input_ids(tokens, input_ids, prompt_type)
-
-            txt2img[_id] = img_fname
-            img2txt[img_fname].append(str(_id))
-            id2len[_id] = sum([len(word_input_ids) for word_input_ids in input_ids])
-            example['id'] = str(_id)
-            example['dataset'] = dataset_name
-            example['file_path'] = img_fname
-            example['toked_caption'] = tokens
-            example['input_ids'] = input_ids
-            example['img_fname'] = img_fname
             if isinstance(value['label'], str):
                 value['label'] = int(value['label'])
             example['target'] = value['label']
-
+            if prompt_type is not None:
+                text_labels = get_prompt_text_labels(toker, example['target'], tokens, input_ids)
+                example['text_labels'] = text_labels
+            # print(input_ids, tokens, text_labels)
+            txt2img[_id] = img_fname
+            img2txt[img_fname].append(str(_id))
+            example['id'] = str(_id)
+            example['dataset'] = dataset_name
+            example['file_path'] = img_fname
+            example['img_fname'] = img_fname
+            example['toked_caption'] = tokens
+            example['input_ids'] = input_ids
+            id2len[_id] = sum([len(word_input_ids) for word_input_ids in input_ids])
             if use_emo_words:
                 # for emo-words word-level
                 emo_input_ids, emo_input_ids_labels = get_emo_words(emol, input_ids, tokens)
@@ -120,15 +153,14 @@ def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_sampl
 def main(opts):
     meta = vars(opts)
     meta['tokenizer'] = opts.toker
-    toker = BertTokenizer.from_pretrained(
-        opts.toker, do_lower_case='uncased' in opts.toker)
+    toker = BertTokenizer.from_pretrained(opts.toker, do_lower_case=True)
     meta['UNK'] = toker.convert_tokens_to_ids(['[UNK]'])[0]
     meta['CLS'] = toker.convert_tokens_to_ids(['[CLS]'])[0]
     meta['SEP'] = toker.convert_tokens_to_ids(['[SEP]'])[0]
     meta['MASK'] = toker.convert_tokens_to_ids(['[MASK]'])[0]
     meta['v_range'] = (toker.convert_tokens_to_ids('!')[0],
                        len(toker.vocab))
-
+                       
     if not os.path.exists(opts.output):
         os.makedirs(opts.output)
 
@@ -166,4 +198,5 @@ if __name__ == '__main__':
                         help='store the emotion words and corresding labels') 
     parser.add_argument('--prompt_type',  default=None, help='mask_iam, mask_itwas, nsp_iam, nsp_itwas')
     args = parser.parse_args()
+    args.toker = '/data2/zjm/tools/LMs/bert_base_en'
     main(args)
