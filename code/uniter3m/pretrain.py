@@ -40,9 +40,11 @@ from code.uniter3m.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   MlmWWMDataset, mlm_wwm_collate,
                   VFOMDataset, vfom_collate,
                   SFOMDataset, sfom_collate,
-                  MelmWWMDataset, melm_wwm_collate)
+                  MelmWWMDataset, melm_wwm_collate,
+                  PromptMaskDataset, prompt_mask_collate)
 from code.uniter3m.model.pretrain import UniterForPretraining
 from code.uniter3m.optim.misc import build_optimizer
+from code.uniter3m.model.emocls import evaluation_metric
 
 # from uniter
 from code.uniter.optim import get_lr_sched
@@ -451,6 +453,25 @@ def build_eitm_dataset(txt_db, img_db, speech_db, emo2img_fname_path, is_train, 
     collate_fn = eitm_collate
     return dataset, collate_fn
 
+def build_prompt_mask_dataset(txt_db, img_db, speech_db, is_train, opts):
+    if is_train:
+        if img_db is not None and speech_db is not None:
+            datasets = [PromptMaskDataset(t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif img_db is None and speech_db is not None:
+            datasets = [PromptMaskDataset(t, None, s) for t, s in zip(txt_db, speech_db)]
+        elif img_db is not None and speech_db is None:
+            datasets = [PromptMaskDataset(t, i, None) for t, i in zip(txt_db, img_db)]
+        elif img_db is None and speech_db is None:
+            LOGGER.info('[Debug in promptmask dataset] the img and speech modality are None!')
+            datasets = [PromptMaskDataset(t, None, None) for t in txt_db]
+        else:
+            LOGGER.info('[Error] Error promptmask datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = PromptMaskDataset(txt_db, img_db, speech_db)
+    return dataset, prompt_mask_collate
+
+
 def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_dbs=None):
     if all_img_dbs is None and opts.use_visual:
         LOGGER.info('[Debug] Use ImageLmdbGroup')
@@ -546,6 +567,8 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
                 dataset = build_emolare_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('onemodalnegitm'):
                 dataset = build_onemodalnegitm_dataset(txt_db, img_db, speech_db, is_train, opts)
+            elif task.startswith('promptmask'):
+                dataset = build_prompt_mask_dataset(txt_db, img_db, speech_db, is_train, opts)
             else:
                 raise ValueError(f'Undefined task {task}')
 
@@ -803,6 +826,10 @@ def validate(model, val_dataloaders):
         elif task.startswith('emolare'):
             LOGGER.info("start running EmoLare validation...")
             val_log = validate_emolare(model, loader)
+        elif task.startswith('promptmask'):
+            val_log = validate_prompt_mask(model, loader)
+        elif task.startswith('prompt_nsp'):
+            val_log = validate_prompt_nsp(model, loader)
         else:
             raise ValueError(f'Undefined task {task}')
         val_log = {f'{task}_{k}': v for k, v in val_log.items()}
@@ -1240,6 +1267,65 @@ def validate_itm(model, val_loader, task):
 
     LOGGER.info(f"validation finished in {int(tot_time)} seconds, "
                 f"score: {val_acc*100:.2f}")
+    return val_log
+
+@torch.no_grad()
+def validate_prompt_mask(model, val_loader, task='promptmask'):
+    # 计算 wa, uar, f1
+    LOGGER.info(f"start running {task} validation...")
+    val_loss = 0
+    total_preds = []
+    total_labels = []
+    st = time()
+    for i, batch in enumerate(val_loader):
+        scores = model(batch, task=task, compute_loss=False)
+        labels = batch['txt_labels']
+        labels = labels[labels != -1]
+        loss = F.cross_entropy(scores, labels, reduction='sum')
+        val_loss += loss.item()
+        temp_preds = scores.argmax(axis=1)
+        # print(temp_preds.shape, labels.shape)
+        total_preds.append(temp_preds.detach().cpu().numpy())
+        total_labels.append(labels.detach().cpu().numpy())
+    val_loss = sum(all_gather_list(val_loss))
+    tot_time = time()-st
+    total_preds = np.concatenate(total_preds)
+    total_labels = np.concatenate(total_labels)   
+    val_loss /= len(total_labels)
+    # print(total_preds.shape, total_labels.shape)
+    val_log = evaluation_metric(total_preds, total_labels)
+    LOGGER.info(f"validation finished in {int(tot_time)} seconds, ")
+    LOGGER.info(f"[Validation] Loss: {val_loss:.2f},"
+                                f"\t WA: {val_log['WA']*100:.2f},"
+                                f"\t WF1: {val_log['WF1']*100:.2f},"
+                                f"\t UA: {val_log['UA']*100:.2f},\n")
+    return val_log
+
+@torch.no_grad()
+def validate_prompt_nsp(model, val_loader, task='prompt_nsp'):
+    # 计算 wa, uar, f1
+    LOGGER.info(f"start running {task} validation...")
+    val_loss = 0
+    st = time()
+    for i, batch in enumerate(val_loader):
+        scores = model(batch, task=task, compute_loss=False)
+        labels = batch['txt_labels']
+        labels = labels[labels != -1]
+        loss = F.cross_entropy(scores, labels, reduction='sum')
+        val_loss += loss.item()
+        n_correct += (scores.max(dim=-1)[1] == labels).sum().item()
+        n_word += labels.numel()
+    val_loss = sum(all_gather_list(val_loss))
+    n_correct = sum(all_gather_list(n_correct))
+    n_word = sum(all_gather_list(n_word))
+    tot_time = time()-st
+    val_loss /= n_word
+    acc = n_correct / n_word
+    val_log = {'loss': val_loss,
+               'acc': acc,
+               'tok_per_s': n_word/tot_time}
+    LOGGER.info(f"validation finished in {int(tot_time)} seconds, "
+                f"acc: {acc*100:.2f}")
     return val_log
 
 if __name__ == "__main__":
