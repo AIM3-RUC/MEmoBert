@@ -520,7 +520,7 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
                 dataset = build_mlm_wwm_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('mlm'):
                 dataset = build_mlm_dataset(txt_db, img_db, speech_db, is_train, opts)
-            if task.startswith('melm_wwm'):
+            elif task.startswith('melm_wwm'):
                 # 由于 melm_wwm 和 melm 都是melm开头，所以这里的顺序不能换
                 dataset = build_melm_wwm_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('melm'):
@@ -570,7 +570,7 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
             elif task.startswith('promptmask'):
                 dataset = build_prompt_mask_dataset(txt_db, img_db, speech_db, is_train, opts)
             else:
-                raise ValueError(f'Undefined task {task}')
+                raise ValueError(f'Undefined task {task} of dataloader')
 
             LOGGER.info(f"{len(dataset[0])*hvd.size()} samples loaded")
             if task.startswith('itm') or task.startswith('onemodalnegitm'):
