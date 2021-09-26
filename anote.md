@@ -442,4 +442,11 @@ toker2 = BertTokenizer.from_pretrained('/data2/zjm/tools/LMs/bert_base_en')
 >>> toker2.tokenize('I love [MASK] .')
 ['i', 'love', '[MASK]', '.']
 
+目前的结果来看，比正常finetune的结果低一个点, finetune结果低一点
+https://github.com/JinmingZhao/prompt_demos
+尝试不同的seed, 结果会有一点提升，跟baseline的结果差不多。
+
+
 ## <分析7> 基于NSP的机制也可以，可以把 prompt 放前面
+采用类似itm的做法，把放在第二个位置，这样比较方便
+对比采用itm预训练任何和不采用itm预训练任务的下游任务
