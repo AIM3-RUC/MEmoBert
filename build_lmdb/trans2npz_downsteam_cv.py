@@ -12,14 +12,15 @@ export PYTHONPATH=/data7/MEmoBert
 '''
 
 do_raw_img = False
-corpus_name = 'MSP'
-root_dir = f'/data7/emobert/exp/evaluation/{corpus_name}/'
+corpus_name = 'iemocap'
+corpus_name_L = 'IEMOCAP'
+root_dir = f'/data7/emobert/exp/evaluation/{corpus_name_L}/'
 cls_num = 8
 if not do_raw_img:
-    feature_dir = root_dir + 'feature/denseface_openface_msp_mean_std_torch'
-    IMD_DIM=300  # trans1 for 216 and trans2 is 300
-    ft_key = 'trans2' # or trans1 trans2 or img_data
-    npyz_dir = feature_dir + '/ft_npzs/trans2'
+    feature_dir = root_dir + 'feature/denseface_affectnet_openface_{}_mean_std_torch'.format(corpus_name)
+    IMD_DIM=342  # trans1 for 216 and trans2 is 300
+    ft_key = 'feat' # or trans1 trans2 or img_data
+    npyz_dir = feature_dir + '/ft_npzs/fc'
 else:
     feature_dir = root_dir + 'feature/openface_iemocap_raw_img'
     IMD_DIM=[112, 112]
@@ -30,7 +31,7 @@ if not os.path.exists(npyz_dir):
     os.makedirs(npyz_dir)
 
 h5_fts_path = feature_dir + '/1/{}.h5'
-target_dir = f'/data7/emobert/exp/evaluation/{corpus_name}/refs/1'
+target_dir = f'/data7/emobert/exp/evaluation/{corpus_name_L}/refs/1'
 target_path = os.path.join(target_dir, '{}_ref.json')
 empty_video = 0
 total_video = 0
@@ -77,5 +78,5 @@ for setname in ['trn', 'val', 'tst']:
         np.savez_compressed(outputfile,
                             soft_labels=soft_labels.astype(np.float16),
                             features=feat.astype(np.float16))       
-        print('{} feat {}'.format(setname, feat.shape))
+        # print('{} feat {}'.format(setname, feat.shape))
 print('total {} and empty {}'.format(total_video, empty_video))

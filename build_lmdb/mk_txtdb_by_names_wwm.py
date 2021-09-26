@@ -57,6 +57,8 @@ def get_prompt_mask_text(text, prompt_type):
         temp = ' I am [MASK] .'
     elif prompt_type == 'mask_itwas':
         temp = ' It was [MASK] .'
+    elif prompt_type == 'mask_heis':
+        temp = ' He is [MASK] .'
     else:
         print('Error of prompt_type')
     if text[-1] not in ['?', '!', '.']:

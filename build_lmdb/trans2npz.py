@@ -8,7 +8,6 @@ from preprocess.FileOps import read_file
 '''
 将h5文件中的特征都转化为npz文件, 只需要存储特征和人脸即可
 export PYTHONPATH=/data7/MEmoBert
-
 '''
 
 def convert_hdf5_to_npz(hdf5_dir, output_dir, meta_data_dir, movie_names_path, ft_name='feat', start=None, end=None):
@@ -92,17 +91,17 @@ def convert_hdf5_to_npz_voxceleb2(hdf5_dir, output_dir, movie_names_path, start=
 if __name__ == "__main__":
     start = int(sys.argv[1])  # 0
     end =  int(sys.argv[2]) # 100
-    ft_type = 'trans2' # trans1 trans2
+    ft_type = 'fc' # trans1 trans2
     if ft_type == 'fc':
         ft_name = 'feat'
     else:
         ft_name = ft_type
     if True:
         # for movies data
-        hdf5_dir = '/data7/emobert/denseface_feature_nomask_torch/movies_v3'
+        hdf5_dir = '/data7/emobert/denseface_affectnet_feature_nomask_torch/movies_v3'
         meta_data_dir = '/data7/emobert/data_nomask_new/meta'
         movie_names_path = '/data7/emobert/data_nomask_new/movies_v3/movie_names.npy'
-        npzs_dir = f'/data7/emobert/ft_npzs_nomask/movies_v3/{ft_type}' 
+        npzs_dir = f'/data7/emobert/affectnet_ft_npzs_nomask/movies_v3/{ft_type}' 
         if not os.path.exists(npzs_dir):
             os.makedirs(npzs_dir)
         convert_hdf5_to_npz(hdf5_dir, npzs_dir, meta_data_dir, movie_names_path, ft_name=ft_name, start=start, end=end)
