@@ -41,7 +41,9 @@ from code.uniter3m.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   VFOMDataset, vfom_collate,
                   SFOMDataset, sfom_collate,
                   MelmWWMDataset, melm_wwm_collate,
-                  PromptMaskDataset, prompt_mask_collate)
+                  PromptMaskDataset, prompt_mask_collate,
+                  PromptNSPDataset, prompt_nsp_collate,
+                  )
 from code.uniter3m.model.pretrain import UniterForPretraining
 from code.uniter3m.optim.misc import build_optimizer
 from code.uniter3m.model.emocls import evaluation_metric
@@ -465,11 +467,29 @@ def build_prompt_mask_dataset(txt_db, img_db, speech_db, is_train, opts):
             LOGGER.info('[Debug in promptmask dataset] the img and speech modality are None!')
             datasets = [PromptMaskDataset(t, None, None) for t in txt_db]
         else:
-            LOGGER.info('[Error] Error promptmask datasets')
+            LOGGER.info('[Error] Error promptmask mask datasets')
         dataset = ConcatDatasetWithLens(datasets)
     else:
         dataset = PromptMaskDataset(txt_db, img_db, speech_db)
     return dataset, prompt_mask_collate
+
+def build_prompt_nsp_dataset(txt_db, img_db, speech_db, is_train, opts):
+    if is_train:
+        if img_db is not None and speech_db is not None:
+            datasets = [PromptNSPDataset(t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif img_db is None and speech_db is not None:
+            datasets = [PromptNSPDataset(t, None, s) for t, s in zip(txt_db, speech_db)]
+        elif img_db is not None and speech_db is None:
+            datasets = [PromptNSPDataset(t, i, None) for t, i in zip(txt_db, img_db)]
+        elif img_db is None and speech_db is None:
+            LOGGER.info('[Debug in promptmask nsp dataset] the img and speech modality are None!')
+            datasets = [PromptNSPDataset(t, None, None) for t in txt_db]
+        else:
+            LOGGER.info('[Error] Error promptmask datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = PromptNSPDataset(txt_db, img_db, speech_db)
+    return dataset, prompt_nsp_collate
 
 
 def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_dbs=None):
@@ -569,6 +589,8 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
                 dataset = build_onemodalnegitm_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('promptmask'):
                 dataset = build_prompt_mask_dataset(txt_db, img_db, speech_db, is_train, opts)
+            elif task.startswith('promptnsp'):
+                dataset = build_prompt_nsp_dataset(txt_db, img_db, speech_db, is_train, opts)
             else:
                 raise ValueError(f'Undefined task {task} of dataloader')
 
@@ -828,7 +850,7 @@ def validate(model, val_dataloaders):
             val_log = validate_emolare(model, loader)
         elif task.startswith('promptmask'):
             val_log = validate_prompt_mask(model, loader)
-        elif task.startswith('prompt_nsp'):
+        elif task.startswith('promptnsp'):
             val_log = validate_prompt_nsp(model, loader)
         else:
             raise ValueError(f'Undefined task {task}')
@@ -1301,32 +1323,80 @@ def validate_prompt_mask(model, val_loader, task='promptmask'):
                                 f"\t UA: {val_log['UA']*100:.2f},\n")
     return val_log
 
+def compute_nsp_results(total_scores, total_gt_targets, total_imgs):
+    # 首先按照同一个img的进行排序，然后每4个属于同一句话
+    label_map = {0:'anger', 1:'happy', 2:'neutral', 3:'sad'}
+    img2sub_scores = {}
+    img2sub_gt_targets = {}
+    for index in range(len(total_imgs)):
+        img_name = total_imgs[index]
+        if img2sub_scores.get(img_name) is None:
+            img2sub_scores[img_name] = [total_scores[index]]
+            img2sub_gt_targets[img_name] = [total_gt_targets[index]]
+        else:
+            img2sub_scores[img_name] += [total_scores[index]]
+            img2sub_gt_targets[img_name] += [total_gt_targets[index]]
+    # one-score = (score-0, score-1)
+    total_preds = []
+    total_targets = []
+    for img_name in img2sub_scores.keys():
+        sub_scores = img2sub_scores[img_name]
+        sub_gt_targets = img2sub_gt_targets[img_name]
+        sum_probs = []
+        assert len(sub_scores) == len(sub_gt_targets) == 4
+        for j in range(len(sub_scores)):
+            gt_target = sub_gt_targets[j]
+            sum_probs.append(sub_scores[j][0])
+        print(sub_scores, sub_gt_targets, sum_probs)
+        total_targets.append(gt_target)
+        total_preds.append(np.argmax(sum_probs))
+    assert len(total_preds) == len(total_targets)
+    val_log = evaluation_metric(total_preds, total_targets)
+    return val_log
+
 @torch.no_grad()
-def validate_prompt_nsp(model, val_loader, task='prompt_nsp'):
-    # 计算 wa, uar, f1
+def validate_prompt_nsp(model, val_loader, task='promptnsp'):
+    # 计算情感识别的 wa, uar, f1 
     LOGGER.info(f"start running {task} validation...")
     val_loss = 0
+    tot_score = 0
+    total_imgs = []
+    total_scores = []
+    total_gt_targets = []
     st = time()
     for i, batch in enumerate(val_loader):
-        scores = model(batch, task=task, compute_loss=False)
-        labels = batch['txt_labels']
-        labels = labels[labels != -1]
-        loss = F.cross_entropy(scores, labels, reduction='sum')
+        total_imgs.append(batch['img_fnames'])
+        logits = model(batch, task=task, compute_loss=False)
+        scores =  torch.softmax(logits, dim=1)
+        targets = batch['targets']
+        # print(scores, targets)
+        loss = F.cross_entropy(logits, targets, reduction='sum')
         val_loss += loss.item()
-        n_correct += (scores.max(dim=-1)[1] == labels).sum().item()
-        n_word += labels.numel()
+        tot_score += (scores.max(dim=-1)[1] == targets).sum().item()
+        gt_targets = batch['gt_targets']
+        total_scores.append(scores.detach().cpu().numpy())
+        total_gt_targets.append(gt_targets.detach().cpu().numpy())
+        print(batch['img_fnames'], gt_targets)
     val_loss = sum(all_gather_list(val_loss))
-    n_correct = sum(all_gather_list(n_correct))
-    n_word = sum(all_gather_list(n_word))
+    tot_score = sum(all_gather_list(tot_score))
+    total_scores = np.concatenate(total_scores)
+    total_gt_targets = np.concatenate(total_gt_targets)
+    total_imgs = np.concatenate(total_imgs)
+    assert len(total_scores) == len(total_gt_targets) == len(total_imgs) == 4 * len(set(total_imgs))
     tot_time = time()-st
-    val_loss /= n_word
-    acc = n_correct / n_word
-    val_log = {'loss': val_loss,
-               'acc': acc,
-               'tok_per_s': n_word/tot_time}
-    LOGGER.info(f"validation finished in {int(tot_time)} seconds, "
-                f"acc: {acc*100:.2f}")
+    val_loss /= len(total_scores)
+    val_acc = tot_score / len(total_scores)
+    tot_time = time()-st
+    # print(total_preds.shape, total_labels.shape)
+    val_log = compute_nsp_results(total_scores, total_gt_targets, total_imgs)
+    LOGGER.info(f"validation finished in {int(tot_time)} seconds,  and NSP acc {val_acc}")
+    LOGGER.info(f"[Validation] Loss: {val_loss:.2f},"
+                                f"\t WA: {val_log['WA']*100:.2f},"
+                                f"\t WF1: {val_log['WF1']*100:.2f},"
+                                f"\t UA: {val_log['UA']*100:.2f},\n")
     return val_log
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
