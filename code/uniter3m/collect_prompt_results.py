@@ -21,17 +21,20 @@ def get_latest_result(path):
         line = lines[index]
         if 'tst task' in line:
             result_line = lines[index+3]
+            # print(log_path)
             WA = float(result_line[result_line.find('WA:')+3: result_line.find('WF1:')].strip().replace(',', ''))
             UAR = float(result_line[result_line.find('UA:')+3:].strip().replace(',', ''))
             if UAR >= max_ua:
                 test_log['UAR'] = UAR
                 test_log['WA'] = WA
                 max_ua = UAR
+    if len(test_log) == 0:
+        print('error of {}'.format(log_path))
     return test_log
 
 if __name__ == '__main__':
     result_dir = '/data7/emobert/exp/prompt_pretrain'
-    output_name = 'iemocap_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step1w-mask_iam_prompt_trnval'
+    output_name = 'iemocap_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-mask_itwas_prompt_diffseed_trnval'
     type_eval = 'UA'
     result_dir = os.path.join(result_dir, output_name)
     result_path = os.path.join(result_dir, 'result.csv')
