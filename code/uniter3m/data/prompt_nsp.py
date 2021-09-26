@@ -41,6 +41,7 @@ class PromptNSPDataset(DetectFeatTxtTokDataset):
         # text input
         input_ids = example['input_ids']
         target = example['target'] # 0 or 1
+        fake_label = example['fake_label'] # 0 or 1
         ground_truth_emo = example['ground_truth_emo'] # {0 1 2 3}
         if isinstance(input_ids[0], list):
             input_ids = [y for x in input_ids for y in x]    
@@ -65,12 +66,13 @@ class PromptNSPDataset(DetectFeatTxtTokDataset):
         else:
             speech_feat = None
         target = torch.tensor(target, dtype=torch.long) 
+        fake_label = torch.tensor(fake_label, dtype=torch.long) 
         gt_target = torch.tensor(ground_truth_emo, dtype=torch.long)
-        return input_ids, img_feat, speech_feat, attn_masks, target, gt_target, img_fname
+        return input_ids, img_feat, speech_feat, attn_masks, target, gt_target, fake_label, img_fname
 
 
 def prompt_nsp_collate(inputs):
-    (input_ids, img_feats, speech_feats, attn_masks, targets, gt_targets, img_fnames) = map(list, unzip(inputs))
+    (input_ids, img_feats, speech_feats, attn_masks, targets, gt_targets, fake_labels, img_fnames) = map(list, unzip(inputs))
 
     txt_lens = [i.size(0) for i in input_ids]
     input_ids = pad_sequence(input_ids, batch_first=True, padding_value=0)
@@ -100,6 +102,7 @@ def prompt_nsp_collate(inputs):
     gather_index = get_gather_index(txt_lens, num_bbs, num_frames, bs, max_tl, out_size)
 
     targets = torch.tensor(targets, dtype=torch.long)
+    fake_labels = torch.tensor(fake_labels, dtype=torch.long)
     gt_targets = torch.tensor(gt_targets, dtype=torch.long)
     # print(f'[Debug in itm data] text {input_ids.shape} img {img_feat.shape} speech {speech_feat}')
     # print(f'[Debug in itm data] targets {targets.shape} gather_index {gather_index.shape} attn_masks {attn_masks.shape}')
@@ -114,5 +117,6 @@ def prompt_nsp_collate(inputs):
              'gather_index': gather_index,
              'targets': targets,
              'gt_targets': gt_targets,
+             'fake_labels': fake_labels,
              'img_fnames': img_fnames}
     return batch

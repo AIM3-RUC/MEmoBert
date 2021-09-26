@@ -1323,33 +1323,37 @@ def validate_prompt_mask(model, val_loader, task='promptmask'):
                                 f"\t UA: {val_log['UA']*100:.2f},\n")
     return val_log
 
-def compute_nsp_results(total_scores, total_gt_targets, total_imgs):
+def compute_nsp_results(total_scores, total_gt_targets, total_fake_labels, total_imgs):
     # 首先按照同一个img的进行排序，然后每4个属于同一句话
     label_map = {0:'anger', 1:'happy', 2:'neutral', 3:'sad'}
     img2sub_scores = {}
+    img2sub_fake_labels = {}
     img2sub_gt_targets = {}
     for index in range(len(total_imgs)):
         img_name = total_imgs[index]
         if img2sub_scores.get(img_name) is None:
             img2sub_scores[img_name] = [total_scores[index]]
+            img2sub_fake_labels[img_name] = [total_fake_labels[index]]
             img2sub_gt_targets[img_name] = [total_gt_targets[index]]
         else:
             img2sub_scores[img_name] += [total_scores[index]]
+            img2sub_fake_labels[img_name] += [total_fake_labels[index]]
             img2sub_gt_targets[img_name] += [total_gt_targets[index]]
     # one-score = (score-0, score-1)
     total_preds = []
     total_targets = []
     for img_name in img2sub_scores.keys():
         sub_scores = img2sub_scores[img_name]
+        sub_fake_labels = img2sub_fake_labels[img_name]
         sub_gt_targets = img2sub_gt_targets[img_name]
         sum_probs = []
         assert len(sub_scores) == len(sub_gt_targets) == 4
         for j in range(len(sub_scores)):
             gt_target = sub_gt_targets[j]
-            sum_probs.append(sub_scores[j][0])
-        print(sub_scores, sub_gt_targets, sum_probs)
+            sum_probs.append(sub_scores[j][1])
+        # print(sub_scores, sub_gt_targets, sum_probs)
         total_targets.append(gt_target)
-        total_preds.append(np.argmax(sum_probs))
+        total_preds.append(sub_fake_labels[np.argmax(sum_probs)])
     assert len(total_preds) == len(total_targets)
     val_log = evaluation_metric(total_preds, total_targets)
     return val_log
@@ -1362,10 +1366,12 @@ def validate_prompt_nsp(model, val_loader, task='promptnsp'):
     tot_score = 0
     total_imgs = []
     total_scores = []
+    total_fake_labels = []
     total_gt_targets = []
     st = time()
     for i, batch in enumerate(val_loader):
         total_imgs.append(batch['img_fnames'])
+        total_fake_labels.append(batch['fake_labels'].detach().cpu().numpy())
         logits = model(batch, task=task, compute_loss=False)
         scores =  torch.softmax(logits, dim=1)
         targets = batch['targets']
@@ -1376,19 +1382,19 @@ def validate_prompt_nsp(model, val_loader, task='promptnsp'):
         gt_targets = batch['gt_targets']
         total_scores.append(scores.detach().cpu().numpy())
         total_gt_targets.append(gt_targets.detach().cpu().numpy())
-        print(batch['img_fnames'], gt_targets)
     val_loss = sum(all_gather_list(val_loss))
     tot_score = sum(all_gather_list(tot_score))
     total_scores = np.concatenate(total_scores)
+    total_fake_labels = np.concatenate(total_fake_labels)
     total_gt_targets = np.concatenate(total_gt_targets)
     total_imgs = np.concatenate(total_imgs)
-    assert len(total_scores) == len(total_gt_targets) == len(total_imgs) == 4 * len(set(total_imgs))
+    assert len(total_scores) == len(total_gt_targets) == len(total_imgs) == 4 * len(set(total_imgs)) == len(total_fake_labels)
     tot_time = time()-st
     val_loss /= len(total_scores)
     val_acc = tot_score / len(total_scores)
     tot_time = time()-st
     # print(total_preds.shape, total_labels.shape)
-    val_log = compute_nsp_results(total_scores, total_gt_targets, total_imgs)
+    val_log = compute_nsp_results(total_scores, total_gt_targets, total_fake_labels, total_imgs)
     LOGGER.info(f"validation finished in {int(tot_time)} seconds,  and NSP acc {val_acc}")
     LOGGER.info(f"[Validation] Loss: {val_loss:.2f},"
                                 f"\t WA: {val_log['WA']*100:.2f},"
