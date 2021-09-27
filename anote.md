@@ -451,6 +451,17 @@ https://github.com/JinmingZhao/prompt_demos
 [CLS] i am [MASK] [SEP] v---- 
 [CLS] i am [MASK] [SEP] a---- 
 
+设计多种不同的预先训练任务:
+l_mask_va -- promptmask
+l_mask_v -- promptmask
+l_mask_a -- promptmask
+l_mask -- promptmask
+mask_v -- cmpromptmask (cross-modality)
+mask_a -- cmpromptmask (cross-modality)
+mask_va -- cmpromptmask (cross-modality)
+测试场景分别对应上面的7种测试场景，符合模态缺失的场景 -- 明天先把这个实现一下.
+/data7/MEmoBert/code/uniter3m/config/downstream/pretrain-task-iemocap-base-2gpu_cm_mask_prompt.json
+
 
 ## <分析7> 基于NSP的机制也可以，可以把 prompt 放前面
 采用类似itm的做法，把放在第二个位置，这样比较方便
