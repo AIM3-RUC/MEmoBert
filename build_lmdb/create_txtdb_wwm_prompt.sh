@@ -1,4 +1,5 @@
 # 下游任务.
+source activate vlbert
 export PYTHONPATH=/data7/MEmoBert
 
 # for iemocap

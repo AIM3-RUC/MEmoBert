@@ -61,7 +61,9 @@ def get_prompt_nsp_text(text, ground_truth_label, prompt_type):
         print('Error of prompt_type')
     targets = []
     texts = []
+    fake_labels = []
     for label in label_map.keys():
+        fake_labels.append(label)
         label_name = label_map[label]
         text2 = temp.replace('[MASK]', label_name)
         sent = text
@@ -73,8 +75,8 @@ def get_prompt_nsp_text(text, ground_truth_label, prompt_type):
             targets.append(1)
         else:
             targets.append(0)
-    assert len(texts) == len(targets) == len(label_map)
-    return texts, targets
+    assert len(texts) == len(targets) == len(label_map) == len(fake_labels)
+    return texts, targets, fake_labels
 
 
 def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_samples=0, 
@@ -115,8 +117,8 @@ def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_sampl
             example = {}
             if isinstance(value['label'], str):
                 value['label'] = int(value['label'])
-            sents, targets = get_prompt_nsp_text(sent, value['label'], prompt_type)
-            for sent, target in zip(sents, targets):
+            sents, targets, fake_labels = get_prompt_nsp_text(sent, value['label'], prompt_type)
+            for sent, target, fake_label in zip(sents, targets, fake_labels):
                 input_ids = bert_tokenize(toker, sent)
                 tokens = bert_id2token(toker, input_ids)
                 txt2img[_id] = img_fname
@@ -128,6 +130,7 @@ def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_sampl
                 example['toked_caption'] = tokens
                 example['input_ids'] = input_ids
                 example['target'] = target
+                example['fake_label'] = fake_label
                 example['ground_truth_emo'] = value['label']
                 # print('{} {} {}'.format(sent, input_ids, target))
                 id2len[_id] = sum([len(word_input_ids) for word_input_ids in input_ids])

@@ -434,19 +434,27 @@ MSP: UA=0.97278
 [Bug] 老版本的 pytorch_pretrained_bert.BertTokenizer 不能获取 [MASK] 整个词。
 toker = AutoTokenizer.from_pretrained('/data2/zjm/tools/LMs/bert_base_en')
 toker2 = BertTokenizer.from_pretrained('/data2/zjm/tools/LMs/bert_base_en')
->>> toker2.tokenize('I love [MASK].')
-['i', 'love', '[', 'mask', ']', '.']
->>> toker.tokenize('I love [MASK].')
-['i', 'love', '[MASK]', '.']
+>>> toker2.tokenize('I am [MASK].')
+['i', 'am', '[', 'mask', ']', '.']
+>>> toker.tokenize('I am [MASK].')
+['i', 'am', '[MASK]', '.']
 但是如果手动把句号分开就可以了
->>> toker2.tokenize('I love [MASK] .')
-['i', 'love', '[MASK]', '.']
-
-目前的结果来看，比正常finetune的结果低一个点, finetune结果低一点
+>>> toker2.tokenize('I am [MASK] .')
+['i', 'am', '[MASK]', '.']
+目前的结果来看，比正常finetune结果基本一致
 https://github.com/JinmingZhao/prompt_demos
 尝试不同的seed, 结果会有一点提升，跟baseline的结果差不多。
+[CLS] text1 + i am [MASK] [SEP] v----  a---- 
+[CLS] i am [MASK] [SEP] v----  a---- 
+[CLS] i am [MASK] [SEP] v---- 
+[CLS] i am [MASK] [SEP] a---- 
 
 
 ## <分析7> 基于NSP的机制也可以，可以把 prompt 放前面
 采用类似itm的做法，把放在第二个位置，这样比较方便
+[CLS] text1 [SEP] v----  a---- 
 对比采用itm预训练任何和不采用itm预训练任务的下游任务
+[CLS] text1 [SEP] prompt [SEP] v----  a---- 
+[CLS] 0     [SEP] 0      [SEP] 1----  2----    token type.
+目前的结果来看，比正常finetune结果低一些～
+
