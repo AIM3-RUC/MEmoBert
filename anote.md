@@ -444,6 +444,8 @@ toker2 = BertTokenizer.from_pretrained('/data2/zjm/tools/LMs/bert_base_en')
 目前的结果来看，比正常finetune结果基本一致
 https://github.com/JinmingZhao/prompt_demos
 尝试不同的seed, 结果会有一点提升，跟baseline的结果差不多。
+
+采用跨模态的这种Mask预测，输入的正常的文本，mask操作再dataset中操作.
 [CLS] text1 + i am [MASK] [SEP] v----  a---- 
 [CLS] i am [MASK] [SEP] v----  a---- 
 [CLS] i am [MASK] [SEP] v---- 
@@ -457,4 +459,3 @@ https://github.com/JinmingZhao/prompt_demos
 [CLS] text1 [SEP] prompt [SEP] v----  a---- 
 [CLS] 0     [SEP] 0      [SEP] 1----  2----    token type.
 目前的结果来看，比正常finetune结果低一些～
-
