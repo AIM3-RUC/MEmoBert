@@ -143,7 +143,7 @@ class UniterForPretraining(UniterPreTrainedModel):
             msrfr_feat_target = batch['feat_targets']
             return self.forward_msrfr(batch, speech_masks, speech_mask_tgt,
                                      msrfr_feat_target, compute_loss=compute_loss)
-        elif task == 'itm' or task == 'vtm' or task == 'stm' or task == 'eitm' or task == 'onemodalnegitm':
+        elif task == 'itm' or task == 'vtm' or task == 'stm' or task == 'eitm' or task == 'onemodalnegitm' or task == 'promptnsp':
             targets = batch['targets']
             return self.forward_itm(batch, targets, compute_loss=compute_loss)
         elif task == 'eitm':
