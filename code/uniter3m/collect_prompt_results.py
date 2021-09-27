@@ -34,7 +34,7 @@ def get_latest_result(path):
 
 if __name__ == '__main__':
     result_dir = '/data7/emobert/exp/prompt_pretrain'
-    output_name = 'iemocap_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-mask_itwas_prompt_diffseed_trnval'
+    output_name = 'iemocap_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-mask_iam_prompt_lr2e-5_trnval'
     type_eval = 'UA'
     result_dir = os.path.join(result_dir, output_name)
     result_path = os.path.join(result_dir, 'result.csv')
