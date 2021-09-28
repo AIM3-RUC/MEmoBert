@@ -42,6 +42,7 @@ from code.uniter3m.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   SFOMDataset, sfom_collate,
                   MelmWWMDataset, melm_wwm_collate,
                   PromptMaskDataset, prompt_mask_collate,
+                  CrossModalPromptMaskDataset, cm_prompt_mask_collate,
                   PromptNSPDataset, prompt_nsp_collate,
                   )
 from code.uniter3m.model.pretrain import UniterForPretraining
@@ -473,6 +474,21 @@ def build_prompt_mask_dataset(txt_db, img_db, speech_db, is_train, opts):
         dataset = PromptMaskDataset(txt_db, img_db, speech_db)
     return dataset, prompt_mask_collate
 
+def build_cm_prompt_mask_dataset(txt_db, img_db, speech_db, is_train, opts):
+    if is_train:
+        if img_db is not None and speech_db is not None:
+            datasets = [CrossModalPromptMaskDataset(t, i, s, prompt_type=opts.prompt_type) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif img_db is None and speech_db is not None:
+            datasets = [CrossModalPromptMaskDataset(t, None, s, prompt_type=opts.prompt_type) for t, s in zip(txt_db, speech_db)]
+        elif img_db is not None and speech_db is None:
+            datasets = [CrossModalPromptMaskDataset(t, i, None, prompt_type=opts.prompt_type) for t, i in zip(txt_db, img_db)]
+        else:
+            LOGGER.info('[Error] Error promptmask mask datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = CrossModalPromptMaskDataset(txt_db, img_db, speech_db, prompt_type=opts.prompt_type)
+    return dataset, cm_prompt_mask_collate
+
 def build_prompt_nsp_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:
         if img_db is not None and speech_db is not None:
@@ -589,6 +605,8 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
                 dataset = build_onemodalnegitm_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('promptmask'):
                 dataset = build_prompt_mask_dataset(txt_db, img_db, speech_db, is_train, opts)
+            elif task.startswith('cmpromptmask'):
+                dataset = build_cm_prompt_mask_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('promptnsp'):
                 dataset = build_prompt_nsp_dataset(txt_db, img_db, speech_db, is_train, opts)
             else:
@@ -849,6 +867,8 @@ def validate(model, val_dataloaders):
             LOGGER.info("start running EmoLare validation...")
             val_log = validate_emolare(model, loader)
         elif task.startswith('promptmask'):
+            val_log = validate_prompt_mask(model, loader)
+        elif task.startswith('cmpromptmask'):
             val_log = validate_prompt_mask(model, loader)
         elif task.startswith('promptnsp'):
             val_log = validate_prompt_nsp(model, loader)
@@ -1486,6 +1506,9 @@ if __name__ == "__main__":
     parser.add_argument("--emolare_LStask_ratio", default=2.0, type=float, help='default is 0.2 LS and 0.8 EF, we can choice 0.2 0.4 0.6 0.8 and so on')
     parser.add_argument("--use_total_eitm", action='store_true',  help='use random sample postive(same emo) and negative(diff emo) samples')
 
+    ## prompt 
+    parser.add_argument("--prompt_type", default='iam', type=str, help='iam, itwas')
+
     # training parameters
     parser.add_argument("--train_batch_size", default=32, type=int,
                         help="Total batch size for training. ")
@@ -1530,9 +1553,11 @@ if __name__ == "__main__":
     if args.cvNo > 0:
         print('[Info] For Cross-Validation and redefine the train_datasets and val_datasets')
         for i in range(len(args.train_datasets)):
-            args.train_datasets[i]['db'][0] = args.train_datasets[i]['db'][0].format(args.cvNo)
+            for j in range(len(args.train_datasets[i]['db'])):
+                args.train_datasets[i]['db'][j] = args.train_datasets[i]['db'][j].format(args.cvNo)
         for i in range(len(args.val_datasets)):
-            args.val_datasets[i]['db'][0] = args.val_datasets[i]['db'][0].format(args.cvNo)
+            for j in range(len(args.val_datasets[i]['db'])):
+                args.val_datasets[i]['db'][j] = args.val_datasets[i]['db'][j].format(args.cvNo)
 
     if not exists(args.output_dir):
         print('[Info] the output dir {}'.format(args.output_dir))
