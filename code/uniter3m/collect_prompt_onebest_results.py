@@ -9,7 +9,7 @@ def write_file(filepath, lines):
     with open(filepath, 'w', encoding='utf-8') as f:
         f.writelines(lines)
 
-def get_latest_result(path):
+def get_latest_result(path, result_template):
     # 挑选UA最大的那组
     log_path = os.path.join(path, 'log.txt')
     f = open(log_path)
@@ -19,7 +19,7 @@ def get_latest_result(path):
     max_ua = 0
     for index in range(len(lines)):
         line = lines[index]
-        if 'tst task' in line:
+        if result_template in line:
             result_line = lines[index+3]
             # print(log_path)
             WA = float(result_line[result_line.find('WA:')+3: result_line.find('WF1:')].strip().replace(',', ''))
@@ -34,16 +34,26 @@ def get_latest_result(path):
 
 if __name__ == '__main__':
     result_dir = '/data7/emobert/exp/prompt_pretrain'
-    output_name = 'iemocap_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-mask_iam_prompt_lr2e-5_trnval'
+    output_name = 'msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt_lr3e-5_trnval'
     type_eval = 'UA'
+    result_template = [
+        'tst task',
+        'tst_l_mask_av task',
+        'tst_l_mask_v task',
+        'tst_l_mask_a task',
+        'tst_l_mask task',
+        'tst_mask_av task',       
+        'tst_mask_v task',       
+        'tst_mask_a task',       
+    ][7]
     result_dir = os.path.join(result_dir, output_name)
-    result_path = os.path.join(result_dir, 'result.csv')
+    result_path = os.path.join(result_dir, 'result_{}.csv'.format(result_template.replace(' ', '-')))
     all_lines = []
     all_tst_wa_results = []
     all_tst_ua_results = []
     for cvNo in range(1, 11):
         log_dir = os.path.join(result_dir, str(cvNo), 'log')
-        test_log = get_latest_result(log_dir)
+        test_log = get_latest_result(log_dir, result_template)
         all_tst_wa_results.append(test_log['WA'])
         all_tst_ua_results.append(test_log['UAR'])
         # remove one bad result and average 
