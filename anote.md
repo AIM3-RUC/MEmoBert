@@ -462,6 +462,11 @@ mask_va -- cmpromptmask (cross-modality)
 测试场景分别对应上面的7种测试场景，符合模态缺失的场景 -- 明天先把这个实现一下.
 /data7/MEmoBert/code/uniter3m/config/downstream/pretrain-task-iemocap-base-2gpu_cm_mask_prompt.json
 
+目前全场景 /data7/emobert/exp/prompt_pretrain/iemocap_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt_lr5e-5_trnval
+结果UAR=81.14%，比目前pretrain+finetune的结果UAR=80.79% 好一些， 结果还不错～
+msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt_lr5e-5_trnval
+结果UAR=72.70%，比目前pretrain+finetune的结果 UAR=71.10% 好一些， 结果还不错～
+
 
 ## <分析7> 基于NSP的机制也可以，可以把 prompt 放前面
 采用类似itm的做法，把放在第二个位置，这样比较方便

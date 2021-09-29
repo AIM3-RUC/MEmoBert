@@ -105,7 +105,7 @@ corpus_name_L='IEMOCAP'
 
 ################# Part3: Explore WWM + Span - ITM tasks + cross-modality-prompt ################################################### 
 # case1: only mask-va mask-v mask-a
-# for lr in 2e-5 3e-5 5e-5
+# for lr in 5e-5
 # do
 #         for cvNo in $(seq 1 10)
 #         do
@@ -124,7 +124,7 @@ corpus_name_L='IEMOCAP'
 # done
 
 # case2: only l_mask-va l-mask-v l-mask-a l-mask
-# for lr in 2e-5 3e-5 5e-5
+# for lr in 5e-5
 # do
 #         for cvNo in $(seq 1 10)
 #         do
@@ -137,13 +137,13 @@ corpus_name_L='IEMOCAP'
 #                         --learning_rate ${lr} --lr_sched_type 'linear'  --gradient_accumulation_steps 1 \
 #                         --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                         --train_batch_size 32 --val_batch_size 32 \
-#                         --num_train_steps 5000 --warmup_steps 100 --valid_steps 100 \
+#                         --num_train_steps 4000 --warmup_steps 100 --valid_steps 100 \
 #                         --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt_nocm_lr${lr}_trnval/${cvNo}
 #         done
 # done
 
 # case1: all seven cases
-# for lr in 2e-5 3e-5 5e-5
+# for lr in 5e-5
 # do
 #         for cvNo in $(seq 1 10)
 #         do
@@ -156,7 +156,7 @@ corpus_name_L='IEMOCAP'
 #                         --learning_rate ${lr} --lr_sched_type 'linear'  --gradient_accumulation_steps 1 \
 #                         --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                         --train_batch_size 32 --val_batch_size 32 \
-#                         --num_train_steps 5000 --warmup_steps 100 --valid_steps 100 \
+#                         --num_train_steps 4000 --warmup_steps 100 --valid_steps 100 \
 #                         --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt_lr${lr}_trnval/${cvNo}
 #         done
 # done
