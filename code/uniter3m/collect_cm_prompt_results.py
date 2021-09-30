@@ -44,8 +44,8 @@ def get_latest_onlycm_result(path):
             if UAR >= max_ua:
                 max_ua = UAR
                 max_ua_index = index
-    print('best index {}'.format(max_ua_index))
-    # for tst_mask_va task
+    best_step = get_above_best_step(max_ua_index, lines)
+    print('best index {} step {}'.format(max_ua_index, best_step))    # for tst_mask_va task
     current_setname_index = max_ua_index + 5*0
     assert 'tst_mask_av task' in lines[current_setname_index]
     result_line =  lines[current_setname_index + 3]
@@ -65,7 +65,7 @@ def get_latest_onlycm_result(path):
     test_log['a'] = [WA, UAR]
     if len(test_log) == 0:
         print('error of {}'.format(log_path))
-    return test_log
+    return test_log, best_step
 
 def get_latest_nocm_result(path):
     # 挑选UA最大的那组
@@ -84,7 +84,8 @@ def get_latest_nocm_result(path):
             if UAR >= max_ua:
                 max_ua = UAR
                 max_ua_index = index
-    print('best index {}'.format(max_ua_index))
+    best_step = get_above_best_step(max_ua_index, lines)
+    print('best index {} step {}'.format(max_ua_index, best_step))
     # for tst_l_mask_av task
     current_setname_index =  max_ua_index
     assert 'tst_l_mask_va task' in lines[current_setname_index]
@@ -111,7 +112,7 @@ def get_latest_nocm_result(path):
     test_log['l'] = [WA, UAR]
     if len(test_log) == 0:
         print('error of {}'.format(log_path))
-    return test_log
+    return test_log, best_step
 
 def get_latest_seven_result(path):
     # 挑选UA最大的那组
@@ -130,7 +131,8 @@ def get_latest_seven_result(path):
             if UAR >= max_ua:
                 max_ua = UAR
                 max_ua_index = index
-    print('best index {}'.format(max_ua_index))
+    best_step = get_above_best_step(max_ua_index, lines)
+    print('best index {} step {}'.format(max_ua_index, best_step))
     # for tst_l_mask_av task
     current_setname_index =  max_ua_index
     assert 'tst_l_mask_av task' in lines[current_setname_index]
@@ -175,7 +177,25 @@ def get_latest_seven_result(path):
     test_log['a'] = [WA, UAR]
     if len(test_log) == 0:
         print('error of {}'.format(log_path))
-    return test_log
+    return test_log, best_step
+
+def get_above_best_step(max_ua_index, lines):
+    best_step = 0
+    best_line_index = 0
+    for i in range(max_ua_index):
+        line = lines[max_ua_index-i]
+        if 'Step' in line and 'start validation' in line:
+            best_step = int(line[line.find('Step')+4: line.find(': start')])
+            best_line_index = i
+            break
+    assert best_line_index < 50
+    return best_step
+
+def clean_other_ckpts(ckpt_dir, store_epoch):
+    # model_step_number.pt
+    for checkpoint in os.listdir(ckpt_dir):
+        if not checkpoint.endswith('_{}.pt'.format(store_epoch)):
+            os.remove(os.path.join(ckpt_dir, checkpoint))
 
 def get_final_results_format(all_tst_results):
     # 返回所有的结果 setting lva
@@ -203,20 +223,24 @@ def get_final_results_format(all_tst_results):
 
 if __name__ == '__main__':
     result_dir = '/data7/emobert/exp/prompt_pretrain'
-    output_name = 'msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt_lr5e-5_trnval'
+    output_name = 'msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_melm_wwm_span_noitm_step3w-cm_mask_prompt_lr3e-5_trnval'
     type_eval = 'UA'
     result_dir = os.path.join(result_dir, output_name)
     result_path = os.path.join(result_dir, 'result.csv')
     all_tst_results = []
-    for cvNo in range(1, 11):
+    for cvNo in range(1, 13):
         log_dir = os.path.join(result_dir, str(cvNo), 'log')
         if 'onlycm' in output_name:
-            test_log = get_latest_onlycm_result(log_dir)
+            test_log, best_step = get_latest_onlycm_result(log_dir)
         elif 'nocm' in output_name:
-            test_log = get_latest_nocm_result(log_dir)
+            test_log, best_step = get_latest_nocm_result(log_dir)
         else:
-            test_log = get_latest_seven_result(log_dir)
+            test_log, best_step = get_latest_seven_result(log_dir)
         all_tst_results.append(test_log)
+        # clean other ckpkts 
+        ckpt_dir = os.path.join(result_dir, str(cvNo), 'ckpt')
+        clean_other_ckpts(ckpt_dir, best_step)
+
     all_lines = get_final_results_format(all_tst_results)
     write_file(result_path, all_lines)
 

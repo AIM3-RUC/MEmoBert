@@ -34,7 +34,7 @@ def get_latest_result(path, result_template):
 
 if __name__ == '__main__':
     result_dir = '/data7/emobert/exp/prompt_pretrain'
-    output_name = 'msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt_lr3e-5_trnval'
+    output_name = 'msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt_lr5e-5_trnval'
     type_eval = 'UA'
     result_template = [
         'tst task',
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     all_lines = []
     all_tst_wa_results = []
     all_tst_ua_results = []
-    for cvNo in range(1, 11):
+    for cvNo in range(1, 13):
         log_dir = os.path.join(result_dir, str(cvNo), 'log')
         test_log = get_latest_result(log_dir, result_template)
         all_tst_wa_results.append(test_log['WA'])

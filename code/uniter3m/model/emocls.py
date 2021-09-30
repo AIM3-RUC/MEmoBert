@@ -47,7 +47,7 @@ class UniterForEmoRecognition(UniterPreTrainedModel):
         batch = defaultdict(lambda: None, batch)
         sequence_output = self.uniter(batch, use_emolare_input=self.use_emolare, frozen_en_layers=self.frozen_en_layers,
                                       output_all_encoded_layers=False)
-        # the output of the first token [CLS]
+        # the output of the first token [CLS] / first token
         pooled_output = self.uniter.pooler(sequence_output)
         logits = self.output(pooled_output)
         # one-hot targets
