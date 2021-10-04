@@ -666,12 +666,10 @@ def main(opts):
     meta_data = json.load(open(f'{all_dbs[0]}/meta.json'))
     if meta_data.get('bert') is None:
         tokenizer = meta_data['tokenizer']
-        assert all(tokenizer == json.load(open(f'{db}/meta.json'))['tokenizer']
-                for db in all_dbs)
+        # print(tokenizer)
+        # print([json.load(open(f'{db}/meta.json'))['tokenizer']for db in all_dbs])
     else:
         tokenizer = meta_data['bert']
-        assert all(tokenizer == json.load(open(f'{db}/meta.json'))['bert']
-                for db in all_dbs)
     # build data loaders
     train_dataloaders, all_img_dbs, all_speech_dbs = create_dataloaders(
         opts.train_datasets, True, opts)

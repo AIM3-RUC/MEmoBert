@@ -223,7 +223,7 @@ def get_final_results_format(all_tst_results):
 
 if __name__ == '__main__':
     result_dir = '/data7/emobert/exp/prompt_pretrain'
-    output_name = 'msp_taskpretrain-basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm-cm_mask_prompt_lr3e-5_seed4321'
+    output_name = 'msp-basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm-cm_mask_prompt_lr5e-5_trnval_part0.6_seed4321'
     type_eval = 'UA'
     result_dir = os.path.join(result_dir, output_name)
     result_path = os.path.join(result_dir, 'result.csv')
