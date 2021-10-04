@@ -1,6 +1,7 @@
 '''
 在已有的txtdb中添加情感标签的信息, 
 '''
+import collections
 import os
 import json
 import h5py
@@ -15,7 +16,7 @@ import msgpack_numpy
 msgpack_numpy.patch()
 from code.uniter.data.data import open_lmdb
 from collections import defaultdict
-
+import random
 
 '''
 high-quality: 整体的分布还是很均匀的，并没有太大的问题。
@@ -309,6 +310,146 @@ def get_half_data(txt_db_dir, output_txt_db_dir, use_half1=True):
     with open(f'{output_txt_db_dir}/meta.json', 'w') as f:
         json.dump(meta, f, indent=4)
 
+def get_half_data(txt_db_dir, output_txt_db_dir, use_half1=True):
+    # 数据集的划分
+    text2img_path = os.path.join(txt_db_dir, 'txt2img.json')
+    id2len = {}
+    txt2img = {}  # not sure if useful
+    img2txt = defaultdict(list)
+    txn = read_txt_db(txt_db_dir)
+    text2img = json.load(open(text2img_path))
+    textIds = text2img.keys()
+    print('total {} txts'.format(len(text2img)))
+    total_sampels = 0
+    open_db = curry(open_lmdb, output_txt_db_dir, readonly=False)
+    with open_db() as db:
+        for textId in tqdm(textIds, total=len(textIds)):
+            example = msgpack.loads(decompress(txn.get(textId.encode('utf-8'))), raw=False)  
+            assert example['id'] == textId
+            total_sampels += 1
+            if use_half1:
+                if total_sampels % 2 == 0:
+                    db[textId] = example
+                    id2len[textId] = len(example['input_ids'])
+                    img_fname = example['img_fname']
+                    txt2img[textId] = img_fname
+                    img2txt[img_fname] = textId
+            else:
+                if total_sampels % 2 != 0:
+                    db[textId] = example
+                    id2len[textId] = len(example['input_ids'])
+                    img_fname = example['img_fname']
+                    txt2img[textId] = img_fname
+                    img2txt[img_fname] = textId
+    print(f'half total {total_sampels} {len(id2len)} {len(txt2img)} {len(img2txt)}')
+    with open(f'{output_txt_db_dir}/id2len.json', 'w') as f:
+        json.dump(id2len, f)
+    with open(f'{output_txt_db_dir}/txt2img.json', 'w') as f:
+        json.dump(txt2img, f)
+    with open(f'{output_txt_db_dir}/img2txts.json', 'w') as f:
+        json.dump(img2txt, f)
+    meta = {}
+    meta['output'] = output_txt_db_dir
+    meta['num_samples'] = total_sampels
+    meta['tokenizer'] = "bert-base-uncased"
+    meta['toker'] = "bert-base-uncased"
+    meta['UNK'] = 100
+    meta['CLS'] = 101
+    meta['SEP'] = 102
+    meta['MASK'] = 103
+    meta['v_range'] = [999, 30522]
+    with open(f'{output_txt_db_dir}/meta.json', 'w') as f:
+        json.dump(meta, f, indent=4)
+
+def get_part_data(txt_db_dir, output_txt_db_dir, part_ratio=0.2):
+    # 数据集的划分
+    text2img_path = os.path.join(txt_db_dir, 'txt2img.json')
+    id2len = {}
+    txt2img = {}  # not sure if useful
+    img2txt = defaultdict(list)
+    txn = read_txt_db(txt_db_dir)
+    text2img = json.load(open(text2img_path))
+    textIds = list(text2img.keys())
+    print('total {} txts'.format(len(text2img)))
+    total_sampels = len(textIds)
+    select_samples = int(total_sampels * part_ratio)
+    select_textIds = random.sample(textIds, select_samples)
+    emo2count = {}
+    open_db = curry(open_lmdb, output_txt_db_dir, readonly=False)
+    with open_db() as db:
+        for textId in tqdm(select_textIds, total=len(select_textIds)):
+            example = msgpack.loads(decompress(txn.get(textId.encode('utf-8'))), raw=False)  
+            assert example['id'] == textId
+            emo = example['target']
+            if emo2count.get(emo) is None:
+                emo2count[emo] = 1
+            else:
+                emo2count[emo] += 1
+            db[textId] = example
+            id2len[textId] = len(example['input_ids'])
+            img_fname = example['img_fname']
+            txt2img[textId] = img_fname
+            img2txt[img_fname] = textId
+    print(f'part total {select_samples} {len(id2len)} {len(txt2img)} {len(img2txt)}')
+    print(emo2count)
+    with open(f'{output_txt_db_dir}/id2len.json', 'w') as f:
+        json.dump(id2len, f)
+    with open(f'{output_txt_db_dir}/txt2img.json', 'w') as f:
+        json.dump(txt2img, f)
+    with open(f'{output_txt_db_dir}/img2txts.json', 'w') as f:
+        json.dump(img2txt, f)
+    meta = {}
+    meta['output'] = output_txt_db_dir
+    meta['num_samples'] = total_sampels
+    meta['tokenizer'] = "bert-base-uncased"
+    meta['toker'] = "bert-base-uncased"
+    meta['UNK'] = 100
+    meta['CLS'] = 101
+    meta['SEP'] = 102
+    meta['MASK'] = 103
+    meta['v_range'] = [999, 30522]
+    with open(f'{output_txt_db_dir}/meta.json', 'w') as f:
+        json.dump(meta, f, indent=4)
+
+def get_part_data_by_exist_dbs(txt_db_dir, ori_output_txt_db_dir, output_txt_db_dir):
+    id2len = collections.OrderedDict()
+    txt2img = collections.OrderedDict()
+    img2txt = defaultdict(list)
+    text2img_path = os.path.join(txt_db_dir, 'txt2img.json')
+    text2img = json.load(open(text2img_path))
+    textIds = list(text2img.keys())
+    print('total {} txts'.format(len(text2img)))
+    txn = read_txt_db(ori_output_txt_db_dir)
+    open_db = curry(open_lmdb, output_txt_db_dir, readonly=False)
+    with open_db() as db:
+        for textId in tqdm(textIds, total=len(textIds)):
+            example = msgpack.loads(decompress(txn.get(textId.encode('utf-8'))), raw=False)  
+            assert example['id'] == textId
+            db[textId] = example
+            id2len[textId] = len(example['input_ids'])
+            img_fname = example['img_fname']
+            txt2img[textId] = img_fname
+            img2txt[img_fname] = textId
+    with open(f'{output_txt_db_dir}/id2len.json', 'w') as f:
+        json.dump(id2len, f)
+    with open(f'{output_txt_db_dir}/txt2img.json', 'w') as f:
+        json.dump(txt2img, f)
+    with open(f'{output_txt_db_dir}/img2txts.json', 'w') as f:
+        json.dump(img2txt, f)
+    meta = {}
+    meta['output'] = output_txt_db_dir
+    meta['num_samples'] = len(textIds)
+    meta['tokenizer'] = "bert-base-uncased"
+    meta['toker'] = "bert-base-uncased"
+    meta['UNK'] = 100
+    meta['CLS'] = 101
+    meta['SEP'] = 102
+    meta['MASK'] = 103
+    meta['v_range'] = [999, 30522]
+    with open(f'{output_txt_db_dir}/meta.json', 'w') as f:
+        json.dump(meta, f, indent=4)
+
+
 def add_img_frame_key(version, setname):
     txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_emolare_all_{setname}.db'
     output_txt_db_dir = f'/data7/emobert/txt_db/movies_{version}_th0.5_emolare_all_{setname}.db_new'
@@ -463,6 +604,24 @@ if __name__ == '__main__':
     #         get_half_data(txt_db_dir, output_txt_db_dir, use_half1=True)
     #         output_txt_db_dir = f'/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls_half2.db'
     #         get_half_data(txt_db_dir, output_txt_db_dir, use_half1=False)
+
+    ### for part (10%, 20%, 40%, 60%) the downstream data on trn/val set for iemocap
+    # part_ratio = 0.2
+    # for cvNo in range(9, 10):
+    #     for setname in ['trn', 'val']:
+    #         print(f'cur cvNo {cvNo} setnemt {setname}')
+    #         txt_db_dir = f'/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls.db'
+    #         output_txt_db_dir = f'/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls_part{part_ratio}.db'
+    #         get_part_data(txt_db_dir, output_txt_db_dir, part_ratio=part_ratio)
+    #### 保证相同的数据，所以取出前面划分好的数据的key，根据key把相应的数据取出来
+    part_ratio = 0.1
+    for cvNo in range(1, 11):
+        for setname in ['trn', 'val']:
+            print(f'cur cvNo {cvNo} setnemt {setname}')
+            txt_db_dir = f'/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls_part{part_ratio}.db'
+            ori_output_txt_db_dir = f'/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{cvNo}/{setname}_wwm_nrcemolex_prompt_mask_iam.db'
+            output_txt_db_dir = f'/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{cvNo}/{setname}_wwm_nrcemolex_prompt_mask_iam_part{part_ratio}.db'
+            get_part_data_by_exist_dbs(txt_db_dir, ori_output_txt_db_dir, output_txt_db_dir)
 
     # if True:
     #     for setname in ['val3k', 'trn3k', 'trn']:
