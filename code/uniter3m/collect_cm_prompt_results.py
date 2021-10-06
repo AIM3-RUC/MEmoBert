@@ -114,6 +114,36 @@ def get_latest_nocm_result(path):
         print('error of {}'.format(log_path))
     return test_log, best_step
 
+def get_latest_onlylva_result(path):
+    # 挑选UA最大的那组
+    log_path = os.path.join(path, 'log.txt')
+    f = open(log_path)
+    lines = f.readlines()
+    f.close()
+    test_log = collections.OrderedDict()
+    max_ua = 0
+    max_ua_index = 0
+    for index in range(len(lines)):
+        line = lines[index]
+        if "tst_l_mask_av task" in line:
+            result_line = lines[index+3]
+            WA, UAR = get_wa_ua_from_line(result_line)
+            if UAR >= max_ua:
+                max_ua = UAR
+                max_ua_index = index
+    best_step = get_above_best_step(max_ua_index, lines)
+    print('best index {} step {}'.format(max_ua_index, best_step))
+    # for tst_l_mask_av task
+    current_setname_index =  max_ua_index
+    assert 'tst_l_mask_av task' in lines[current_setname_index]
+    result_line = lines[current_setname_index + 3]
+    WA, UAR = get_wa_ua_from_line(result_line)
+    test_log['lva'] = [WA, UAR]
+    if len(test_log) == 0:
+        print('error of {}'.format(log_path))
+    return test_log, best_step
+
+
 def get_latest_seven_result(path):
     # 挑选UA最大的那组
     log_path = os.path.join(path, 'log.txt')
@@ -223,17 +253,19 @@ def get_final_results_format(all_tst_results):
 
 if __name__ == '__main__':
     result_dir = '/data7/emobert/exp/prompt_pretrain'
-    output_name = 'msp-basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm-cm_mask_prompt_lr5e-5_trnval_part0.6_seed4321'
+    output_name = 'iemocap_basedon-movies_v1v2v3_uniter3m_visual_speech_text_5tasks_wwm_span_noitm_novisual-cm_mask_prompt_lr3e-5_trnval_seed4321'
     type_eval = 'UA'
     result_dir = os.path.join(result_dir, output_name)
     result_path = os.path.join(result_dir, 'result.csv')
     all_tst_results = []
-    for cvNo in range(1, 13):
+    for cvNo in range(1, 11):
         log_dir = os.path.join(result_dir, str(cvNo), 'log')
         if 'onlycm' in output_name:
             test_log, best_step = get_latest_onlycm_result(log_dir)
         elif 'nocm' in output_name:
             test_log, best_step = get_latest_nocm_result(log_dir)
+        elif 'onlylva' in output_name or 'noaudio' in output_name or 'novisual' in output_name or '5tasks_noitm' in output_name:
+            test_log, best_step = get_latest_onlylva_result(log_dir)
         else:
             test_log, best_step = get_latest_seven_result(log_dir)
         all_tst_results.append(test_log)
