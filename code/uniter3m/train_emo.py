@@ -134,7 +134,7 @@ def main(opts):
     test_dataloader = build_dataloader(test_dataset, emocls_collate, False, opts)
 
     # Prepare model
-    if opts.checkpoint:
+    if opts.checkpoint and os.path.exists(opts.checkpoint):
         LOGGER.info('[Info] Loading from pretrained model {}'.format(opts.checkpoint))
         checkpoint = torch.load(opts.checkpoint)
         bert_part_checkpoint = {}
@@ -144,9 +144,10 @@ def main(opts):
             else:
                 bert_part_checkpoint[k] = v
     else:
+        LOGGER.info('[Warning] Bert Model is from scratch!!!')
         bert_part_checkpoint = {}
 
-    model = UniterForEmoRecognition.from_pretrained(opts.model_config, state_dict=checkpoint, \
+    model = UniterForEmoRecognition.from_pretrained(opts.model_config, state_dict=bert_part_checkpoint, \
                             img_dim=IMG_DIM, speech_dim=Speech_DIM, \
                             use_visual=opts.use_visual, use_speech=opts.use_speech, \
                             cls_num=opts.cls_num, \

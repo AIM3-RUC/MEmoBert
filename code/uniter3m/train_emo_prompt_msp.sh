@@ -44,6 +44,32 @@ corpus_name_L='MSP'
 #     done
 # done
 
+# for lr in 5e-5
+# do
+#     for seed in 5678
+#     do
+#         for cvNo in $(seq 1 6)
+#         do
+#         num_train_steps=2000
+#         valid_steps=100
+#         train_batch_size=32
+#         inf_batch_size=32
+#         frozens=0
+#         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
+#                 --cvNo ${cvNo} --use_speech --use_visual --use_text \
+#                 --seed ${seed} \
+#                 --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#                 --corpus_name ${corpus_name} --cls_num 4 \
+#                 --config config/downstream/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_sentiword.json \
+#                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
+#                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
+#                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-directTrain-FromScratch-uniter3m_visual_wav2vec_text-lr${lr}_train${num_train_steps}_trnval_seed${seed}
+#         done
+#     done
+# done
 
 ### case2:text + speech + visual + wwm + span -itm
 # for lr in 5e-5 3e-5
@@ -241,8 +267,6 @@ corpus_name_L='MSP'
 #                         --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_melm_wwm_span_noitm_step3w-cm_mask_prompt_lr${lr}_trnval/${cvNo}
 #         done
 # done
-
-
 
 
 ################# Part4: Explore WWM + Span tasks + TaskPretain + Finetune ###################################################
@@ -759,11 +783,11 @@ corpus_name_L='MSP'
 
 
 ################# Part9: ablation, Explore mlm + mrkcl + mrfr tasks + prompt ###################################################
-# for lr in 3e-5 5e-5
+# for lr in 3e-5
 # do
-#     for seed in 1234 4321 5678
+#     for seed in 5678
 #     do
-#         for cvNo in $(seq 10 12)
+#         for cvNo in $(seq 1 1)
 #         do
 #         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python pretrain.py \
 #                         --cvNo ${cvNo} --n_workers 1 --use_speech --use_visual \
@@ -809,7 +833,7 @@ corpus_name_L='MSP'
 # do
 #     for seed in 1234 4321 5678
 #     do
-#         for cvNo in $(seq 4 6)
+#         for cvNo in $(seq 12 12)
 #         do
 #         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python pretrain.py \
 #                         --cvNo ${cvNo} --n_workers 1 --use_speech --use_visual \
