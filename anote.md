@@ -430,7 +430,7 @@ MSP: UA=0.97278
 ## <分析5> ITM 任务到底需要不需要？ --Done
 经过一些实验发现，目前的ITM任务去掉，效果反而更好。但是应该还有改进的空间。
 
-## <分析6> 采用prompt的mask机制尝试一下
+## <分析6> 采用prompt的mask机制尝试一下 --Done
 [Bug] 老版本的 pytorch_pretrained_bert.BertTokenizer 不能获取 [MASK] 整个词。
 toker = AutoTokenizer.from_pretrained('/data2/zjm/tools/LMs/bert_base_en')
 toker2 = BertTokenizer.from_pretrained('/data2/zjm/tools/LMs/bert_base_en')
@@ -459,7 +459,7 @@ l_mask -- promptmask
 mask_v -- cmpromptmask (cross-modality)
 mask_a -- cmpromptmask (cross-modality)
 mask_va -- cmpromptmask (cross-modality)
-测试场景分别对应上面的7种测试场景，符合模态缺失的场景 -- 明天先把这个实现一下.
+测试场景分别对应上面的7种测试场景，符合模态缺失的场景 -- 明天先把这个实现一下.  --对于整体的lva的识别有帮助，但是对于模态缺失的场景没啥帮助。
 /data7/MEmoBert/code/uniter3m/config/downstream/pretrain-task-iemocap-base-2gpu_cm_mask_prompt.json
 
 目前全场景 /data7/emobert/exp/prompt_pretrain/iemocap_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt_lr5e-5_trnval
@@ -468,10 +468,13 @@ msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_ste
 结果UAR=72.70%，比目前pretrain+finetune的结果 UAR=71.10% 好一些， 结果还不错～
 
 
-## <分析7> 基于NSP的机制也可以，可以把 prompt 放前面
+## <分析7> 基于NSP的机制也可以，可以把 prompt 放前面 -- Discard
 采用类似itm的做法，把放在第二个位置，这样比较方便
 [CLS] text1 [SEP] v----  a---- 
 对比采用itm预训练任何和不采用itm预训练任务的下游任务
 [CLS] text1 [SEP] prompt [SEP] v----  a---- 
 [CLS] 0     [SEP] 0      [SEP] 1----  2----    token type.
 目前的结果来看，比正常finetune结果低一些～
+
+
+## <分析8> 探索模态缺失的场景 --Going
