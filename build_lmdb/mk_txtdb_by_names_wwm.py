@@ -51,6 +51,7 @@ def bert_id2token(tokenizer, ids):
 
 def get_prompt_mask_text(text, prompt_type):
     '''
+    将template放在文本后面
     比如  i am happy. tokens=[i, am, happy, .] input_ids
     '''
     if prompt_type == 'mask_iam':
@@ -59,6 +60,26 @@ def get_prompt_mask_text(text, prompt_type):
         temp = ' It was [MASK] .'
     elif prompt_type == 'mask_heis':
         temp = ' He is [MASK] .'
+    else:
+        print('Error of prompt_type')
+    if text[-1] not in ['?', '!', '.']:
+        text += '.'
+    text += temp
+    return text
+
+def get_prompt_mask_text_preprompt(text, prompt_type):
+    '''
+    将template统一放在前面
+    比如  i am happy. tokens=[i, am, happy, .] + input_ids
+    '''
+    if prompt_type == 'mask_iam':
+        temp = ' I am [MASK] ,'
+    elif prompt_type == 'mask_itwas':
+        temp = ' It was [MASK] ,'
+    elif prompt_type == 'mask_heis':
+        temp = ' He is [MASK] ,'
+    elif prompt_type == 'mask_ifeelthrough':
+        temp = ' I feel [MASK] through'
     else:
         print('Error of prompt_type')
     if text[-1] not in ['?', '!', '.']:
@@ -117,7 +138,8 @@ def process_jsonl(jsonf, db, toker, dataset_name="", filter_path=None, num_sampl
         for sent in value['txt']:
             example = {}
             if prompt_type is not None:
-                sent = get_prompt_mask_text(sent, prompt_type)
+                # sent = get_prompt_mask_text(sent, prompt_type)
+                sent = get_prompt_mask_text_preprompt(sent, prompt_type)
             input_ids = bert_tokenize(toker, sent)
             tokens = bert_id2token(toker, input_ids)
             if isinstance(value['label'], str):

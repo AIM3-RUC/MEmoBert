@@ -447,9 +447,12 @@ https://github.com/JinmingZhao/prompt_demos
 
 采用跨模态的这种Mask预测，输入的正常的文本，mask操作再dataset中操作.
 [CLS] text1 + i am [MASK] [SEP] v----  a---- 
+[CLS] text1 + i am [MASK] [SEP] v---- 
+[CLS] text1 + i am [MASK] [SEP] a---- 
 [CLS] i am [MASK] [SEP] v----  a---- 
 [CLS] i am [MASK] [SEP] v---- 
 [CLS] i am [MASK] [SEP] a---- 
+[CLS] i am [MASK] [SEP] l---- 
 
 设计多种不同的预先训练任务:
 l_mask_va -- promptmask
@@ -477,4 +480,27 @@ msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_ste
 目前的结果来看，比正常finetune结果低一些～
 
 
-## <分析8> 探索模态缺失的场景 --Going
+## <分析8> 探索模态缺失的场景 -- Going
+不同的模态制定不同的 template，比如
+方案1, 将固定的模板放在前面 VS 放在后面的结果:
+    [CLS] i am [MASK] + text1 [SEP] v----  a---- 
+    [CLS] i am [MASK] + text1 [SEP] v---- 
+    [CLS] i am [MASK] + text1 [SEP] a---- 
+    [CLS] i am [MASK] + text1 [SEP]
+    [CLS] i am [MASK] [SEP] v----  a---- 
+    [CLS] i am [MASK] [SEP] v---- 
+    [CLS] i am [MASK] [SEP] a---- 
+方案2:
+    [CLS] I feel [MASK] through text1 [SEP] v----  a---- 
+    [CLS] I feel [MASK] through text1 [SEP] v----
+    [CLS] I feel [MASK] through text1 [SEP] a----
+    [CLS] I feel [MASK] through text1 [SEP]
+    [CLS] I feel [MASK] through [SEP] v----  a---- 
+    [CLS] I feel [MASK] through [SEP] v----
+    [CLS] I feel [MASK] through [SEP] a---- 
+方案3, 给不同的 condition 设置不同的标志, unused1:
+    [CLS] it was [MASK] through text. [SEP] v----  a---- 
+    [CLS] it was [MASK] through facial expression .
+    [CLS] it was [MASK] through audio.
+    [CLS] it was [MASK] through audio.
+方案4. 采用soft-prompt的方式, 采用 S 个 unused-embedding来作为 soft-prompt
