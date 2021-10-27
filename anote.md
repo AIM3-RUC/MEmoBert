@@ -490,7 +490,7 @@ msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_ste
     [CLS] i am [MASK] [SEP] v----  a---- 
     [CLS] i am [MASK] [SEP] v---- 
     [CLS] i am [MASK] [SEP] a---- 
-方案2:
+方案2, 换用一个更自然的模版:
     [CLS] I feel [MASK] through text1 [SEP] v----  a---- 
     [CLS] I feel [MASK] through text1 [SEP] v----
     [CLS] I feel [MASK] through text1 [SEP] a----
@@ -498,9 +498,43 @@ msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_ste
     [CLS] I feel [MASK] through [SEP] v----  a---- 
     [CLS] I feel [MASK] through [SEP] v----
     [CLS] I feel [MASK] through [SEP] a---- 
-方案3, 给不同的 condition 设置不同的标志, unused1:
-    [CLS] it was [MASK] through text. [SEP] v----  a---- 
-    [CLS] it was [MASK] through facial expression .
-    [CLS] it was [MASK] through audio.
-    [CLS] it was [MASK] through audio.
-方案4. 采用soft-prompt的方式, 采用 S 个 unused-embedding来作为 soft-prompt
+
+方案3.1, 给不同的 condition 设置不同的标志, S V T:
+    [CLS] T V S: I feel [MASK] through text1 [SEP] v----  a---- 
+    [CLS] T V:, I feel [MASK] through text1 [SEP] v----
+    [CLS] T S: I feel [MASK] through text1 [SEP] a----
+    [CLS] T: I feel [MASK] through text1 [SEP]
+    [CLS] V S: I feel [MASK] through [SEP] v----  a---- 
+    [CLS] V: I feel [MASK] through [SEP] v----
+    [CLS] S: I feel [MASK] through [SEP] a---- 
+方案3.2, 换用一个分组的任务提示方式:
+    [CLS] from three modalities, I feel [MASK] through text1 [SEP] v----  a---- 
+    [CLS] from two modalities I feel [MASK] through text1 [SEP] v----
+    [CLS] from two modalities I feel [MASK] through text1 [SEP] a----
+    [CLS] from one modalities I feel [MASK] through text1 [SEP]
+    [CLS] from two modalities I feel [MASK] through [SEP] v----  a---- 
+    [CLS] from one modalities I feel [MASK] through [SEP] v----
+    [CLS] from one modalities I feel [MASK] through [SEP] a---- 
+方案3.3, 换用一个更自然详细的任务提示方式:
+    [CLS] from text, visual and speech modalities, I feel [MASK] through text1 [SEP] v----  a---- 
+    [CLS] from text and visual modalities, I feel [MASK] through text1 [SEP] v----
+    [CLS] from text and speech modalities, I feel [MASK] through text1 [SEP] a----
+    [CLS] from text modalities, I feel [MASK] through text1 [SEP]
+    [CLS] from visual and speech modalities, I feel [MASK] through [SEP] v----  a---- 
+    [CLS] from visual modalities, I feel [MASK] through [SEP] v----
+    [CLS] from speech modalities, I feel [MASK] through [SEP] a---- 
+
+
+方案4. 采用 soft-prompt 的方式, 采用 S 个 unused-embedding 来作为 soft-prompt.
+
+
+方案5. 采用 soft-prompt 的初始化采用 情感词来做。 
+
+
+
+
+## <分析9> 预训练的模型固定住，在下游任务进行测试 -- Going
+
+
+## <分析10> 跨数据集的实验 -- Going
+IEMOCAP和MSP两个数据集交叉验证。
