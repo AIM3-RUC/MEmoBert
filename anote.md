@@ -498,7 +498,6 @@ msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_ste
     [CLS] I feel [MASK] through [SEP] v----  a---- 
     [CLS] I feel [MASK] through [SEP] v----
     [CLS] I feel [MASK] through [SEP] a---- 
-
 方案3.1, 给不同的 condition 设置不同的标志, S V T:
     [CLS] T V S: I feel [MASK] through text1 [SEP] v----  a---- 
     [CLS] T V:, I feel [MASK] through text1 [SEP] v----
@@ -524,14 +523,25 @@ msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_ste
     [CLS] from visual modalities, I feel [MASK] through [SEP] v----
     [CLS] from speech modalities, I feel [MASK] through [SEP] a---- 
 
+方案3.3, 换用一个更自然详细的任务提示方式, 额外增加三个special token不参与训练:
+    [CLS] I feel [MASK] through [Text] text1 [Visual] v----  [Speech] a---- 
+    [CLS] I feel [MASK] through [Text] text1 [Visual] v---- 
+    [CLS] I feel [MASK] through [Text] text1 [Speech] a---- 
+    [CLS] I feel [MASK] through [Visual] v----  [Speech] a---- 
+    [CLS] I feel [MASK] through [Visual] v----  
+    [CLS] I feel [MASK] through [Speech] a---- 
+    [CLS] I feel [MASK] through [Text] text1 
 
 方案4. 采用 soft-prompt 的方式, 采用 S 个 unused-embedding 来作为 soft-prompt.
 
-
 方案5. 采用 soft-prompt 的初始化采用 情感词来做。 
 
-
-
+目的是：利用预训练的模型，以及 prompt 可以充分利用预训练模型的高效的策略，解决比较比较复杂的模态缺失问题。
+可以看一下文本的特征是否包含语音、人脸的表示，如果可以的话，学习到了joint embedding, 可以做模态问题。 ---First to do.
+讨论: 将不同模态缺失的情况设置为不同的task之后，会有一个问题:
+只输入文本，根据文本判断答案是happy, 
+只输入语音，根据语音判断答案是happy，
+同时输入文本和语音，答案也是Happy，那么模型会不会指利用 能学习到什么？
 
 ## <分析9> 预训练的模型固定住，在下游任务进行测试 -- Going
 
