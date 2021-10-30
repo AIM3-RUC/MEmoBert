@@ -431,7 +431,7 @@ MSP: UA=0.97278
 经过一些实验发现，目前的ITM任务去掉，效果反而更好。但是应该还有改进的空间。
 
 ## <分析6> 采用prompt的mask机制尝试一下 --Done
-[Bug] 老版本的 pytorch_pretrained_bert.BertTokenizer 不能获取 [MASK] 整个词。
+[Bug] 老版本的 from pytorch_pretrained_bert import BertTokenizer 不能获取 [MASK] 整个词。
 toker = AutoTokenizer.from_pretrained('/data2/zjm/tools/LMs/bert_base_en')
 toker2 = BertTokenizer.from_pretrained('/data2/zjm/tools/LMs/bert_base_en')
 >>> toker2.tokenize('I am [MASK].')
@@ -441,7 +441,7 @@ toker2 = BertTokenizer.from_pretrained('/data2/zjm/tools/LMs/bert_base_en')
 但是如果手动把句号分开就可以了
 >>> toker2.tokenize('I am [MASK] .')
 ['i', 'am', '[MASK]', '.']
-目前的结果来看，比正常finetune结果基本一致
+目前的结果来看，比正常 finetune 结果基本一致
 https://github.com/JinmingZhao/prompt_demos
 尝试不同的seed, 结果会有一点提升，跟baseline的结果差不多。
 
@@ -478,7 +478,6 @@ msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_ste
 [CLS] text1 [SEP] prompt [SEP] v----  a---- 
 [CLS] 0     [SEP] 0      [SEP] 1----  2----    token type.
 目前的结果来看，比正常finetune结果低一些～
-
 
 ## <分析8> 探索模态缺失的场景 -- Going
 不同的模态制定不同的 template，比如
@@ -537,14 +536,17 @@ msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_ste
 方案5. 采用 soft-prompt 的初始化采用 情感词来做。 
 
 目的是：利用预训练的模型，以及 prompt 可以充分利用预训练模型的高效的策略，解决比较比较复杂的模态缺失问题。
-可以看一下文本的特征是否包含语音、人脸的表示，如果可以的话，学习到了joint embedding, 可以做模态问题。 ---First to do.
 讨论: 将不同模态缺失的情况设置为不同的task之后，会有一个问题:
 只输入文本，根据文本判断答案是happy, 
 只输入语音，根据语音判断答案是happy，
 同时输入文本和语音，答案也是Happy，那么模型会不会指利用 能学习到什么？
 
-## <分析9> 预训练的模型固定住，在下游任务进行测试 -- Going
+
+## <分析9> 测试预训练之后的特征相比原始特征的差异 -- Going
+可以看一下文本的特征是否包含语音、人脸的表示，如果可以的话，学习到了joint embedding, 可以做模态问题。 ---First to do.
+
+## <分析10> 预训练的模型固定住，在下游任务进行测试 -- Going
 
 
-## <分析10> 跨数据集的实验 -- Going
+## <分析11> 跨数据集的交叉实验 -- Going
 IEMOCAP和MSP两个数据集交叉验证。
