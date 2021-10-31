@@ -9,10 +9,23 @@ from functools import partial
 from tqdm import tqdm
 from preprocess.tasks.audio import ComParEExtractor, Wav2VecExtractor, RawWavExtractor, Wav2VecCNNExtractor
 from preprocess.MELD.extract_denseface_comparE import extract_comparE_file, extract_features_h5, extract_wav2vec_file, extract_rawwav_file
+from preprocess.iemocap.extract_feats import get_trn_val_tst, split_by_utt_id
 
 def get_all_utt_ids(target_root='/data7/emobert/exp/evaluation/MSP/target'):
     utt_ids = np.load(os.path.join(target_root, f'all_int2name.npy'))
     return utt_ids
+
+def split_h5(all_h5, save_root='feature/denseface'):
+    h5f = h5py.File(all_h5, 'r')
+    for cv in range(1, 11):
+        save_dir = os.path.join(save_root, str(cv))
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        trn_int2name, val_int2name, tst_int2name, _, _, _ = get_trn_val_tst(cv, target_root='/data7/emobert/exp/evaluation/MSP/target')
+        split_by_utt_id(h5f, trn_int2name, os.path.join(save_dir, 'trn.h5'))
+        split_by_utt_id(h5f, val_int2name, os.path.join(save_dir, 'val.h5'))
+        split_by_utt_id(h5f, tst_int2name, os.path.join(save_dir, 'tst.h5'))
+    h5f.close()
 
 if __name__ == '__main__':
     
@@ -66,6 +79,13 @@ if __name__ == '__main__':
         print('total {} uttids'.format(len(utt_ids)))
         extract_features_h5(extract_wav2vec, lambda x: os.path.join(audio_dir, x),  utt_ids, save_path)
     
+    if True:
+        # for speech wav2vec
+        print('Start to split')
+        output_dir = '/data7/emobert/exp/evaluation/MSP/feature/wav2vec_raw'
+        save_path = os.path.join(output_dir, 'all.h5')
+        split_h5(save_path, save_root=output_dir)
+    
     if False:
         output_dir = '/data7/emobert/exp/evaluation/MSP/feature'
         if not os.path.exists(output_dir):
@@ -83,7 +103,7 @@ if __name__ == '__main__':
         print('total {} uttids'.format(len(utt_ids)))
         extract_features_h5(extract_rawwav, lambda x: os.path.join(audio_dir, x),  utt_ids, save_path)
 
-    if True:
+    if False:
         output_dir = '/data7/emobert/exp/evaluation/MSP/feature'
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
