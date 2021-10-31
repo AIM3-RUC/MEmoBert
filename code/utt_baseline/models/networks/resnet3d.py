@@ -74,7 +74,7 @@ class ResNet(nn.Module):
 
 class ResNet3D(nn.Module):
     """
-    for video emotion recognition. 保证原来的网络结构，输入大小为112*112.
+    for video emotion recognition. 保证原来的网络结构，输入大小为112*112的灰度图.
     A visual feature extraction module. Generates a 512-dim feature vector per video frame.
     Architecture: A 3D convolution block followed by an 18-layer ResNet.
     # conv3d input: (batch-size, channle, timesteps, 112, 112)
@@ -88,7 +88,6 @@ class ResNet3D(nn.Module):
                             nn.MaxPool3d(kernel_size=(1,3,3), stride=(1,2,2), padding=(0,1,1))
                         )
         self.resnet = ResNet()
-        return
 
     def forward(self, inputBatch):
         # inputBatch shape: (batchsize, timesteps, channle, H, W)

@@ -16,11 +16,10 @@ from torch.utils.data import DataLoader
 from apex import amp
 from horovod import torch as hvd
 
-from code.uniter.data import (PrefetchLoader,
-                  DetectFeatLmdb, TxtTokLmdb, EmoCLsDataset, emocls_collate)
-from code.uniter.model.infer import UniterForExtracting, extracting
-from code.uniter.utils.logger import LOGGER
-from code.uniter.utils.const import IMG_DIM
+from code.uniter3m.data import (PrefetchLoader,
+                  DetectFeatLmdb, TxtTokLmdb, EmoClsDataset, emocls_collate)
+from code.uniter3m.model.infer import UniterForExtracting, extracting
+from code.uniter3m.utils.logger import LOGGER
 
 def main(opts):
     hvd.init()
@@ -35,27 +34,25 @@ def main(opts):
     # load image db
     img_db = DetectFeatLmdb(opts.img_db,
                                  opts.conf_th, opts.max_bb,
-                                 opts.min_bb, opts.num_bb,
-                                 opts.compressed_db)
+                                 opts.min_bb, opts.compressed_db)
+    # load speech db
+    speech_db = DetectFeatLmdb(opts.speech_db,
+                                 opts.conf_th, opts.max_frames,
+                                 opts.min_frames, opts.compressed_db)
     # load text db
     txt_db = TxtTokLmdb(opts.txt_db, -1)
     # load the dataset
-    infer_dataset = EmoCLsDataset(txt_db, img_db)
+    infer_dataset = EmoClsDataset(txt_db, img_db, speech_db)
 
     # Prepare model
     if os.path.isfile(opts.checkpoint):
+        LOGGER.info('Restore from checkpoint {}'.format(opts.checkpoint))
         checkpoint = torch.load(opts.checkpoint)
     else:
-        # 如果是目录的话，读取日志文件找最佳的模型
-        log_path = os.path.join(opts.checkpoint, 'log', 'step2val_reuslts.json')
-        with open(log_path, 'r') as load_f:
-            log_dict = json.load(load_f)
-        checkpoint_path = os.path.join(opts.checkpoint, 'ckpt', 'model_step_{}.pt'.format(log_dict['beststep']))
-        LOGGER.info('Restore from {}'.format(checkpoint_path))
-        checkpoint = torch.load(checkpoint_path)
+        LOGGER.error('Some error when restore from checkpoint {}'.format(opts.checkpoint))
 
     model = UniterForExtracting.from_pretrained(
-        opts.model_config, checkpoint, img_dim=IMG_DIM)
+        opts.model_config, checkpoint, opts.IMG_DIM, opts.Speech_DIM, opts.use_visual, opts.use_speech)
 
     model.to(device)
     model = amp.initialize(model, enabled=opts.fp16, opt_level='O2')
@@ -68,25 +65,27 @@ def main(opts):
                                  collate_fn=emocls_collate)
     infer_dataloader = PrefetchLoader(infer_dataloader)
 
-    txt_features, img_features, targets = extracting_mm_fts(model, infer_dataloader)
-    LOGGER.info('Final Feature txt {} img {} target {}'.format(len(txt_features), len(img_features), len(targets)))
+    txt_features, img_features, speech_features, targets = extracting_mm_fts(model, infer_dataloader)
+    LOGGER.info('Final Feature txt {} img {} speech {} target {}'.format(len(txt_features), len(img_features), len(speech_features), len(targets)))
     np.save(os.path.join(opts.output_dir, 'txt_ft.npy'), txt_features)
-    np.save(os.path.join(opts.output_dir, 'face_ft.npy'), img_features)
+    np.save(os.path.join(opts.output_dir, 'img_ft.npy'), img_features)
+    np.save(os.path.join(opts.output_dir, 'speech_ft.npy'), speech_features)
     np.save(os.path.join(opts.output_dir, 'label.npy'), targets)
     # Manually check the samples' length 
     for i in range(5):
         print('\ttxt original {} tokens fts {}'.format(txt_db.id2len[str(i)], txt_features[i].shape))
         print('\timg original {} faces fts {}'.format(img_db.name2nbb[txt_db.txt2img[str(i)]], img_features[i].shape))
+        print('\tspeech original {} speech fts {}'.format(speech_db.name2nbb[txt_db.txt2img[str(i)]], speech_features[i].shape))
 
 @torch.no_grad()
 def extracting_mm_fts(model, eval_loader):
     model.eval()
     st = time()
     LOGGER.info("start running Image/Text Retrieval evaluation ...")
-    txt_features, img_features, targets = extracting(model, eval_loader)
+    txt_features, img_features, speech_features, targets = extracting(model, eval_loader)
     tot_time = time()-st
     LOGGER.info(f"extracting finished in {int(tot_time)} seconds, ")
-    return txt_features, img_features, targets
+    return txt_features, img_features, speech_features, targets
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -95,6 +94,8 @@ if __name__ == "__main__":
                         help="The input train corpus. (LMDB)")
     parser.add_argument("--img_db", default=None, type=str,
                         help="The input train images.")
+    parser.add_argument("--speech_db", default=None, type=str,
+                        help="The input train speech.")
     parser.add_argument("--checkpoint", default=None, type=str,
                         help="model checkpoint binary, filepath or dictionary")
     parser.add_argument("--model_config", default=None, type=str,
@@ -116,8 +117,21 @@ if __name__ == "__main__":
                         help='min number of bounding boxes')
     parser.add_argument('--num_bb', type=int, default=36,
                         help='static number of bounding boxes')
+    parser.add_argument('--max_frames', type=int, default=360,
+                        help='max number of speech frames')
+    parser.add_argument('--min_frames', type=int, default=10,
+                        help='min number of speech frames')
+    parser.add_argument('--num_frames', type=int, default=64,
+                        help='min number of speech frames')
     parser.add_argument("--batch_size", default=400, type=int,
                         help="number of samples in a batch")
+    
+    parser.add_argument('--IMG_DIM', type=int, default=342,
+                        help='visual features as transformer input')
+    parser.add_argument('--Speech_DIM', type=int, default=768,
+                        help='speech features as transformer input')
+    parser.add_argument("--use_speech", action='store_true',  help='use speech branch')
+    parser.add_argument("--use_visual", action='store_true',  help='use visual branch')
     # device parameters
     parser.add_argument('--fp16', action='store_true',
                         help="Whether to use 16-bit float precision instead "

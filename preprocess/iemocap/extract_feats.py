@@ -169,7 +169,7 @@ def get_all_utt_ids(target_root):
 if __name__ == '__main__':
     
     # for face
-    if True:
+    if False:
         detect_type = sys.argv[1]
         output_dir = '/data7/emobert/exp/evaluation/IEMOCAP/feature'
         if detect_type == 'seetaface':
@@ -210,6 +210,7 @@ if __name__ == '__main__':
         output_dir = '/data7/emobert/exp/evaluation/IEMOCAP/feature/comparE_raw'
         save_path = os.path.join(output_dir, 'all.h5')
         split_h5(save_path, save_root=output_dir)
+    
 
     if False:
         wavscp_path = '/data2/zjm/speech_emotion/IEMOCAP/data/wav.scp'
@@ -240,6 +241,13 @@ if __name__ == '__main__':
         print('total {} uttids'.format(len(utt_ids)))
         extract_features_h5(extract_wav2vec, lambda x: os.path.join(audio_dir, x),  utt_ids, save_path)
     
+    if True:
+        # for speech wav2vec
+        print('Start to split')
+        output_dir = '/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_raw'
+        save_path = os.path.join(output_dir, 'all.h5')
+        split_h5(save_path, save_root=output_dir)
+
     if False:
         output_dir = '/data7/emobert/exp/evaluation/IEMOCAP/feature'
         if not os.path.exists(output_dir):

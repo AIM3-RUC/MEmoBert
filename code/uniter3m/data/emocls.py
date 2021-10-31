@@ -148,7 +148,7 @@ def emocls_collate(inputs):
     else:
         speech_feat, num_frames, speech_position_ids = None, None, None
 
-    # 构建gather-indxe
+    # 构建gather-index
     out_size = attn_masks.size(1)
     # 如果txt是None,那么按照img在前的顺序
     if txt_lens is not None:
@@ -180,6 +180,7 @@ def emocls_collate(inputs):
              'img_position_ids': img_position_ids,
              'speech_feat': speech_feat,
              'speech_position_ids': speech_position_ids,
+             'speech_lens': num_frames,
              'attn_masks': attn_masks,
              'gather_index': gather_index,
              'targets': targets,

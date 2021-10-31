@@ -541,12 +541,12 @@ msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_ste
 只输入语音，根据语音判断答案是happy，
 同时输入文本和语音，答案也是Happy，那么模型会不会指利用 能学习到什么？
 
-
-## <分析9> 测试预训练之后的特征相比原始特征的差异 -- Going
+## <分析9> 测试预训练之后的特征相比原始特征的差异 -- Done
 可以看一下文本的特征是否包含语音、人脸的表示，如果可以的话，学习到了joint embedding, 可以做模态问题。 ---First to do.
+Baseline的模型上进行训练，TextCNN.
 
-## <分析10> 预训练的模型固定住，在下游任务进行测试 -- Going
 
+## <分析10> 预训练的模型固定住，在下游任务进行测试 -- Pending
 
-## <分析11> 跨数据集的交叉实验 -- Going
+## <分析11> 跨数据集的交叉实验 -- Pending
 IEMOCAP和MSP两个数据集交叉验证。

@@ -75,7 +75,7 @@ class Identity(nn.Module):
         return x
     
 class FcClassifier(nn.Module):
-    def __init__(self, input_dim, layers, output_dim, activation=nn.ReLU, dropout=0.3, use_bn=False):
+    def __init__(self, input_dim, layers, output_dim, dropout=0.3, use_bn=False):
         ''' Fully Connect classifier
             Parameters:
             --------------------------

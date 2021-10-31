@@ -7,9 +7,10 @@ def find_model_using_name(model_name):
     be instantiated. It has to be a subclass of BaseModel,
     and it is case-insensitive.
     """
-    model_filename = "code.downstream.models." + model_name + "_model"
+    model_filename = "code.utt_baseline.models." + model_name + "_model"
     modellib = importlib.import_module(model_filename)
     model = None
+    # for example, model_name = 'early_fusion_multi'
     target_model_name = model_name.replace('_', '') + 'model'
     for name, cls in modellib.__dict__.items():
         if name.lower() == target_model_name.lower() \

@@ -8,8 +8,8 @@ target_dir = '/data7/emobert/exp/evaluation/{}/target'.format(dataset_name)
 model_cfg = {
     # basic info
     'model_name': 'early_fusion_multi',
-    'dataset_mode': 'iemocap_original', # use the original denseface features
-    'pretained_ft_type': 'denseface_affectnet_openface_iemocap_mean_std_torch',
+    'dataset_mode': 'meld', # use the original denseface features
+    'pretained_ft_type': 'utt_baseline',
     # global training info
     'dropout_rate': 0.5,
     'modality':'VL',
@@ -23,14 +23,14 @@ model_cfg = {
     # for training
     'fix_lr_epoch': 20, # real fix_lr_epoch = fix_lr_epoch - warmup_epoch
     'max_epoch': 40,
-    'patience': 10,
+    'patience':40,
     'warmup_epoch':0,
-    'warmup_decay':0.01, # warmup_learning_rate = warmup_decay * learning_rate
+    'warmup_decay':0.001, # warmup_learning_rate = warmup_decay * learning_rate
     'optim':'adam',
-    'betas':[0.5, 0.98],
-    'grad_norm': 0.1,
+    'betas':[0.9, 0.98],
+    'grad_norm': 5.0,
     # for different module initializers:  none / orthogonal / xavier / normal / kaiming
-    'init_type': 'normal',
+    'init_type': 'none',
     # visual encoer info -- lstm
     'max_visual_tokens': 50,
     'v_input_size':342,
@@ -49,7 +49,7 @@ model_cfg = {
     'a_embd_method':'maxpool', # use last mean att max
     'a_hidden_size':128,
     # text encoder info -- textcnn, bert_base=768, bert_large=1024
-    'max_lexical_tokens': 22,
+    'max_text_tokens': 22,
     'l_ft_name': 'bert',
     'l_input_size': 768,
     'l_hidden_size': 128,

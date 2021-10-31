@@ -6,10 +6,10 @@ import argparse
 import torch
 from torch.optim import lr_scheduler
 from os.path import join
-from code.downstream.data import CustomDatasetDataLoader
-from code.downstream.models.early_fusion_multi_model import EarlyFusionMultiModel
-from code.downstream.utils.logger import get_logger
-from code.uniter.utils.save import ModelSaver
+from data import CustomDatasetDataLoader
+from models.early_fusion_multi_model import EarlyFusionMultiModel
+from utils.logger import get_logger
+from utils.save import ModelSaver
 from sklearn.metrics import accuracy_score, recall_score, f1_score, confusion_matrix
 
 def make_path(path):
@@ -53,16 +53,18 @@ def lambda_rule(epoch):
 
 def main(opt):
     ## for building the basic paths
-    output_dir = join(config.result_dir, opt.pretained_ft_type, opt.model_name) # get logger path
-    # for testing the parameters of the model
-    setting_name = '{}_lr{}_dp{}_bn{}_A{}_V{}_L{}_F{}_run{}_{}'.format(opt.modality, opt.learning_rate, opt.dropout_rate, \
-        opt.bn, opt.a_hidden_size, opt.v_hidden_size, opt.l_hidden_size, \
+    output_dir = join(config.result_dir,  opt.model_name) # get logger path
+        # for testing the parameters of the model
+    setting_name = '{}_lr{}_dp{}_bn{}_A{}{}_V{}{}_L{}{}_F{}_run{}_{}'.format(opt.modality, opt.learning_rate, opt.dropout_rate, opt.bn, \
+        opt.a_ft_type, opt.a_hidden_size, opt.v_ft_type, opt.v_hidden_size, opt.l_ft_type, opt.l_hidden_size, \
         opt.mid_fusion_layers, opt.run_idx, opt.postfix)
 
     output_config = join(output_dir, setting_name, 'config.json')
     output_tsv = join(output_dir, setting_name, 'result.tsv')
-    output_dir = join(output_dir, setting_name, str(opt.cvNo))
-    
+    if 'iemocap' in opt.dataset_mode:
+        output_dir = join(output_dir, setting_name, str(opt.cvNo))
+    else:
+        output_dir = join(output_dir, setting_name)
     make_path(output_dir)
 
     with open(output_config, 'w') as f:
@@ -79,16 +81,13 @@ def main(opt):
     logger = get_logger(log_dir, 'none')
     logger.info('[Output] {}'.format(output_dir))
 
-    ## build ft paths and target
-    # ft_dir = os.path.join(config.ft_dir, opt.pretained_ft_type, str(opt.cvNo)) # setname + **.npy
-    # target_dir = ft_dir # save as setname + **.npy
     ft_dir = config.ft_dir
     target_dir = config.target_dir
 
     ## create a dataset given opt.dataset_mode and other options, the trn_db neither Dataset nor Dataloader
-    trn_db = CustomDatasetDataLoader(opt, opt.dataset_mode, ft_dir, target_dir, setname='trn', is_train=True)
+    trn_db = CustomDatasetDataLoader(opt, opt.dataset_mode, ft_dir, target_dir, setname='train', is_train=True)
     val_db = CustomDatasetDataLoader(opt, opt.dataset_mode, ft_dir, target_dir, setname='val', is_train=False)
-    tst_db = CustomDatasetDataLoader(opt, opt.dataset_mode, ft_dir, target_dir, setname='tst', is_train=False)
+    tst_db = CustomDatasetDataLoader(opt, opt.dataset_mode, ft_dir, target_dir, setname='test', is_train=False)
     logger.info('The number of training samples = {}'.format(len(trn_db)))
     logger.info('The number of validation samples = {}'.format(len(val_db)))
     logger.info('The number of testing samples = {}'.format(len(tst_db)))
@@ -100,7 +99,6 @@ def main(opt):
     num_parameters = sum(torch.numel(parameter) for parameter in model.parameters())
     logger.info('[Model] parameters {}'.format(num_parameters))
     print(model.parameters())
-
 
     # Prepare model
     if opt.is_test and opt.restore_checkpoint:
@@ -176,7 +174,7 @@ def main(opt):
     val_log = evaluation(model, val_db, save_dir=log_dir, set_name='val')
     logger.info('[Val] result WA: %.4f UAR %.4f F1 %.4f' % (val_log['WA'], val_log['UA'], val_log['F1']))
     logger.info('\n{}'.format(val_log['cm']))
-    tst_log = evaluation(model, tst_db, save_dir=log_dir, set_name='tst')
+    tst_log = evaluation(model, tst_db, save_dir=log_dir, set_name='test')
     logger.info('[Tst] result WA: %.4f UAR %.4f F1 %.4f' % (tst_log['WA'], tst_log['UA'], tst_log['F1']))
     logger.info('\n{}'.format(tst_log['cm']))
     clean_chekpoints(checkpoint_dir, best_eval_epoch)
@@ -240,35 +238,54 @@ if __name__ == '__main__':
                         help='which gpu to run')
     parser.add_argument('--num_threads', type=int, default=1,
                         help='how many threads to use')
-    parser.add_argument('--cvNo', type=int, required=True,
+    parser.add_argument('--cvNo', type=int, default=0,
                         help='which cross-valiation folder')
     parser.add_argument('--modality', type=str,
                         help='which modalities will consider, such as VL')
+    parser.add_argument('--dataset_mode', type=str,
+                        help='which dataset will consider, such as chmed/iemcoap')
     parser.add_argument('--pretained_ft_type', type=str,
                         help='which feature will be use')
+    
+    parser.add_argument('--max_epoch', type=int, default=30)
+    parser.add_argument('--fix_lr_epoch', type=int, default=20)
+    parser.add_argument('--patience', type=int, default=5)
+    parser.add_argument('--warmup_epoch', type=int, default=5)
+
     # for stage
     parser.add_argument("--is_test", action='store_true')
     parser.add_argument("--restore_checkpoint", default=None, help='if at testing stage, then...')
 
     # for model
+    parser.add_argument('--batch_size', type=int, default=64, help='')
     parser.add_argument('--dropout_rate', type=float, help='')
     parser.add_argument('--mid_fusion_layers', type=str, default='256,128', help='')
     parser.add_argument('--learning_rate', type=float, default='2e-4', help='learning rate')
     parser.add_argument('--bn', action='store_true', help='use bn for the fully connected layers')
+    parser.add_argument('--a_ft_type', type=str, default=None)
+    parser.add_argument('--v_ft_type', type=str, default=None)
+    parser.add_argument('--l_ft_type', type=str, default=None)
     parser.add_argument('--a_hidden_size', type=int, default=128)
     parser.add_argument('--v_hidden_size', type=int, default=128)
     parser.add_argument('--l_hidden_size', type=int, default=128)
-    parser.add_argument('--max_lexical_tokens', type=int, default=22)
+    parser.add_argument('--a_input_size', type=int, default=768)
+    parser.add_argument('--v_input_size', type=int, default=342)
+    parser.add_argument('--l_input_size', type=int, default=768)
+    parser.add_argument('--max_text_tokens', type=int, default=20)
+    parser.add_argument('--max_acoustic_tokens', type=int, default=128)
+    parser.add_argument('--max_visual_tokens', type=int, default=64)
 
     parser.add_argument('--postfix', required=True, default='None',
                         help='postfix for the output dir')
     main_args = parser.parse_args()
     # 根据主函数传入的参数判断采用的config文件
-    if 'self' == main_args.postfix:
-        print('**** use ef self config')
-        from code.downstream.configs import ef_original_config_self as config 
+    if 'chmed' in main_args.dataset_mode:
+        print(' dataset chmed and Use chmed config ---- ')
+        from configs import ef_chmed_config as config 
+    elif 'iemocap' in main_args.dataset_mode:
+        from configs import ef_iemocap_config as config 
     else:
-        print('**** use ef www config')
-        from code.downstream.configs import ef_original_config_www as config 
+        print('Error dataset_mode {}'.format(main_args.dataset_mode))
+
     opt = parse_with_config(main_args)
     main(opt)

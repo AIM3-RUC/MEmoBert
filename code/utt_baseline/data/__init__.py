@@ -39,9 +39,8 @@ def find_dataset_using_name(dataset_name):
 class CustomDatasetDataLoader():
     """Wrapper class of Dataset class that performs multi-threaded data loading"""
 
-    def __init__(self, opt, dataset_mode, ft_dir, target_dir, setname='trn', is_train=True, **kwargs):
+    def __init__(self, opt, dataset_mode, ft_dir, target_dir, setname='train', is_train=True, **kwargs):
         """Initialize this class
-
         Step 1: create a dataset instance given the name [dataset_mode]
         Step 2: create a multi-threaded data loader.
         """

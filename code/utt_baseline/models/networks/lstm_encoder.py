@@ -1,7 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence
 
 class BiLSTMEncoder(nn.Module):
     ''' LSTM encoder
@@ -28,7 +26,7 @@ class BiLSTMEncoder(nn.Module):
 class LSTMEncoder(nn.Module):
     ''' one directional LSTM encoder
     '''
-    def __init__(self, input_size, hidden_size, embd_method='last', pool_len=50):
+    def __init__(self, input_size, hidden_size, embd_method='last', pool_len=128):
         super(LSTMEncoder, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -67,8 +65,8 @@ class LSTMEncoder(nn.Module):
 
     def embd_maxpool(self, r_out, h_n):
         # in_data = r_out.transpose(1,2)
-        # embd = F.max_pool1d(in_data, in_data.size(2))               # r_out.size()=>[batch_size, seq_len, hidden_size]
-                                                                      # r_out.transpose(1, 2) => [batch_size, hidden_size, seq_len]
+        # embd = F.max_pool1d(in_data, in_data.size(2))          # r_out.size()=>[batch_size, seq_len, hidden_size]
+        # print(r_out.transpose(1,2).shape)                    # r_out.transpose(1, 2) => [batch_size, hidden_size, seq_len]
         embd = self.maxpool(r_out.transpose(1,2))
         return embd.squeeze()
 
