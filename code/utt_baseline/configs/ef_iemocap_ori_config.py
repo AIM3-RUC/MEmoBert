@@ -1,5 +1,5 @@
 # basic paths
-dataset_name = 'chmed'
+dataset_name = 'IEMOCAP'
 result_dir = '/data7/emobert/exp/evaluation/{}/results'.format(dataset_name)
 ft_dir = '/data7/emobert/exp/evaluation/{}/feature'.format(dataset_name)
 target_dir = '/data7/emobert/exp/evaluation/{}/target'.format(dataset_name)
@@ -32,19 +32,16 @@ model_cfg = {
      # for different module initializers:  none / orthogonal / xavier / normal / kaiming
     'init_type': 'none',
     # visual encoer info -- lstm
-    'visual_ft_type': 'denseface_openface_iemocap_mean_std_torch',
     'max_visual_tokens': 64,
     'v_input_size':768,
     'v_embd_method':'maxpool', # use last mean att max
     'v_hidden_size':128, # rnn 
     # audio encoer info -- lstm
-    'acoustic_ft_type': 'wav2vec_npzs_3mean',
     'max_acoustic_tokens':128,
     'a_input_size':768,
     'a_embd_method':'maxpool', # use last mean att max
     'a_hidden_size':128,
     # text encoder info -- textcnn
-    'acoustic_ft_type': 'bert',
     'max_text_tokens': 20,
     'l_input_size': 768,
     'l_hidden_size': 128,

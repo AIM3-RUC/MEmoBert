@@ -87,9 +87,9 @@ def main(opt):
     target_dir = config.target_dir
 
     ## create a dataset given opt.dataset_mode and other options, the trn_db neither Dataset nor Dataloader
-    trn_db = CustomDatasetDataLoader(opt, opt.dataset_mode, ft_dir, target_dir, setname='train', is_train=True)
-    val_db = CustomDatasetDataLoader(opt, opt.dataset_mode, ft_dir, target_dir, setname='val', is_train=False)
-    tst_db = CustomDatasetDataLoader(opt, opt.dataset_mode, ft_dir, target_dir, setname='test', is_train=False)
+    trn_db = CustomDatasetDataLoader(opt, opt.dataset_mode, ft_dir, target_dir, 'trn,val', is_train=True)
+    val_db = CustomDatasetDataLoader(opt, opt.dataset_mode, ft_dir, target_dir, 'tst', is_train=False)
+    tst_db = CustomDatasetDataLoader(opt, opt.dataset_mode, ft_dir, target_dir, 'tst', is_train=False)
     logger.info('The number of training samples = {}'.format(len(trn_db)))
     logger.info('The number of validation samples = {}'.format(len(val_db)))
     logger.info('The number of testing samples = {}'.format(len(tst_db)))
@@ -115,10 +115,8 @@ def main(opt):
     scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda_rule)
 
     total_iters = 0                # the total number of training iterations
-    best_eval_f1 = 0              # record the best eval F1
-    best_eval_wf1 = 0              # record the best eval WF1
-    best_eval_f1_epoch = -1           # record the best eval F1 epoch
-    best_eval_wf1_epoch = -1           # record the best eval WF1 epoch
+    best_eval_uar = 0              # record the best eval F1
+    best_eval_uar_epoch = -1           # record the best eval F1 epoch
     patience = opt.patience
 
     total_steps = opt.max_epoch * int((len(trn_db) / opt.batch_size))
@@ -144,27 +142,21 @@ def main(opt):
             val_log = evaluation(model, val_db)
             logger.info(str("[Validation] Loss: {:.2f}".format(val_log['loss']) +
                     "\t WA: {:.2f},".format(val_log['WA']*100) + 
-                    "\t UA: {:.2f},".format(val_log['UA']*100) + 
+                    "\t UAR: {:.2f},".format(val_log['UAR']*100) + 
                     "\t F1: {:.2f},".format(val_log['F1']*100) +
                     "\t WF1: {:.2f},".format(val_log['WF1']*100)))
             test_log = evaluation(model, tst_db)
             logger.info(str("[Testing] Loss: {:.2f}".format(test_log['loss']) + 
                     "\t WA: {:.2f},".format(test_log['WA']*100) + 
-                    "\t UA: {:.2f}".format(test_log['UA']*100) + 
+                    "\t UAR: {:.2f}".format(test_log['UAR']*100) + 
                     "\t F1: {:.2f}, ".format(test_log['F1']*100) + 
                     "\t WF1: {:.2f}, ".format(test_log['WF1']*100)))
             print('Save model at {} epoch'.format(epoch))
             model_saver.save(model, epoch)
             # update the current best model based on validation results
-            if val_log['WF1'] > best_eval_wf1:
-                best_eval_wf1_epoch = epoch
-                best_eval_wf1 = val_log['WF1']
-                # reset to init
-                patience = opt.patience
-            
-            if val_log['F1'] > best_eval_f1:
-                best_eval_f1_epoch = epoch
-                best_eval_f1 = val_log['F1']
+            if val_log['UAR'] > best_eval_uar:
+                best_eval_uar_epoch = epoch
+                best_eval_uar = val_log['UAR']
                 # reset to init
                 patience = opt.patience
 
@@ -177,37 +169,49 @@ def main(opt):
         scheduler.step()
 
     # print best WF1 eval result
-    logger.info('Loading best WF1 model found on val set: epoch-%d' % best_eval_wf1_epoch)
-    checkpoint_path = os.path.join(checkpoint_dir, 'model_step_{}.pt'.format(best_eval_wf1_epoch))
+    logger.info('Loading best WF1 model found on val set: epoch-%d' % best_eval_uar_epoch)
+    checkpoint_path = os.path.join(checkpoint_dir, 'model_step_{}.pt'.format(best_eval_uar_epoch))
     if not os.path.exists(checkpoint_path):
         logger.error("Load checkpoint error, not exist such file")
         exit(0)
     ck = torch.load(checkpoint_path)
     model.load_state_dict(ck)
     val_log = evaluation(model, val_db, save_dir=log_dir, set_name='val')
-    logger.info(str('[Val] WF1-result WA: %.4f UAR %.4f F1 %.4f WF1 %.4f' % (val_log['WA'], val_log['UA'], val_log['F1'],  val_log['WF1'])))
+    logger.info(str('[Val] WF1-result WA: %.4f UAR %.4f F1 %.4f WF1 %.4f' % (val_log['WA'], val_log['UAR'], val_log['F1'],  val_log['WF1'])))
     logger.info(str('\n{}'.format(val_log['cm'])))
     tst_log = evaluation(model, tst_db, save_dir=log_dir, set_name='test')
-    logger.info(str('[Tst] WF1-result WA: %.4f UAR %.4f F1 %.4f WF1 %.4f' % (tst_log['WA'], tst_log['UA'], tst_log['F1'], tst_log['WF1'])))
+    logger.info(str('[Tst] WF1-result WA: %.4f UAR %.4f F1 %.4f WF1 %.4f' % (tst_log['WA'], tst_log['UAR'], tst_log['F1'], tst_log['WF1'])))
     logger.info(str('\n{}'.format(tst_log['cm'])))
 
     # print best F1 eval result
-    logger.info('Loading best F1 model found on val set: epoch-%d' % best_eval_f1_epoch)
-    checkpoint_path = os.path.join(checkpoint_dir, 'model_step_{}.pt'.format(best_eval_f1_epoch))
+    logger.info('Loading best UAR model found on val set: epoch-%d' % best_eval_uar_epoch)
+    checkpoint_path = os.path.join(checkpoint_dir, 'model_step_{}.pt'.format(best_eval_uar_epoch))
     if not os.path.exists(checkpoint_path):
         logger.error("Load checkpoint error, not exist such file")
         exit(0)
     ck = torch.load(checkpoint_path)
     model.load_state_dict(ck)
     val_log = evaluation(model, val_db, save_dir=log_dir, set_name='val')
-    logger.info(str('[Val] F1-result WA: %.4f UAR %.4f F1 %.4f WF1 %.4f' % (val_log['WA'], val_log['UA'], val_log['F1'], val_log['WF1'])))
+    logger.info(str('[Val] F1-result WA: %.4f UAR %.4f F1 %.4f WF1 %.4f' % (val_log['WA'], val_log['UAR'], val_log['F1'], val_log['WF1'])))
     logger.info(str('\n{}'.format(val_log['cm'])))
     tst_log = evaluation(model, tst_db, save_dir=log_dir, set_name='test')
-    logger.info(str('[Tst] F1-result WA: %.4f UAR %.4f F1 %.4f WF1 %.4f' % (tst_log['WA'], tst_log['UA'], tst_log['F1'], tst_log['WF1'])))
+    logger.info(str('[Tst] F1-result WA: %.4f UAR %.4f F1 %.4f WF1 %.4f' % (tst_log['WA'], tst_log['UAR'], tst_log['F1'], tst_log['WF1'])))
     logger.info(str('\n{}'.format(tst_log['cm'])))
+    clean_chekpoints(checkpoint_dir, [best_eval_uar_epoch])
+    write_result_to_tsv(output_tsv, tst_log, opt.cvNo)
 
-    clean_chekpoints(checkpoint_dir, [best_eval_wf1_epoch, best_eval_f1_epoch])
-
+def write_result_to_tsv(file_path, tst_log, cvNo):
+    # 使用fcntl对文件加锁,避免多个不同进程同时操作同一个文件
+    f_in = open(file_path)
+    fcntl.flock(f_in.fileno(), fcntl.LOCK_EX) # 加锁
+    content = f_in.readlines()
+    if len(content) != 12:
+        content += ['\n'] * (12-len(content))
+    content[cvNo-1] = 'CV{}\t{:.4f}\t{:.4f}\t{:.4f}\n'.format(cvNo, tst_log['WA'], tst_log['UAR'], tst_log['F1'])
+    f_out = open(file_path, 'w')
+    f_out.writelines(content)
+    f_out.close()
+    f_in.close() 
 
 @torch.no_grad()
 def evaluation(model, loader, set_name='val', save_dir=None):
@@ -237,7 +241,7 @@ def evaluation(model, loader, set_name='val', save_dir=None):
     except:
         acc, uar, f1, wf1, cm = 0,0,0,0, 0
     model.train()
-    return {'loss': avg_loss,  'WA': acc,  'UA': uar, 'F1': f1, 'WF1': wf1, 'cm':cm}
+    return {'loss': avg_loss,  'WA': acc,  'UAR': uar, 'F1': f1, 'WF1': wf1, 'cm':cm}
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -251,7 +255,7 @@ if __name__ == '__main__':
                         help='which gpu to run')
     parser.add_argument('--num_threads', type=int, default=1,
                         help='how many threads to use')
-    parser.add_argument('--cvNo', type=int, default=0,
+    parser.add_argument('--cvNo', type=int, default=1,
                         help='which cross-valiation folder')
     parser.add_argument('--modality', type=str,
                         help='which modalities will consider, such as VL')
@@ -299,7 +303,7 @@ if __name__ == '__main__':
         from configs import ef_chmed_config as config 
     elif 'iemocap_ori' in main_args.dataset_mode:
         from configs import ef_iemocap_ori_config as config 
-    elif 'iemocap_pretained' in main_args.dataset_mode:
+    elif 'iemocap_pretrained' in main_args.dataset_mode:
         from configs import ef_iemocap_pretrained_config as config 
     else:
         print('Error dataset_mode {}'.format(main_args.dataset_mode))

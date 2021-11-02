@@ -1,14 +1,12 @@
 # basic paths
-dataset_name = 'IEMOCAP'
-# dataset_name = 'MSP-IMPROV'
-result_dir = '/data7/emobert/exp/evaluation/{}/results'.format(dataset_name)
-ft_dir = '/data7/emobert/exp/evaluation/{}/feature'.format(dataset_name)
-target_dir = '/data7/emobert/exp/evaluation/{}/target'.format(dataset_name)
+ft_dir = '/data7/emobert/exp/uniter3m_fts/iemocap/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_noitm_lr5e5_bs800_nofinetune'
+result_dir = '/data7/emobert/exp/evaluation/IEMOCAP/results/'
+target_dir = ft_dir
 
 model_cfg = {
     # basic info
     'model_name': 'early_fusion_multi',
-    'dataset_mode': 'meld', # use the original denseface features
+    'dataset_mode': 'iemocap_pretrained', # use the original denseface features
     'pretained_ft_type': 'utt_baseline',
     # global training info
     'dropout_rate': 0.5,
@@ -25,7 +23,7 @@ model_cfg = {
     'max_epoch': 40,
     'patience':40,
     'warmup_epoch':0,
-    'warmup_decay':0.001, # warmup_learning_rate = warmup_decay * learning_rate
+    'warmup_decay':0.1, # warmup_learning_rate = warmup_decay * learning_rate
     'optim':'adam',
     'betas':[0.9, 0.98],
     'grad_norm': 5.0,
@@ -33,7 +31,7 @@ model_cfg = {
     'init_type': 'none',
     # visual encoer info -- lstm
     'max_visual_tokens': 50,
-    'v_input_size':342,
+    'v_input_size':768,
     'v_embd_method':'maxpool', # use last mean att max
     'v_hidden_size':128,  # rnn
     # visual3d encoder info resnet3d + lstm
@@ -43,14 +41,14 @@ model_cfg = {
     'v3d_embd_method':'maxpool',
     'v3d_hidden_size': 128,
     # audio encoer info -- lstm
-    'max_acoustic_tokens': 50,
+    'max_acoustic_tokens': 64,
     'a_ft_name': '',
     'a_input_size':768,
     'a_embd_method':'maxpool', # use last mean att max
     'a_hidden_size':128,
     # text encoder info -- textcnn, bert_base=768, bert_large=1024
     'max_text_tokens': 22,
-    'l_ft_name': 'bert',
+    'l_ft_name': '',
     'l_input_size': 768,
     'l_hidden_size': 128,
 }

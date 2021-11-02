@@ -5,27 +5,42 @@ import torch.utils.data as data
 from torch.nn.utils.rnn import pad_sequence
 
 class IemocapPretrainedDataset(data.Dataset):
-    def __init__(self, opt, ft_dir, target_dir, setname='trn'):
+    def __init__(self, opt, ft_dir, target_dir, setname_str='trn'):
         ''' IEMOCAP dataset reader
         extracting features from pretrained emobert model 
             set_name in ['trn', 'val', 'tst']
+        if trn,val, then combine the trn and val datasets 
         '''
         super().__init__()
         self.opt = opt
+        setnames = setname_str.split(',')
         self.exits_modality = {}
         if 'A' in opt.modality:
-            acoustic_data = np.load(join(ft_dir, opt.pretained_ft_type, str(opt.cvNo), setname, "speech_ft.npy"))
+            acoustic_data = []
+            for setname in setnames:
+                temp = np.load(join(ft_dir, str(opt.cvNo), setname, "speech_ft.npy"), allow_pickle=True)
+                acoustic_data.extend(list(temp))
             self.exits_modality['acoustic'] = acoustic_data
 
         if 'L' in opt.modality:
-            lexical_data = np.load(join(ft_dir, opt.pretained_ft_type, str(opt.cvNo), setname, "txt_ft.npy"))
-            self.exits_modality['lexical'] = lexical_data
+            text_data = []
+            for setname in setnames:
+                temp = np.load(join(ft_dir, str(opt.cvNo), setname, "txt_ft.npy"), allow_pickle=True)
+                text_data.extend(list(temp))
+            self.exits_modality['text'] = text_data
 
         if 'V' in opt.modality:
-            visual_data = np.load(join(ft_dir, opt.pretained_ft_type, str(opt.cvNo), setname, "img_ft.npy"))
+            visual_data = []
+            for setname in setnames:
+                temp = np.load(join(ft_dir, str(opt.cvNo), setname, "img_ft.npy"), allow_pickle=True)
+                visual_data.extend(list(temp))
             self.exits_modality['visual'] = visual_data
 
-        self.label = np.load(join(target_dir, opt.pretained_ft_type, str(opt.cvNo), setname, "label.npy"))
+        self.label = []
+        for setname in setnames:
+            temp = np.load(join(target_dir, str(opt.cvNo), setname, "label.npy"), allow_pickle=True)
+            self.label.extend(list(temp))
+
         self.manual_collate_fn = True
 
     def __getitem__(self, index):
@@ -57,13 +72,13 @@ class IemocapPretrainedDataset(data.Dataset):
                 example['visual'] = torch.cat([example['visual'], \
                         torch.zeros([self.opt.max_visual_tokens-len(example['visual']), self.opt.v_input_size])], dim=0)
 
-        if 'lexical' in self.exits_modality.keys():
-            example['lexical'] = torch.from_numpy(self.exits_modality['lexical'][index])
-            if len(example['lexical']) >= self.opt.max_lexical_tokens:
-                example['lexical'] = example['lexical'][:self.opt.max_lexical_tokens]
+        if 'text' in self.exits_modality.keys():
+            example['text'] = torch.from_numpy(self.exits_modality['text'][index])
+            if len(example['text']) >= self.opt.max_text_tokens:
+                example['text'] = example['text'][:self.opt.max_text_tokens]
             else:
-                example['lexical'] = torch.cat([example['lexical'], \
-                        torch.zeros([self.opt.max_lexical_tokens-len(example['lexical']), self.opt.l_input_size])], dim=0)
+                example['text'] = torch.cat([example['text'], \
+                        torch.zeros([self.opt.max_text_tokens-len(example['text']), self.opt.l_input_size])], dim=0)
         
         label = torch.tensor(self.label[index])
         example['label'] = label
@@ -80,10 +95,10 @@ class IemocapPretrainedDataset(data.Dataset):
             A = pad_sequence(A, batch_first=True, padding_value=0)
             ret['acoustic'] = A
 
-        if 'lexical' in self.exits_modality.keys():
-            L = [sample['lexical'] for sample in batches]
+        if 'text' in self.exits_modality.keys():
+            L = [sample['text'] for sample in batches]
             L = pad_sequence(L, batch_first=True, padding_value=0)
-            ret['lexical'] = L
+            ret['text'] = L
         
         if 'visual' in self.exits_modality.keys():
             V = [sample['visual'] for sample in batches]

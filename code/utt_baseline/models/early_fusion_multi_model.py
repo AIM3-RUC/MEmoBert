@@ -105,7 +105,9 @@ class EarlyFusionMultiModel(nn.Module):
         # get model outputs
         self.feat = torch.cat(final_embd, dim=-1)
         self.logits, self.ef_fusion_feat = self.netC(self.feat)
+        print(logits.shape, self.label.shape)
         self.pred = F.softmax(self.logits, dim=-1)
+        # CrossEntropyLoss = nn.logSoftmax() + nn.NLLLoss()
         self.loss = self.criterion_ce(self.logits, self.label)
         
     def backward(self):
