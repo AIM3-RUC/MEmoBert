@@ -82,9 +82,10 @@ class IemocapOriDataset(data.Dataset):
                         
         if 'visual' in self.exits_modality.keys():
             try:
-                example['visual'] = torch.from_numpy(self.exits_modality['visual'][utt_id][()])
+                example['visual'] = torch.from_numpy(self.exits_modality['visual'][utt_id]['feat'][()])
             except ValueError:
                 example['visual'] = torch.zeros(1, self.opt.v_input_size)
+
             if len(example['visual']) >= self.opt.max_visual_tokens:
                 example['visual'] = example['visual'][:self.opt.max_visual_tokens]
             else:

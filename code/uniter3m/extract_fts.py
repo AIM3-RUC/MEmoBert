@@ -30,19 +30,26 @@ def main(opts):
     LOGGER.info("device: {} n_gpu: {}, rank: {}, "
                 "16-bits extracting features: {}".format(
                     device, n_gpu, hvd.rank(), opts.fp16))
-
     # load image db
-    img_db = DetectFeatLmdb(opts.img_db,
+    if opts.use_visual:
+        img_db = DetectFeatLmdb(opts.img_db,
                                  opts.conf_th, opts.max_bb,
                                  opts.min_bb, opts.compressed_db)
+    else:
+        img_db = None
+
     # load speech db
-    speech_db = DetectFeatLmdb(opts.speech_db,
+    if opts.use_speech:
+        speech_db = DetectFeatLmdb(opts.speech_db,
                                  opts.conf_th, opts.max_frames,
                                  opts.min_frames, opts.compressed_db)
+    else:
+        speech_db = None
+
     # load text db
     txt_db = TxtTokLmdb(opts.txt_db, -1)
     # load the dataset
-    infer_dataset = EmoClsDataset(txt_db, img_db, speech_db)
+    infer_dataset = EmoClsDataset(txt_db, img_db, speech_db, use_text=opts.use_text)
 
     # Prepare model
     if os.path.isfile(opts.checkpoint):
@@ -67,15 +74,21 @@ def main(opts):
 
     txt_features, img_features, speech_features, targets = extracting_mm_fts(model, infer_dataloader)
     LOGGER.info('Final Feature txt {} img {} speech {} target {}'.format(len(txt_features), len(img_features), len(speech_features), len(targets)))
-    np.save(os.path.join(opts.output_dir, 'txt_ft.npy'), txt_features)
-    np.save(os.path.join(opts.output_dir, 'img_ft.npy'), img_features)
-    np.save(os.path.join(opts.output_dir, 'speech_ft.npy'), speech_features)
+    if len(txt_features) > 0:
+        np.save(os.path.join(opts.output_dir, 'txt_ft.npy'), txt_features)
+    if len(img_features) > 0:
+        np.save(os.path.join(opts.output_dir, 'img_ft.npy'), img_features)
+    if len(speech_features) > 0:
+        np.save(os.path.join(opts.output_dir, 'speech_ft.npy'), speech_features)
     np.save(os.path.join(opts.output_dir, 'label.npy'), targets)
     # Manually check the samples' length 
     for i in range(5):
-        print('\ttxt original {} tokens fts {}'.format(txt_db.id2len[str(i)], txt_features[i].shape))
-        print('\timg original {} faces fts {}'.format(img_db.name2nbb[txt_db.txt2img[str(i)]], img_features[i].shape))
-        print('\tspeech original {} speech fts {}'.format(speech_db.name2nbb[txt_db.txt2img[str(i)]], speech_features[i].shape))
+        if len(txt_features) > 0:
+            print('\ttxt original {} tokens fts {}'.format(txt_db.id2len[str(i)], txt_features[i].shape))
+        if len(img_features) > 0:
+            print('\timg original {} faces fts {}'.format(img_db.name2nbb[txt_db.txt2img[str(i)]], img_features[i].shape))
+        if len(speech_features) > 0:
+            print('\tspeech original {} speech fts {}'.format(speech_db.name2nbb[txt_db.txt2img[str(i)]], speech_features[i].shape))
 
 @torch.no_grad()
 def extracting_mm_fts(model, eval_loader):
@@ -130,6 +143,7 @@ if __name__ == "__main__":
                         help='visual features as transformer input')
     parser.add_argument('--Speech_DIM', type=int, default=768,
                         help='speech features as transformer input')
+    parser.add_argument("--use_text", action='store_true',  help='use speech branch')
     parser.add_argument("--use_speech", action='store_true',  help='use speech branch')
     parser.add_argument("--use_visual", action='store_true',  help='use visual branch')
     # device parameters

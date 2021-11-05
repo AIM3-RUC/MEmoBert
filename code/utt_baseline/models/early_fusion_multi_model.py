@@ -88,24 +88,40 @@ class EarlyFusionMultiModel(nn.Module):
         final_embd = []
         if 'A' in self.modality:
             self.feat_A = self.netA(self.acoustic)
+            if len(self.feat_A.shape) == 1:
+                # batch-size=1 and torch.Size([256]) need to extend dim
+                self.feat_A = self.feat_A.unsqueeze(dim=0)
             final_embd.append(self.feat_A)
             
         if 'L' in self.modality:
             self.feat_L = self.netL(self.text)
+            if len(self.feat_L.shape) == 1:
+                # batch-size=1 and torch.Size([256]) need to extend dim
+                self.feat_L = self.feat_L.unsqueeze(dim=0)
             final_embd.append(self.feat_L)
         
         if 'V3d' in self.modality:
             output = self.front3d(self.visual)
             self.feat_V = self.netV(output)
+            if len(self.feat_V.shape) == 1:
+                # batch-size=1 and torch.Size([256]) need to extend dim
+                self.feat_V = self.feat_V.unsqueeze(dim=0)
             final_embd.append(self.feat_V)
         elif 'V' in self.modality:
             self.feat_V = self.netV(self.visual)
+            if len(self.feat_V.shape) == 1:
+                # batch-size=1 and torch.Size([256]) need to extend dim
+                self.feat_V = self.feat_V.unsqueeze(dim=0)
             final_embd.append(self.feat_V)
         
         # get model outputs
+        # print([f.shape for f in final_embd])
         self.feat = torch.cat(final_embd, dim=-1)
         self.logits, self.ef_fusion_feat = self.netC(self.feat)
-        print(logits.shape, self.label.shape)
+        if len(self.logits.shape) == 1:
+            # batch-size = 1
+            self.logits = self.logits.unsqueeze(dim=0)
+        # print(self.logits.shape, self.label.shape)
         self.pred = F.softmax(self.logits, dim=-1)
         # CrossEntropyLoss = nn.logSoftmax() + nn.NLLLoss()
         self.loss = self.criterion_ce(self.logits, self.label)
