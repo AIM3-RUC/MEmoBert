@@ -479,36 +479,18 @@ msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_ste
 [CLS] 0     [SEP] 0      [SEP] 1----  2----    token type.
 目前的结果来看，比正常finetune结果低一些～
 
-
 ---- 工作已经Release到Arxiv，应该可以引用，可以月底投稿到TAC期刊, 一个月的时间应该问题不大。
 
 ## <分析9> 测试预训练之后的特征相比原始特征的差异 -- Done
 可以看一下文本的特征是否包含语音、人脸的表示，如果可以的话，学习到了joint embedding, 可以做模态缺失问题。
-
-这里提取输入MEmoBert应该是纯文本还是输入三个模态？
-    1. 如果输入三个模态的话，那么文本信息其实是 contextual embedding，不能算是纯的文本输入
-        在IEMOCAP，对比文本BERT特征和预训练之后的文本特征，在Baseline的模型上进行训练，TextCNN.
-            结果对比 UAR：
-                BERT+Finetune（text only upper）0.72164	
-                BERT+TextCNN（Baseline) 0.6736
-                MEmoBERT+TextCNN（Ours) 0.7850
-                MEmoBERT+Finetune (multimdoal upper): 0.806
-            有非常明显的提升，并且超过了Finetune的结果，说明学习到了 joint multimodal embeddings.
-        再对比一下比较弱的视觉模态位置能否学习到joint embedding?
-            结果对比 UAR，同样有非常明显的提升：
-                BERT+TextCNN（Baseline) 0.5235
-                MEmoBERT+LSTM（Ours) 0.6222
-        语音模态同样会有非常明显的提升。
-                BERT+TextCNN（Baseline) ---
-                MEmoBERT+LSTM（Ours) 0.6462
-    2. 如果只输入文本信息的话，如果文本信息中有包含 
-
-
+不同的模态缺失场景，将对应的输入通过MEmoBert提出joint embeddings. 然后同样基于Baseline进行训练+测试
+结论: IEMOCAP, 在trn:val的10折cross-validation的实验设置下，经过MEmoBert抽取的JointEmbedding可以取得5个点的提升。
 
 ## <分析10> Freeze预训练的模型，添加新的Classifier或者Prompt在下游任务进行测试 -- Going
-相比直接抽取特征有啥区别？ 要说明什么问题？ -- Going
+既然直接抽取的特征表现这么好，那么如果不进行预训练模型的Finetune，直接只 Finetune Classifier -- Running IEMOCAP
+为了测试Finetune的性能以及单独缺失场景训练可以确定UpperBound，方便过渡Prompt并进行对比。 
 
-既然直接抽取的特征表现这么好，那么如果不进行预训练模型的Finetune，直接Finetune Classifier，如果下游效果跟Finetune结果差不多的话，
+
 说明预训练模型很强，可以更好探究基于 Prompt 的知识挖掘策略。
 MEmoBERT+Finetune (multimdoal upper): 0.806
 case1: 固定预训练模型不动，只预训练 Classifier.

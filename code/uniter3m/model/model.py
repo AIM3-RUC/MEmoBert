@@ -471,7 +471,9 @@ class UniterEncoder(nn.Module):
     def forward(self, input_, attention_mask, frozen_en_layers=0,
                 output_all_encoded_layers=True):
         # zjm 2020/12/15: add parameter: frozen_en_layer for small dataset finetune.
-        # print('[Model] Frozen_en_layer {}'.format(frozen_en_layers))
+        # logger.info('[Model] Frozen_en_layer {}'.format(frozen_en_layers))
+        # if frozen_en_layers == 12:
+        #     logger.info('[Model] Frozen all the layers except classifier {}'.format(frozen_en_layers))
         all_encoder_layers = []
         hidden_states = input_
         for i, layer_module in enumerate(self.layer):
@@ -493,6 +495,7 @@ class UniterModel(UniterPreTrainedModel):
         hidden_states = self.dropout(hidden_states)
         hidden_states = self.LayerNorm(hidden_states + input_tensor)
     So the final output is layernorm.
+    # Note: frozen_en_layers 大于0, 那么 text/image/speech-embedding, text/image/speech-position,  text/image/speech-typeembdding 也都不动.
     """
     def __init__(self, config, img_dim, speech_dim, use_visual, use_speech):
         super().__init__(config)
@@ -661,6 +664,7 @@ class UniterModel(UniterPreTrainedModel):
         # 当只 finetune top layers的时候, embeddings 也都要 fixed.
         # 由于在三模态的时候我们也可以做两两模态的对比，所以这里采用构建的dataloader的情况进行判断
         if frozen_en_layers > 0:
+            # logger.info('[Debug] frozen some layers!')
             with torch.no_grad():
                 if input_ids is not None:
                     # logger.info('[Debug] the txt modality is Not None')
