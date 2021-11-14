@@ -166,6 +166,28 @@ def get_all_utt_ids(target_root):
         ans += utt_ids
     return ans
 
+def get_3mean_speech_data(save_path, save_3mean_path):
+    h5f = h5py.File(save_path, 'r')
+    avg_lens = []
+    pooling_num_frames = 3
+    out_h5f = h5py.File(save_3mean_path, 'w')
+    for uttId in h5f.keys():
+        feat = h5f[uttId]['feat']
+        mean_norm_feat = []
+        for i in range(0, len(feat), pooling_num_frames):
+            if i+pooling_num_frames >= len(feat):
+                mean_norm_feat.append(np.mean(feat[i:], axis=0))
+            else:
+                mean_norm_feat.append(np.mean(feat[i:i+pooling_num_frames], axis=0))
+        if len(mean_norm_feat) == 0:
+            print('[Afer Mean]segment {} meam-norm {}'.format(segment_index, len(mean_norm_feat)))
+        feat = np.array(mean_norm_feat)
+        avg_lens.append(len(feat))
+        # save to h5
+        out_h5f[uttId] = feat
+    print('samples {} and avg len {}'.format(len(avg_lens), sum(avg_lens)/len(avg_lens)))
+    out_h5f.close()
+
 if __name__ == '__main__':
     
     # for face
@@ -241,12 +263,22 @@ if __name__ == '__main__':
         print('total {} uttids'.format(len(utt_ids)))
         extract_features_h5(extract_wav2vec, lambda x: os.path.join(audio_dir, x),  utt_ids, save_path)
     
-    if True:
+    if False:
         # for speech wav2vec
         print('Start to split')
         output_dir = '/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_raw'
         save_path = os.path.join(output_dir, 'all.h5')
         split_h5(save_path, save_root=output_dir)
+    
+    if True:
+        # for speech wav2vec
+        print('Start to split')
+        output_dir = '/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_raw'
+        save_path = os.path.join(output_dir, 'all.h5')
+        output_3mean_dir = '/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_raw_3mean'
+        save_3mean_path = os.path.join(output_3mean_dir, 'all.h5')
+        get_3mean_speech_data(save_path, save_3mean_path)
+        split_h5(save_3mean_path, save_root=output_3mean_dir)
 
     if False:
         output_dir = '/data7/emobert/exp/evaluation/IEMOCAP/feature'

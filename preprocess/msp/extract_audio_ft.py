@@ -9,7 +9,7 @@ from functools import partial
 from tqdm import tqdm
 from preprocess.tasks.audio import ComParEExtractor, Wav2VecExtractor, RawWavExtractor, Wav2VecCNNExtractor
 from preprocess.MELD.extract_denseface_comparE import extract_comparE_file, extract_features_h5, extract_wav2vec_file, extract_rawwav_file
-from preprocess.iemocap.extract_feats import get_trn_val_tst, split_by_utt_id
+from preprocess.iemocap.extract_feats import get_trn_val_tst, split_by_utt_id, get_3mean_speech_data
 
 def get_all_utt_ids(target_root='/data7/emobert/exp/evaluation/MSP/target'):
     utt_ids = np.load(os.path.join(target_root, f'all_int2name.npy'))
@@ -84,7 +84,10 @@ if __name__ == '__main__':
         print('Start to split')
         output_dir = '/data7/emobert/exp/evaluation/MSP/feature/wav2vec_raw'
         save_path = os.path.join(output_dir, 'all.h5')
-        split_h5(save_path, save_root=output_dir)
+        output_3mean_dir = '/data7/emobert/exp/evaluation/MSP/feature/wav2vec_raw_3mean'
+        save_3mean_path = os.path.join(output_3mean_dir, 'all.h5')
+        get_3mean_speech_data(save_path, save_3mean_path)
+        split_h5(save_3mean_path, save_root=output_3mean_dir)
     
     if False:
         output_dir = '/data7/emobert/exp/evaluation/MSP/feature'

@@ -63,7 +63,7 @@ def main(opt):
                                     opt.mid_fusion_layers, opt.run_idx, opt.postfix)
     output_config = join(output_dir, setting_name, 'config.json')
     output_tsv = join(output_dir, setting_name, 'result.tsv')
-    if 'iemocap' in opt.dataset_mode:
+    if 'iemocap' in opt.dataset_mode or 'msp' in opt.dataset_mode:
         output_dir = join(output_dir, setting_name, str(opt.cvNo))
     else:
         output_dir = join(output_dir, setting_name)
@@ -305,6 +305,8 @@ if __name__ == '__main__':
         from configs import ef_iemocap_ori_config as config 
     elif 'iemocap_pretrained' in main_args.dataset_mode:
         from configs import ef_iemocap_pretrained_config as config 
+    elif 'msp_pretrained' in main_args.dataset_mode:
+        from configs import ef_msp_pretrained_config as config 
     else:
         print('Error dataset_mode {}'.format(main_args.dataset_mode))
 

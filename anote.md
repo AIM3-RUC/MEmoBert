@@ -479,8 +479,56 @@ msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_ste
 [CLS] 0     [SEP] 0      [SEP] 1----  2----    token type.
 目前的结果来看，比正常finetune结果低一些～
 
-## <分析8> 探索模态缺失的场景 -- Going
-不同的模态制定不同的 template，比如
+
+---- 工作已经Release到Arxiv，应该可以引用，可以月底投稿到TAC期刊, 一个月的时间应该问题不大。
+
+## <分析9> 测试预训练之后的特征相比原始特征的差异 -- Done
+可以看一下文本的特征是否包含语音、人脸的表示，如果可以的话，学习到了joint embedding, 可以做模态缺失问题。
+
+这里提取输入MEmoBert应该是纯文本还是输入三个模态？
+    1. 如果输入三个模态的话，那么文本信息其实是 contextual embedding，不能算是纯的文本输入
+        在IEMOCAP，对比文本BERT特征和预训练之后的文本特征，在Baseline的模型上进行训练，TextCNN.
+            结果对比 UAR：
+                BERT+Finetune（text only upper）0.72164	
+                BERT+TextCNN（Baseline) 0.6736
+                MEmoBERT+TextCNN（Ours) 0.7850
+                MEmoBERT+Finetune (multimdoal upper): 0.806
+            有非常明显的提升，并且超过了Finetune的结果，说明学习到了 joint multimodal embeddings.
+        再对比一下比较弱的视觉模态位置能否学习到joint embedding?
+            结果对比 UAR，同样有非常明显的提升：
+                BERT+TextCNN（Baseline) 0.5235
+                MEmoBERT+LSTM（Ours) 0.6222
+        语音模态同样会有非常明显的提升。
+                BERT+TextCNN（Baseline) ---
+                MEmoBERT+LSTM（Ours) 0.6462
+    2. 如果只输入文本信息的话，如果文本信息中有包含 
+
+
+
+## <分析10> Freeze预训练的模型，添加新的Classifier或者Prompt在下游任务进行测试 -- Going
+相比直接抽取特征有啥区别？ 要说明什么问题？ -- Going
+
+既然直接抽取的特征表现这么好，那么如果不进行预训练模型的Finetune，直接Finetune Classifier，如果下游效果跟Finetune结果差不多的话，
+说明预训练模型很强，可以更好探究基于 Prompt 的知识挖掘策略。
+MEmoBERT+Finetune (multimdoal upper): 0.806
+case1: 固定预训练模型不动，只预训练 Classifier.
+    MEmoBERT(freeze)+Finetune
+case2: 固定预训练模型不动，采用固定的 prompt i am [MASK].
+    MEmoBERT(freeze)+prompt
+
+
+## <分析11> 探索模态缺失的场景 -- Going
+目的是：利用预训练的模型的鲁棒性 以及 prompt 可以充分利用预训练模型的高效的策略，解决比较比较复杂的模态缺失问题.
+目标达到接近单个模态单独训练的结果. --- 首先在MEmoBERT基础上分别进行7个任务的Finetune, 作为UpperBound.
+
+将不同模态缺失的情况看作不同的任务，参考 VL-BART 模型的方法，统一的模型解决不同的缺失场景。
+比如VL-BART中，采用基于Prompt的多任务混合学习的方式，目的是利用不同任务之间的相关性，学习统一的模型解决多个类似的下游任务。
+但是统一的模型的结果比每个任务单独训练的结果要稍微差一点，并没有利用任务之间的相关性起到提升每个任务作用，只是统一到一个模型里面了，节省资源。
+
+在我们任务中，没种缺失模态都可以
+
+在上面的<分析6>实验中，性能也是主要是来自于数据形式之间差异，要尽可能是减少不同任务（模态缺失场景）之间的数据Gap.
+尽可能用相似的 template，比如将template统一放在前面
 方案1, 将固定的模板放在前面 VS 放在后面的结果:
     [CLS] i am [MASK] + text1 [SEP] v----  a---- 
     [CLS] i am [MASK] + text1 [SEP] v---- 
@@ -497,7 +545,7 @@ msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_ste
     [CLS] I feel [MASK] through [SEP] v----  a---- 
     [CLS] I feel [MASK] through [SEP] v----
     [CLS] I feel [MASK] through [SEP] a---- 
-方案3.1, 给不同的 condition 设置不同的标志, S V T:
+方案3, 给不同的 condition 设置不同的标志, S V T:
     [CLS] T V S: I feel [MASK] through text1 [SEP] v----  a---- 
     [CLS] T V:, I feel [MASK] through text1 [SEP] v----
     [CLS] T S: I feel [MASK] through text1 [SEP] a----
@@ -505,15 +553,7 @@ msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_ste
     [CLS] V S: I feel [MASK] through [SEP] v----  a---- 
     [CLS] V: I feel [MASK] through [SEP] v----
     [CLS] S: I feel [MASK] through [SEP] a---- 
-方案3.2, 换用一个分组的任务提示方式:
-    [CLS] from three modalities, I feel [MASK] through text1 [SEP] v----  a---- 
-    [CLS] from two modalities I feel [MASK] through text1 [SEP] v----
-    [CLS] from two modalities I feel [MASK] through text1 [SEP] a----
-    [CLS] from one modalities I feel [MASK] through text1 [SEP]
-    [CLS] from two modalities I feel [MASK] through [SEP] v----  a---- 
-    [CLS] from one modalities I feel [MASK] through [SEP] v----
-    [CLS] from one modalities I feel [MASK] through [SEP] a---- 
-方案3.3, 换用一个更自然详细的任务提示方式:
+方案4, 换用一个更自然详细的任务提示方式:
     [CLS] from text, visual and speech modalities, I feel [MASK] through text1 [SEP] v----  a---- 
     [CLS] from text and visual modalities, I feel [MASK] through text1 [SEP] v----
     [CLS] from text and speech modalities, I feel [MASK] through text1 [SEP] a----
@@ -521,8 +561,7 @@ msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_ste
     [CLS] from visual and speech modalities, I feel [MASK] through [SEP] v----  a---- 
     [CLS] from visual modalities, I feel [MASK] through [SEP] v----
     [CLS] from speech modalities, I feel [MASK] through [SEP] a---- 
-
-方案3.3, 换用一个更自然详细的任务提示方式, 额外增加三个special token不参与训练:
+方案5, 换用一个更自然详细的任务提示方式, 额外增加三个special token不参与训练:
     [CLS] I feel [MASK] through [Text] text1 [Visual] v----  [Speech] a---- 
     [CLS] I feel [MASK] through [Text] text1 [Visual] v---- 
     [CLS] I feel [MASK] through [Text] text1 [Speech] a---- 
@@ -531,22 +570,10 @@ msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_ste
     [CLS] I feel [MASK] through [Speech] a---- 
     [CLS] I feel [MASK] through [Text] text1 
 
-方案4. 采用 soft-prompt 的方式, 采用 S 个 unused-embedding 来作为 soft-prompt.
+方案6. 采用 soft-prompt 的方式, 采用 S 个 unused-embedding 来作为 soft-prompt.
 
-方案5. 采用 soft-prompt 的初始化采用 情感词来做。 
+方案7. 采用 soft-prompt 的初始化采用 情感词来做。 
 
-目的是：利用预训练的模型，以及 prompt 可以充分利用预训练模型的高效的策略，解决比较比较复杂的模态缺失问题。
-讨论: 将不同模态缺失的情况设置为不同的task之后，会有一个问题:
-只输入文本，根据文本判断答案是happy, 
-只输入语音，根据语音判断答案是happy，
-同时输入文本和语音，答案也是Happy，那么模型会不会指利用 能学习到什么？
-
-## <分析9> 测试预训练之后的特征相比原始特征的差异 -- Done
-可以看一下文本的特征是否包含语音、人脸的表示，如果可以的话，学习到了joint embedding, 可以做模态问题。 ---First to do.
-Baseline的模型上进行训练，TextCNN.
-
-
-## <分析10> 预训练的模型固定住，在下游任务进行测试 -- Pending
 
 ## <分析11> 跨数据集的交叉实验 -- Pending
 IEMOCAP和MSP两个数据集交叉验证。
