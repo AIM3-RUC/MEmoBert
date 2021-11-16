@@ -6,15 +6,16 @@ corpus_name='iemocap'
 corpus_name_L='IEMOCAP'
 
 ################# Part1: Freeze the MEmoBert and Only Finetune Classifier ################################################### 
+frozens=0
+
 # for lr in 3e-5 5e-5
 # do
 #         for cvNo in $(seq 1 10)
 #         do
-#         num_train_steps=1000
+#         num_train_steps=2000
 #         valid_steps=100
 #         train_batch_size=32
 #         inf_batch_size=32
-#         frozens=12
 #         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
 #                 --cvNo ${cvNo} --use_text \
 #                 --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
@@ -26,7 +27,7 @@ corpus_name_L='IEMOCAP'
 #                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-FrozeBackbone-uniter3m_text-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-FrozeBackbone${frozens}Layers-uniter3m_text-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -34,11 +35,10 @@ corpus_name_L='IEMOCAP'
 # do
 #         for cvNo in $(seq 1 10)
 #         do
-#         num_train_steps=1000
+#         num_train_steps=2000
 #         valid_steps=100
 #         train_batch_size=32
 #         inf_batch_size=32
-#         frozens=12
 #         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
 #                 --cvNo ${cvNo} --use_visual \
 #                 --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
@@ -50,7 +50,7 @@ corpus_name_L='IEMOCAP'
 #                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-FrozeBackbone-uniter3m_visual-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-FrozeBackbone${frozens}Layers-uniter3m_visual-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -58,11 +58,10 @@ corpus_name_L='IEMOCAP'
 # do
 #         for cvNo in $(seq 1 10)
 #         do
-#         num_train_steps=1000
+#         num_train_steps=2000
 #         valid_steps=100
 #         train_batch_size=32
 #         inf_batch_size=32
-#         frozens=12
 #         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
 #                 --cvNo ${cvNo} --use_speech \
 #                 --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
@@ -74,7 +73,7 @@ corpus_name_L='IEMOCAP'
 #                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-FrozeBackbone-uniter3m_speech-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-FrozeBackbone${frozens}Layers-uniter3m_speech-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -82,11 +81,10 @@ corpus_name_L='IEMOCAP'
 # do
 #         for cvNo in $(seq 1 10)
 #         do
-#         num_train_steps=1000
+#         num_train_steps=2000
 #         valid_steps=100
 #         train_batch_size=32
 #         inf_batch_size=32
-#         frozens=12
 #         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
 #                 --cvNo ${cvNo} --use_text --use_speech \
 #                 --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
@@ -98,7 +96,7 @@ corpus_name_L='IEMOCAP'
 #                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-FrozeBackbone-uniter3m_text_speech-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-FrozeBackbone${frozens}Layers-uniter3m_text_speech-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -106,11 +104,10 @@ corpus_name_L='IEMOCAP'
 # do
 #         for cvNo in $(seq 1 10)
 #         do
-#         num_train_steps=1000
+#         num_train_steps=2000
 #         valid_steps=100
 #         train_batch_size=32
 #         inf_batch_size=32
-#         frozens=12
 #         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
 #                 --cvNo ${cvNo} --use_text --use_visual \
 #                 --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
@@ -122,7 +119,7 @@ corpus_name_L='IEMOCAP'
 #                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-FrozeBackbone-uniter3m_text_visual-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-FrozeBackbone${frozens}Layers-uniter3m_text_visual-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -130,11 +127,10 @@ corpus_name_L='IEMOCAP'
 # do
 #         for cvNo in $(seq 1 10)
 #         do
-#         num_train_steps=1000
+#         num_train_steps=2000
 #         valid_steps=100
 #         train_batch_size=32
 #         inf_batch_size=32
-#         frozens=12
 #         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
 #                 --cvNo ${cvNo} --use_speech --use_visual \
 #                 --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
@@ -146,7 +142,7 @@ corpus_name_L='IEMOCAP'
 #                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-FrozeBackbone-uniter3m_visual_speech-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-FrozeBackbone${frozens}Layers-uniter3m_visual_speech-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
 
@@ -154,11 +150,10 @@ corpus_name_L='IEMOCAP'
 # do
 #         for cvNo in $(seq 1 10)
 #         do
-#         num_train_steps=1000
+#         num_train_steps=2000
 #         valid_steps=100
 #         train_batch_size=32
 #         inf_batch_size=32
-#         frozens=12
 #         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
 #                 --cvNo ${cvNo} --use_text --use_speech --use_visual \
 #                 --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
@@ -170,6 +165,6 @@ corpus_name_L='IEMOCAP'
 #                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-FrozeBackbone-uniter3m_text_visual_speech-lr${lr}_train${num_train_steps}_trnval
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-FrozeBackbone${frozens}Layers-uniter3m_text_visual_speech-lr${lr}_train${num_train_steps}_trnval
 #         done
 # done
