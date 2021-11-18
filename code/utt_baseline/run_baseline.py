@@ -56,11 +56,11 @@ def main(opt):
     ## for building the basic paths
     output_dir = join(config.result_dir,  opt.model_name) # get logger path
         # for testing the parameters of the model
-    setting_name = '{}_lr{}_dp{}_bn{}_A{}{}{}_V{}{}{}_L{}{}_F{}_run{}_{}'.format(opt.modality, opt.learning_rate, opt.dropout_rate, opt.bn, \
+    setting_name = '{}_lr{}_dp{}_bn{}_A{}{}{}_V{}{}{}_L{}{}_F{}_ftdir_{}run{}_{}'.format(opt.modality, opt.learning_rate, opt.dropout_rate, opt.bn, \
                                     opt.a_ft_type, opt.a_hidden_size, opt.a_embd_method, \
                                     opt.v_ft_type, opt.v_hidden_size, opt.v_embd_method, \
                                     opt.l_ft_type, opt.l_hidden_size, \
-                                    opt.mid_fusion_layers, opt.run_idx, opt.postfix)
+                                    opt.mid_fusion_layers, opt.ft_name, opt.run_idx, opt.postfix)
     output_config = join(output_dir, setting_name, 'config.json')
     output_tsv = join(output_dir, setting_name, 'result.tsv')
     if 'iemocap' in opt.dataset_mode or 'msp' in opt.dataset_mode:
@@ -83,13 +83,19 @@ def main(opt):
     logger = get_logger(log_dir, 'none')
     logger.info('[Output] {}'.format(output_dir))
 
-    ft_dir = config.ft_dir
-    target_dir = config.target_dir
+    ft_dir = os.path.join(config.ft_dir, opt.ft_name)
+    target_dir = os.path.join(config.target_dir, opt.ft_name)
 
     ## create a dataset given opt.dataset_mode and other options, the trn_db neither Dataset nor Dataloader
-    trn_db = CustomDatasetDataLoader(opt, opt.dataset_mode, ft_dir, target_dir, 'trn,val', is_train=True)
-    val_db = CustomDatasetDataLoader(opt, opt.dataset_mode, ft_dir, target_dir, 'tst', is_train=False)
-    tst_db = CustomDatasetDataLoader(opt, opt.dataset_mode, ft_dir, target_dir, 'tst', is_train=False)
+    if 'onlytrn' in opt.postfix:
+        logger.info('The training on the training set, and evaluatin on val and testing sets')
+        trn_db = CustomDatasetDataLoader(opt, opt.dataset_mode, ft_dir, target_dir, 'trn', is_train=True)
+        val_db = CustomDatasetDataLoader(opt, opt.dataset_mode, ft_dir, target_dir, 'val', is_train=False)
+        tst_db = CustomDatasetDataLoader(opt, opt.dataset_mode, ft_dir, target_dir, 'tst', is_train=False)
+    else:
+        trn_db = CustomDatasetDataLoader(opt, opt.dataset_mode, ft_dir, target_dir, 'trn,val', is_train=True)
+        val_db = CustomDatasetDataLoader(opt, opt.dataset_mode, ft_dir, target_dir, 'tst', is_train=False)
+        tst_db = CustomDatasetDataLoader(opt, opt.dataset_mode, ft_dir, target_dir, 'tst', is_train=False)
     logger.info('The number of training samples = {}'.format(len(trn_db)))
     logger.info('The number of validation samples = {}'.format(len(val_db)))
     logger.info('The number of testing samples = {}'.format(len(tst_db)))
@@ -268,6 +274,7 @@ if __name__ == '__main__':
     parser.add_argument('--fix_lr_epoch', type=int, default=20)
     parser.add_argument('--patience', type=int, default=5)
     parser.add_argument('--warmup_epoch', type=int, default=5)
+    parser.add_argument('--ft_name', type=str, default=None)
 
     # for stage
     parser.add_argument("--is_test", action='store_true')

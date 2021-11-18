@@ -1,5 +1,5 @@
 # basic paths
-ft_dir = '/data7/emobert/exp/uniter3m_fts/iemocap/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_noitm_lr5e5_bs800_nofinetune'
+ft_dir = '/data7/emobert/exp/uniter3m_fts/iemocap/'
 result_dir = '/data7/emobert/exp/evaluation/IEMOCAP/results/'
 target_dir = ft_dir
 
