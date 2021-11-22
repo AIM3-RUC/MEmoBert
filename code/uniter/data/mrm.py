@@ -11,7 +11,6 @@ from torch.nn.utils.rnn import pad_sequence
 from toolz.sandbox import unzip
 from code.uniter.data.data import DetectFeatTxtTokDataset, pad_tensors, get_gather_index
 
-
 def _get_img_mask(mask_prob, num_bb):
     img_mask = [random.random() < mask_prob for _ in range(num_bb)]
     if not any(img_mask):

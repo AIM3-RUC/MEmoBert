@@ -327,7 +327,7 @@ if __name__ == "__main__":
     parser.add_argument("--cls_num", default=4, type=int,
                         help="number classes of the downstream tasks")
     parser.add_argument('--postfix', required=True, default='None',
-                        help='postfix for the output dir')
+                        help='postfix is none')
     # Prepro parameters
     parser.add_argument('--max_txt_len', type=int, default=120,
                         help='max number of tokens in text (BERT BPE)')
@@ -393,7 +393,7 @@ if __name__ == "__main__":
     parser.add_argument("--lr_sched_type", default='linear_decay',
                         help="[fixed, linear]")
     # device parameters
-    parser.add_argument('--seed', type=int, default=42,
+    parser.add_argument('--seed', type=int, default=1234,
                         help="random seed for initialization")
     parser.add_argument('--fp16', action='store_true',
                         help="Whether to use 16-bit float precision instead "

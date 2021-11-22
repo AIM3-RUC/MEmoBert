@@ -483,21 +483,28 @@ msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_ste
 
 ## <分析9> 测试预训练之后的特征相比原始特征的差异 -- Done
 可以看一下文本的特征是否包含语音、人脸的表示，如果可以的话，学习到了joint embedding, 可以做模态缺失问题。
-不同的模态缺失场景，将对应的输入通过MEmoBert提出joint embeddings. 然后同样基于Baseline进行训练+测试
-结论: IEMOCAP, 在trn:val的10折cross-validation的实验设置下，经过MEmoBert抽取的JointEmbedding可以取得5个点的提升。
+不同的模态缺失场景，将对应的输入通过MEmoBert提出joint embeddings. 然后同样基于Baseline MultiEnc进行训练+测试
+结论：对于文本相关的都有1到2个点的提升，但是对于只有A和V相关的则是有下降。整体来看是有下降的。
+对于A和V的学习不够, 尝试更加高效的<分析12>
 
 ## <分析10> Freeze预训练的模型，添加新的Classifier或者Prompt在下游任务进行测试 -- Going
-既然直接抽取的特征表现这么好，那么如果不进行预训练模型的Finetune，直接只 Finetune Classifier -- Running IEMOCAP
+既然直接抽取的特征表现这么好，那么如果不进行预训练模型的Finetune，直接只 Finetune Classifier
 为了测试Finetune的性能以及单独缺失场景训练可以确定UpperBound，方便过渡Prompt并进行对比。 
-
 
 说明预训练模型很强，可以更好探究基于 Prompt 的知识挖掘策略。
 MEmoBERT+Finetune (multimdoal upper): 0.806
-case1: 固定预训练模型不动，只预训练 Classifier.
-    MEmoBERT(freeze)+Finetune
+case1: 固定预训练模型不动，只预训练 Classifier. --Going
+    MEmoBERT(freeze all)+Finetune
+    MEmoBERT(freeze 10)+Finetune
+    MEmoBERT(freeze 8)+Finetune
+    MEmoBERT(freeze 4)+Finetune
+
 case2: 固定预训练模型不动，采用固定的 prompt i am [MASK].
     MEmoBERT(freeze)+prompt
-
+    MEmoBERT(freeze all)+prompt
+    MEmoBERT(freeze 10)+prompt
+    MEmoBERT(freeze 8)+prompt
+    MEmoBERT(freeze 4)+prompt
 
 ## <分析11> 探索模态缺失的场景 -- Going
 目的是：利用预训练的模型的鲁棒性 以及 prompt 可以充分利用预训练模型的高效的策略，解决比较比较复杂的模态缺失问题.
@@ -559,3 +566,13 @@ case2: 固定预训练模型不动，采用固定的 prompt i am [MASK].
 
 ## <分析11> 跨数据集的交叉实验 -- Pending
 IEMOCAP和MSP两个数据集交叉验证。
+
+
+## <分析12> 参考MAE, 对于视觉和语音采用更大的SpanMask的策略，验证对比A和V的特征的学习是否有提升 -- Going
+将原来的 span=3 修改 5， 并且将len-ratio=0.2 修改为 0.5， 即 1=(10*0.5/5)，每10个遮蔽连续的5个。
+    结果表明:1. span=5 的时候， 整体Finetune会有一些提升。
+            2. 抽取特征之后A和V的性能
+
+将采用简单的 mrfr mrsr 遮蔽策略，从之前的 mask_prob=0.15 增加到 0.3 0.5 0.7。
+    结果表明，----
+

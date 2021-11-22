@@ -1451,6 +1451,8 @@ if __name__ == "__main__":
     # traditional task
     parser.add_argument('--mrm_prob', default=0.15, type=float,
                         help='probability to mask in MRM training')
+    parser.add_argument('--msrm_prob', default=0.15, type=float,
+                        help='probability to mask in MSRM training(for speech)')
     parser.add_argument('--itm_neg_prob', default=0.5, type=float,
                         help='probability to make negative examples'
                              'in ITM training')
@@ -1461,8 +1463,6 @@ if __name__ == "__main__":
                         help='batch negative examples ITM training')
     parser.add_argument('--itm_ot_lambda', default=0.0, type=float,
                         help='weight of OT (optimal transport) loss (WRA)')
-    parser.add_argument('--msrm_prob', default=0.15, type=float,
-                        help='probability to mask in MSRM training(for speech)')
     parser.add_argument('--vfom_random_prob', default=0.15, type=float,
                         help='probability to mask in vfom_random_prob visual training')
     parser.add_argument('--sfom_random_prob', default=0.15, type=float,
