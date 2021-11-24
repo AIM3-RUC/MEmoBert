@@ -5,8 +5,6 @@ import datetime
 import collections
 from glob import glob
 
-
-
 '''
 获取所有不同模态缺失场景下的结果, 可能存在也可能不存在
 tst_l_mask_va task
@@ -125,7 +123,7 @@ def get_latest_onlylva_result(path):
     max_ua_index = 0
     for index in range(len(lines)):
         line = lines[index]
-        if "tst_l_mask_av task" in line:
+        if "tst_l_mask_av task" in line or "tst_l_mask_va task" in line:
             result_line = lines[index+3]
             WA, UAR = get_wa_ua_from_line(result_line)
             if UAR >= max_ua:
@@ -135,7 +133,6 @@ def get_latest_onlylva_result(path):
     print('best index {} step {}'.format(max_ua_index, best_step))
     # for tst_l_mask_av task
     current_setname_index =  max_ua_index
-    assert 'tst_l_mask_av task' in lines[current_setname_index]
     result_line = lines[current_setname_index + 3]
     WA, UAR = get_wa_ua_from_line(result_line)
     test_log['lva'] = [WA, UAR]
@@ -253,12 +250,12 @@ def get_final_results_format(all_tst_results):
 
 if __name__ == '__main__':
     result_dir = '/data7/emobert/exp/prompt_pretrain'
-    output_name = 'msp_basedon-movies_v1v2v3_uniter3m_visual_speech_text_5tasks_wwm_span_noitm_novisual-cm_mask_prompt_lr5e-5_trnval_seed5678'
+    output_name = 'iemocap_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_spanS5.5V5.5_step3w-cm_mask_prompt_onlylva_lr3e-5_trnval_seed5678'
     type_eval = 'UA'
     result_dir = os.path.join(result_dir, output_name)
     result_path = os.path.join(result_dir, 'result.csv')
     all_tst_results = []
-    for cvNo in range(1, 13):
+    for cvNo in range(1, 11):
         log_dir = os.path.join(result_dir, str(cvNo), 'log')
         if 'onlycm' in output_name:
             test_log, best_step = get_latest_onlycm_result(log_dir)
@@ -267,7 +264,7 @@ if __name__ == '__main__':
         elif 'onlylva' in output_name or 'noaudio' in output_name or 'novisual' in output_name or '5tasks_noitm' in output_name:
             test_log, best_step = get_latest_onlylva_result(log_dir)
         else:
-            test_log, best_step = get_latest_seven_result(log_dir)
+            test_log, best_step = get_latest_onlylva_result(log_dir)
         all_tst_results.append(test_log)
         # clean other ckpkts 
         ckpt_dir = os.path.join(result_dir, str(cvNo), 'ckpt')
