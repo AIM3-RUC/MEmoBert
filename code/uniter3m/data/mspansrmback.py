@@ -4,8 +4,6 @@ Licensed under the MIT license.
 Mask Span Speech Region Modeling Datasets
 采用 Mockingjay 的完全类似 Bert MLM 的做法来做 acoustic and visual frames modeling.
 # https://github.com/andi611/Mockingjay-Speech-Representation/blob/9377bf2585c020b4d217b35f0d27963eb45274ef/utility/mam.py#L92
-
-保证consistent mask 的基础上, 所有的数据全部Mask, 增加mask的概率.
 """
 
 import random
@@ -14,24 +12,16 @@ from torch.nn.utils.rnn import pad_sequence
 from toolz.sandbox import unzip
 from code.uniter3m.data.data import DetectFeatTxtTokDataset, pad_tensors, get_gather_index
 
-def get_consecutive_mask(num_bb, mask_len_ratio, mask_consecutive, mixed_ratios=False):
-    #  num_bb * mask_len_ratio / mask_consecutive = num_spans. num_spans * mask_consecutive = num_masked_frames
-    #  64 * 0.5 / 5 = 6 ; 64 * 0.5 / 3 = 10
-    # random replacement 部分的数据 tokens 不是 1000. 
-    # mixed_ratios: 如果采用混合概率的策略，遮蔽的概率 mask_len_ratio 从0.1到0.9, span的长度也是1～6. 如果采用mixed_ratios要增加这部分的训练次数
+def get_consecutive_mask(num_bb, mask_len_ratio=0.15, mask_consecutive=3):
+    # random replacement 部分的数据 tokens 不是 1000. 所以在构建 img_target_mask 的时候会缺失，因此在构建的时候多保留一个 img_tgt_mask.
+    # 或者构建 img_tgt_mask 的时候根据 output_label 来构建。
     MASK = 1000 # MASK 表示该位置被Mask, 方便后面单独处理
+    # 一次只Mask一个Span, 要求长度大于10
     tokens = list(range(num_bb))
     output_label = [-1 for _ in range(num_bb)] # mask 之后对应的target帧的标签
-
-    if mixed_ratios:
-        # randint 包含两个边界:
-        mask_len_ratio = random.randint(1, 9) * 0.1
-        mask_consecutive = random.randint(1, 6)
-        proportion = int(num_bb * mask_len_ratio // mask_consecutive) 
-        # print('Using mixed ratios span masking strategies {} {}'.format(mask_len_ratio, mask_consecutive))
-    else:
-        proportion = int(num_bb * mask_len_ratio // mask_consecutive) 
+    # determine whether to mask / random / or do nothing to the frame
     valid_index_range = int(num_bb - mask_consecutive - 1)
+    proportion = int(num_bb * mask_len_ratio // mask_consecutive) # Note: 跟visual不同, 长度为20才可以 Span Mask. 20*0.15/3=1
 
     if proportion == 0:
         # 不满足 mask-span 条件，随机遮蔽一个
@@ -39,12 +29,27 @@ def get_consecutive_mask(num_bb, mask_len_ratio, mask_consecutive, mixed_ratios=
         tokens[random_mask] = MASK
         output_label[random_mask] = random_mask
     else:
-        chosen_indexs = random.sample(list(range(valid_index_range)), proportion)
+        dice = random.random()
+        chosen_indexs = random.sample(list(range(valid_index_range)), proportion) # draw `proportion` samples from the range (0, valid_index_range) and without replacement
         # print(f'Debug chosen_indexs are {chosen_indexs}')
-        for chosen_index in chosen_indexs:
-            for i in range(mask_consecutive):
-                tokens[chosen_index+i] = MASK
-                output_label[chosen_index+i] = chosen_index+i
+        # mask to zero
+        if bool(dice < 0.8):
+            # print(f'Debug normally are {chosen_indexs}')
+            for chosen_index in chosen_indexs:
+                for i in range(mask_consecutive):
+                    tokens[chosen_index+i] = MASK
+                    output_label[chosen_index+i] = chosen_index+i
+        # replace to random frames
+        elif bool(dice >= 0.8) and bool(dice < 0.9):
+            # print(f'Debug random replacement are {chosen_indexs}')
+            random_indexs = random.sample(list(range(valid_index_range)), proportion)
+            for chosen_index, random_index in zip(chosen_indexs, random_indexs):
+                for i in range(mask_consecutive):
+                    tokens[chosen_index+i] = tokens[random_index+i]
+                    output_label[chosen_index+i] = chosen_index+i
+        # do nothing
+        else:
+            pass
     if sum(output_label) == len(output_label) * -1:
         # at least mask 1
         random_mask = random.randint(0, num_bb-1)
@@ -90,7 +95,7 @@ def _mask_img_feat(img_feat, img_masks):
     return img_feat_masked
 
 class MSpansrfrDataset(DetectFeatTxtTokDataset):
-    def __init__(self, mask_len_ratio, mask_consecutive, mixed_ratios, *args, **kwargs):
+    def __init__(self, mask_len_ratio, mask_consecutive, *args, **kwargs):
         super().__init__(*args, **kwargs)
         '''
         only for visual feature modeling
@@ -98,7 +103,6 @@ class MSpansrfrDataset(DetectFeatTxtTokDataset):
         print('MSpanrfrDataset span {} {}'.format(mask_len_ratio, mask_consecutive))
         self.mask_consecutive = mask_consecutive
         self.mask_len_ratio = mask_len_ratio
-        self.mixed_ratios = mixed_ratios
         self.img_shape = None
 
     def __getitem__(self, i):
@@ -138,7 +142,7 @@ class MSpansrfrDataset(DetectFeatTxtTokDataset):
             attn_masks = torch.cat((attn_masks, img_attn_masks, speech_attn_masks))
         
         # 获取 img_mask_tgt and img_mask
-        speech_frames, output_label = self.create_mcrm_io(num_frame, mask_len_ratio=self.mask_len_ratio, mask_consecutive=self.mask_consecutive, mixed_ratios=self.mixed_ratios)
+        speech_frames, output_label = self.create_mcrm_io(num_frame, mask_len_ratio=self.mask_len_ratio, mask_consecutive=self.mask_consecutive)
         speech_mask = torch.tensor([True if frame == 1000 else False for frame in speech_frames], dtype=torch.long)
         # print(f'[Debug in mspansrfr] speech mask {speech_mask} {len(speech_mask)}')
         speech_mask_tgt = _get_speech_tgt_mask(output_label, len(input_ids), img_len=num_bb)
@@ -148,7 +152,6 @@ class MSpansrfrDataset(DetectFeatTxtTokDataset):
         feat_target = torch.cat(feat_target).reshape(-1, speech_feat.size(-1))
         # print(f'[Debug in mspansrfr] masked feat_targets {feat_target.shape}')
         assert sum(speech_mask_tgt) == feat_target.size(0)
-
         # 将random replacement 的帧替换一下
         for i, index in enumerate(speech_frames):
             if index != 1000 and i != index:
@@ -156,8 +159,8 @@ class MSpansrfrDataset(DetectFeatTxtTokDataset):
                 # print(f'[Debug in mspansrfr] sample {i} replacement feature indexs {i} to {index}')
         return (input_ids, img_feat, speech_feat, attn_masks, speech_mask, speech_mask_tgt, feat_target)
 
-    def create_mcrm_io(self, num_frame, mask_len_ratio, mask_consecutive, mixed_ratios):
-        input_frames, img_labels = get_consecutive_mask(num_frame, mask_len_ratio, mask_consecutive, mixed_ratios)
+    def create_mcrm_io(self, num_frame, mask_len_ratio=0.2, mask_consecutive=3):
+        input_frames, img_labels = get_consecutive_mask(num_frame, mask_len_ratio, mask_consecutive)
         input_frames = torch.tensor(input_frames)
         img_labels = torch.tensor(img_labels)
         return input_frames, img_labels

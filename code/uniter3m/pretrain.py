@@ -190,17 +190,17 @@ def build_mspanrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
     assert img_db != None
     if is_train:
         if speech_db is not None:
-            datasets = [MSpanrfrDataset(opts.mask_visual_len_ratio, opts.mask_visual_consecutive, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+            datasets = [MSpanrfrDataset(opts.mask_visual_len_ratio, opts.mask_visual_consecutive, opts.mixed_ratios, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
         elif speech_db is None:
-            datasets = [MSpanrfrDataset(opts.mask_visual_len_ratio,  opts.mask_visual_consecutive, t, i, None) for t, i in zip(txt_db, img_db)]
+            datasets = [MSpanrfrDataset(opts.mask_visual_len_ratio,  opts.mask_visual_consecutive, opts.mixed_ratios, t, i, None) for t, i in zip(txt_db, img_db)]
         elif txt_db is None and speech_db is None:
             LOGGER.info('[Debug in mspanrfr dataset] the text and speech modality are None!')
-            datasets = [MSpanrfrDataset(opts.mask_visual_len_ratio,  opts.mask_visual_consecutive, None, i, None) for i in img_db]
+            datasets = [MSpanrfrDataset(opts.mask_visual_len_ratio,  opts.mask_visual_consecutive, opts.mixed_ratios,  None, i, None) for i in img_db]
         else:
             LOGGER.info('[Error] Error mspanrfr datasets')
         dataset = ConcatDatasetWithLens(datasets)
     else:
-        dataset = MSpanrfrDataset(opts.mask_visual_len_ratio,  opts.mask_visual_consecutive, txt_db, img_db, speech_db)
+        dataset = MSpanrfrDataset(opts.mask_visual_len_ratio,  opts.mask_visual_consecutive, opts.mixed_ratios, txt_db, img_db, speech_db)
     return dataset, mspanrfr_collate
 
 def build_vfom_dataset(txt_db, img_db, speech_db, is_train, opts):
@@ -259,17 +259,17 @@ def build_mspansrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
     assert speech_db != None
     if is_train:
         if img_db is not None:
-            datasets = [MSpansrfrDataset(opts.mask_speech_len_ratio, opts.mask_speech_consecutive, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+            datasets = [MSpansrfrDataset(opts.mask_speech_len_ratio, opts.mask_speech_consecutive, opts.mixed_ratios, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
         elif img_db is None:
-            datasets = [MSpansrfrDataset(opts.mask_speech_len_ratio, opts.mask_speech_consecutive, t, None, s) for t, s in zip(txt_db, speech_db)]
+            datasets = [MSpansrfrDataset(opts.mask_speech_len_ratio, opts.mask_speech_consecutive, opts.mixed_ratios, t, None, s) for t, s in zip(txt_db, speech_db)]
         elif txt_db is None and img_db is None:
             LOGGER.info('[Debug in mspansrfr dataset] the text and img modality are None!')
-            datasets = [MSpansrfrDataset(opts.mask_speech_len_ratio, opts.mask_speech_consecutive, None, None, s) for s in speech_db]
+            datasets = [MSpansrfrDataset(opts.mask_speech_len_ratio, opts.mask_speech_consecutive, opts.mixed_ratios,  None, None, s) for s in speech_db]
         else:
             LOGGER.info('[Error] Error mspansrfr datasets')
         dataset = ConcatDatasetWithLens(datasets)
     else:
-        dataset = MSpansrfrDataset(opts.mask_speech_len_ratio, opts.mask_speech_consecutive, txt_db, img_db, speech_db)
+        dataset = MSpansrfrDataset(opts.mask_speech_len_ratio, opts.mask_speech_consecutive, opts.mixed_ratios, txt_db, img_db, speech_db)
 
     return dataset, mspansrfr_collate
 
@@ -277,14 +277,14 @@ def build_mspansrfrnotext_dataset(txt_db, img_db, speech_db, is_train, opts):
     assert speech_db != None
     if is_train:
         if img_db is not None:
-            datasets = [MSpansrfrDataset(opts.mask_speech_len_ratio, opts.mask_speech_consecutive, t, i, s, no_text=True) for t, i, s in zip(txt_db, img_db, speech_db)]
+            datasets = [MSpansrfrDataset(opts.mask_speech_len_ratio, opts.mask_speech_consecutive, opts.mixed_ratios, t, i, s, no_text=True) for t, i, s in zip(txt_db, img_db, speech_db)]
         elif img_db is None:
-            datasets = [MSpansrfrDataset(opts.mask_speech_len_ratio, opts.mask_speech_consecutive, t, None, s, no_text=True) for t, s in zip(txt_db, speech_db)]
+            datasets = [MSpansrfrDataset(opts.mask_speech_len_ratio, opts.mask_speech_consecutive, opts.mixed_ratios, t, None, s, no_text=True) for t, s in zip(txt_db, speech_db)]
         else:
             LOGGER.info('[Error] Error mspansrfrnotext datasets')
         dataset = ConcatDatasetWithLens(datasets)
     else:
-        dataset = MSpansrfrDataset(opts.mask_speech_len_ratio, opts.mask_speech_consecutive, txt_db, img_db, speech_db, no_text=True)
+        dataset = MSpansrfrDataset(opts.mask_speech_len_ratio, opts.mask_speech_consecutive, opts.mixed_ratios, txt_db, img_db, speech_db, no_text=True)
 
     return dataset, mspansrfr_collate
 
@@ -327,17 +327,17 @@ def build_mspanrc_dataset(txt_db, img_db, speech_db, is_train, opts):
     assert img_db != None
     if is_train:
         if speech_db is not None:
-            datasets = [MSpanrcDataset(opts.mask_visual_len_ratio, opts.mask_visual_consecutive, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+            datasets = [MSpanrcDataset(opts.mask_visual_len_ratio, opts.mask_visual_consecutive, opts.mixed_ratios, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
         elif speech_db is None:
-            datasets = [MSpanrcDataset(opts.mask_visual_len_ratio, opts.mask_visual_consecutive, t, i, None) for t, i in zip(txt_db, img_db)]
+            datasets = [MSpanrcDataset(opts.mask_visual_len_ratio, opts.mask_visual_consecutive, opts.mixed_ratios, t, i, None) for t, i in zip(txt_db, img_db)]
         elif txt_db is None and speech_db is None:
             LOGGER.info('[Debug in mspanrc dataset] the text and speech modality are None!')
-            datasets = [MSpanrcDataset(opts.mask_visual_len_ratio, opts.mask_visual_consecutive,  None, i, None) for i in img_db]
+            datasets = [MSpanrcDataset(opts.mask_visual_len_ratio, opts.mask_visual_consecutive, opts.mixed_ratios, None, i, None) for i in img_db]
         else:
             LOGGER.info('[Error] Error mspanrc datasets')
         dataset = ConcatDatasetWithLens(datasets)
     else:
-        dataset = MSpanrcDataset(opts.mask_visual_len_ratio, opts.mask_visual_consecutive, txt_db, img_db, speech_db)
+        dataset = MSpanrcDataset(opts.mask_visual_len_ratio, opts.mask_visual_consecutive, opts.mixed_ratios, txt_db, img_db, speech_db)
 
     return dataset, mspanrc_collate
 
@@ -348,28 +348,28 @@ def build_mspanrfrnotext_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:
         if speech_db is not None:
             LOGGER.info('[Info] only both speech and img modaity')
-            datasets = [MSpanrfrDataset(opts.mask_visual_len_ratio, opts.mask_visual_consecutive, t, i, s, no_text=True) for t, i, s in zip(txt_db, img_db, speech_db)]
+            datasets = [MSpanrfrDataset(opts.mask_visual_len_ratio, opts.mask_visual_consecutive, opts.mixed_ratios, t, i, s, no_text=True) for t, i, s in zip(txt_db, img_db, speech_db)]
         elif speech_db is None:
-            datasets = [MSpanrfrDataset(opts.mask_visual_len_ratio, opts.mask_visual_consecutive, t, i, None, no_text=True) for t, i in zip(txt_db, img_db)]
+            datasets = [MSpanrfrDataset(opts.mask_visual_len_ratio, opts.mask_visual_consecutive, opts.mixed_ratios, t, i, None, no_text=True) for t, i in zip(txt_db, img_db)]
         else:
             LOGGER.info('[Error] Error mspanrfrnotext datasets')
         dataset = ConcatDatasetWithLens(datasets)
     else:
-        dataset = MSpanrfrDataset(opts.mask_visual_len_ratio, opts.mask_visual_consecutive, txt_db, img_db, speech_db, no_text=True)
+        dataset = MSpanrfrDataset(opts.mask_visual_len_ratio, opts.mask_visual_consecutive, opts.mixed_ratios, txt_db, img_db, speech_db, no_text=True)
     return dataset, mspanrfr_collate
 
 def build_mspanrcnotext_dataset(txt_db, img_db, speech_db, is_train, opts):
     assert img_db != None
     if is_train:
         if speech_db is not None:
-            datasets = [MSpanrcDataset(opts.mask_visual_len_ratio, opts.mask_visual_consecutive, t, i, s, no_text=True) for t, i, s in zip(txt_db, img_db, speech_db)]
+            datasets = [MSpanrcDataset(opts.mask_visual_len_ratio, opts.mask_visual_consecutive, opts.mixed_ratios, t, i, s, no_text=True) for t, i, s in zip(txt_db, img_db, speech_db)]
         elif speech_db is None:
-            datasets = [MSpanrcDataset(opts.mask_visual_len_ratio, opts.mask_visual_consecutive, t, i, None, no_text=True) for t, i in zip(txt_db, img_db)]
+            datasets = [MSpanrcDataset(opts.mask_visual_len_ratio, opts.mask_visual_consecutive,opts.mixed_ratios,  t, i, None, no_text=True) for t, i in zip(txt_db, img_db)]
         else:
             LOGGER.info('[Error] Error mspanrcklnotext datasets')
         dataset = ConcatDatasetWithLens(datasets)
     else:
-        dataset = MSpanrcDataset(opts.mask_visual_len_ratio, opts.mask_visual_consecutive, txt_db, img_db, speech_db, no_text=True)
+        dataset = MSpanrcDataset(opts.mask_visual_len_ratio, opts.mask_visual_consecutive, opts.mixed_ratios, txt_db, img_db, speech_db, no_text=True)
     return dataset, mspanrc_collate
 
 def build_emocls_dataset(txt_db, img_db, speech_db, is_train, opts):
@@ -1491,6 +1491,7 @@ if __name__ == "__main__":
     parser.add_argument('--min_frames', type=int, default=10,
                         help='min number of speech frames')
 
+    parser.add_argument('--mixed_ratios', action='store_true', help='use mixed ratios for visual and speech masking')
     parser.add_argument('--mask_speech_consecutive', type=int, default=3,
                         help='span number of speech frames')
     parser.add_argument('--mask_speech_len_ratio', type=float, default=0.15,

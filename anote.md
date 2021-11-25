@@ -446,12 +446,12 @@ https://github.com/JinmingZhao/prompt_demos
 尝试不同的seed, 结果会有一点提升，跟baseline的结果差不多。
 
 采用跨模态的这种Mask预测，输入的正常的文本，mask操作再dataset中操作.
-[CLS] text1 + i am [MASK] [SEP] v----  a---- 
-[CLS] text1 + i am [MASK] [SEP] v---- 
-[CLS] text1 + i am [MASK] [SEP] a---- 
-[CLS] i am [MASK] [SEP] v----  a---- 
-[CLS] i am [MASK] [SEP] v---- 
-[CLS] i am [MASK] [SEP] a---- 
+[CLS] text1 + i am [MASK] [SEP] v--- a---
+[CLS] text1 + i am [MASK] [SEP] v---
+[CLS] text1 + i am [MASK] [SEP] a---
+[CLS] i am [MASK] [SEP] v--- a---
+[CLS] i am [MASK] [SEP] v---
+[CLS] i am [MASK] [SEP] a---
 [CLS] i am [MASK] [SEP] l---- 
 
 设计多种不同的预先训练任务:
@@ -473,9 +473,9 @@ msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_ste
 
 ## <分析7> 基于NSP的机制也可以，可以把 prompt 放前面 -- Discard
 采用类似itm的做法，把放在第二个位置，这样比较方便
-[CLS] text1 [SEP] v----  a---- 
+[CLS] text1 [SEP] v--- a---
 对比采用itm预训练任何和不采用itm预训练任务的下游任务
-[CLS] text1 [SEP] prompt [SEP] v----  a---- 
+[CLS] text1 [SEP] prompt [SEP] v--- a---
 [CLS] 0     [SEP] 0      [SEP] 1----  2----    token type.
 目前的结果来看，比正常finetune结果低一些～
 
@@ -514,54 +514,50 @@ case2: 固定预训练模型不动，采用固定的 prompt i am [MASK].
 比如VL-BART中，采用基于Prompt的多任务混合学习的方式，目的是利用不同任务之间的相关性，学习统一的模型解决多个类似的下游任务。
 但是统一的模型的结果比每个任务单独训练的结果要稍微差一点，并没有利用任务之间的相关性起到提升每个任务作用，只是统一到一个模型里面了，节省资源。
 
-在我们任务中，没种缺失模态都可以
-
 在上面的<分析6>实验中，性能也是主要是来自于数据形式之间差异，要尽可能是减少不同任务（模态缺失场景）之间的数据Gap.
 尽可能用相似的 template，比如将template统一放在前面
 方案1, 将固定的模板放在前面 VS 放在后面的结果:
-    [CLS] i am [MASK] + text1 [SEP] v----  a---- 
-    [CLS] i am [MASK] + text1 [SEP] v---- 
-    [CLS] i am [MASK] + text1 [SEP] a---- 
+    [CLS] i am [MASK] + text1 [SEP] v--- a---
+    [CLS] i am [MASK] + text1 [SEP] v---
+    [CLS] i am [MASK] + text1 [SEP] a---
     [CLS] i am [MASK] + text1 [SEP]
-    [CLS] i am [MASK] [SEP] v----  a---- 
-    [CLS] i am [MASK] [SEP] v---- 
-    [CLS] i am [MASK] [SEP] a---- 
+    [CLS] i am [MASK] [SEP] v--- a---
+    [CLS] i am [MASK] [SEP] v---
+    [CLS] i am [MASK] [SEP] a---
 方案2, 换用一个更自然的模版:
-    [CLS] I feel [MASK] through text1 [SEP] v----  a---- 
-    [CLS] I feel [MASK] through text1 [SEP] v----
-    [CLS] I feel [MASK] through text1 [SEP] a----
-    [CLS] I feel [MASK] through text1 [SEP]
-    [CLS] I feel [MASK] through [SEP] v----  a---- 
+    [CLS] I feel [MASK] through t--- [SEP] v---  a---
+    [CLS] I feel [MASK] through t--- [SEP] v----
+    [CLS] I feel [MASK] through t--- [SEP] a----
+    [CLS] I feel [MASK] through t--- [SEP]
+    [CLS] I feel [MASK] through [SEP] v--- a---
     [CLS] I feel [MASK] through [SEP] v----
-    [CLS] I feel [MASK] through [SEP] a---- 
+    [CLS] I feel [MASK] through [SEP] a---
 方案3, 给不同的 condition 设置不同的标志, S V T:
-    [CLS] T V S: I feel [MASK] through text1 [SEP] v----  a---- 
-    [CLS] T V:, I feel [MASK] through text1 [SEP] v----
-    [CLS] T S: I feel [MASK] through text1 [SEP] a----
-    [CLS] T: I feel [MASK] through text1 [SEP]
-    [CLS] V S: I feel [MASK] through [SEP] v----  a---- 
+    [CLS] T V S: I feel [MASK] through t--- [SEP] v--- a---
+    [CLS] T V:, I feel [MASK] through t--- [SEP] v----
+    [CLS] T S: I feel [MASK] through t--- [SEP] a----
+    [CLS] T: I feel [MASK] through t--- [SEP]
+    [CLS] V S: I feel [MASK] through [SEP] v--- a---
     [CLS] V: I feel [MASK] through [SEP] v----
-    [CLS] S: I feel [MASK] through [SEP] a---- 
+    [CLS] S: I feel [MASK] through [SEP] a---
 方案4, 换用一个更自然详细的任务提示方式:
-    [CLS] from text, visual and speech modalities, I feel [MASK] through text1 [SEP] v----  a---- 
-    [CLS] from text and visual modalities, I feel [MASK] through text1 [SEP] v----
-    [CLS] from text and speech modalities, I feel [MASK] through text1 [SEP] a----
+    [CLS] from text, visual and speech modalities, I feel [MASK] through t--- [SEP] v--- a---
+    [CLS] from text and visual modalities, I feel [MASK] through t--- [SEP] v----
+    [CLS] from text and speech modalities, I feel [MASK] through t--- [SEP] a----
     [CLS] from text modalities, I feel [MASK] through text1 [SEP]
-    [CLS] from visual and speech modalities, I feel [MASK] through [SEP] v----  a---- 
+    [CLS] from visual and speech modalities, I feel [MASK] through [SEP] v--- a---
     [CLS] from visual modalities, I feel [MASK] through [SEP] v----
-    [CLS] from speech modalities, I feel [MASK] through [SEP] a---- 
+    [CLS] from speech modalities, I feel [MASK] through [SEP] a---
 方案5, 换用一个更自然详细的任务提示方式, 额外增加三个special token不参与训练:
-    [CLS] I feel [MASK] through [Text] text1 [Visual] v----  [Speech] a---- 
-    [CLS] I feel [MASK] through [Text] text1 [Visual] v---- 
-    [CLS] I feel [MASK] through [Text] text1 [Speech] a---- 
-    [CLS] I feel [MASK] through [Visual] v----  [Speech] a---- 
-    [CLS] I feel [MASK] through [Visual] v----  
-    [CLS] I feel [MASK] through [Speech] a---- 
-    [CLS] I feel [MASK] through [Text] text1 
-
+    [CLS] I feel [MASK] through [Text] t--- [Visual] v--- [Speech] a---
+    [CLS] I feel [MASK] through [Text] t--- [Visual] v---
+    [CLS] I feel [MASK] through [Text] t--- [Speech] a---
+    [CLS] I feel [MASK] through [Visual] v--- [Speech] a---
+    [CLS] I feel [MASK] through [Visual] v--- 
+    [CLS] I feel [MASK] through [Speech] a---
+    [CLS] I feel [MASK] through [Text] t---
 方案6. 采用 soft-prompt 的方式, 采用 S 个 unused-embedding 来作为 soft-prompt.
-
-方案7. 采用 soft-prompt 的初始化采用 情感词来做。 
+方案7. 采用 soft-prompt 的初始化采用 情感词来做.
 
 
 ## <分析11> 跨数据集的交叉实验 -- Pending
@@ -570,9 +566,10 @@ IEMOCAP和MSP两个数据集交叉验证。
 
 ## <分析12> 参考MAE, 对于视觉和语音采用更大的SpanMask的策略，验证对比A和V的特征的学习是否有提升 -- Going
 将原来的 span=3 修改 5， 并且将len-ratio=0.2 修改为 0.5， 即 1=(10*0.5/5)，每10个遮蔽连续的5个。
-    结果表明:1. span=5 的时候， 整体Finetune会有一些提升。
-            2. 抽取特征之后A和V的性能
-
+    结果表明:  1. span=5 的时候， 整体三个模态的Finetune会有一些0.2个点提升，能到UAR=80.8%。整体三个模态的Prompt跟之前基本一致，能到UAR=81.09%。
+            2. 抽取特征之后A和V的性能，有1～2点的提升
 将采用简单的 mrfr mrsr 遮蔽策略，从之前的 mask_prob=0.15 增加到 0.3 0.5 0.7。
-    结果表明，----
+    结果表明: 1. mask_prob=0.5 的时候, 整体三个模态的Finetune相比Span=3的情况下还有0.5个点提升，能到UAR=81.06%%。整体三个模态的Prompt会有0.1点提升，能到UAR=81.19%。
+            2. 抽取特征之后A和V的性能，有1个点的提升. 不如span=5的情况。
 
+重新思考关于遮蔽策略的问题，本身

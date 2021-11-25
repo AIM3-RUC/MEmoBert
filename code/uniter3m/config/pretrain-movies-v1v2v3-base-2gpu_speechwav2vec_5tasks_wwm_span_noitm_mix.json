@@ -45,15 +45,15 @@
             ],
             "tasks": [
                 "mlm_wwm",
-                "mspanrfr",
-                "mspanrckl",
-                "mspansrfr"
+                "mspanrfr_mix",
+                "mspanrckl_mix",
+                "mspansrfr_mix"
             ],
             "mix_ratio": [
                 2,
-                1,
-                1,
-                1
+                8,
+                8,
+                8
             ]
         },
         {
@@ -69,15 +69,15 @@
             ],
             "tasks": [
                 "mlm_wwm",
-                "mspanrfr",
-                "mspanrckl",
-                "mspansrfr"
+                "mspanrfr_mix",
+                "mspanrckl_mix",
+                "mspansrfr_mix"
             ],
             "mix_ratio": [
                 2,
-                1,
-                1,
-                1
+                8,
+                8,
+                8
             ]
         },
         {
@@ -93,15 +93,15 @@
             ],
             "tasks": [
                 "mlm_wwm",
-                "mspanrfr",
-                "mspanrckl",
-                "mspansrfr"
+                "mspanrfr_mix",
+                "mspanrckl_mix",
+                "mspansrfr_mix"
             ],
             "mix_ratio": [
                 2,
-                1,
-                1,
-                1
+                8,
+                8,
+                8
             ]
         }
     ],
@@ -119,9 +119,9 @@
             ],
             "tasks": [
                 "mlm_wwm",
-                "mspanrfr",
-                "mspanrckl",
-                "mspansrfr"
+                "mspanrfr_mix",
+                "mspanrckl_mix",
+                "mspansrfr_mix"
             ]
         },
         {
@@ -137,9 +137,9 @@
             ],
             "tasks": [
                 "mlm_wwm",
-                "mspanrfr",
-                "mspanrckl",
-                "mspansrfr"
+                "mspanrfr_mix",
+                "mspanrckl_mix",
+                "mspansrfr_mix"
             ]
         },
         {
@@ -155,9 +155,9 @@
             ],
             "tasks": [
                 "mlm_wwm",
-                "mspanrfr",
-                "mspanrckl",
-                "mspansrfr"
+                "mspanrfr_mix",
+                "mspanrckl_mix",
+                "mspansrfr_mix"
             ]
         },
         {
@@ -173,9 +173,9 @@
             ],
             "tasks": [
                 "mlm_wwm",
-                "mspanrfr",
-                "mspanrckl",
-                "mspansrfr"
+                "mspanrfr_mix",
+                "mspanrckl_mix",
+                "mspansrfr_mix"
             ]
         },
         {
@@ -191,9 +191,9 @@
             ],
             "tasks": [
                 "mlm_wwm",
-                "mspanrfr",
-                "mspanrckl",
-                "mspansrfr"
+                "mspanrfr_mix",
+                "mspanrckl_mix",
+                "mspansrfr_mix"
             ]
         },
         {
@@ -209,9 +209,9 @@
             ],
             "tasks": [
                 "mlm_wwm",
-                "mspanrfr",
-                "mspanrckl",
-                "mspansrfr"
+                "mspanrfr_mix",
+                "mspanrckl_mix",
+                "mspansrfr_mix"
             ]
         }
     ]
