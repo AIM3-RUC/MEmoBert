@@ -38,9 +38,11 @@
         "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val_emowords_sentiword.db"
     ],
     "train_img_dbs": [
+        "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/feat_th0.0_max36_min10",
         "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/feat_th0.0_max36_min10"
     ],
     "train_speech_dbs": [
+        "/data7/emobert/exp/evaluation/IEMOCAP/feature/norm_comparE_db_5mean/feat_th1.0_max64_min10",
         "/data7/emobert/exp/evaluation/IEMOCAP/feature/norm_comparE_db_5mean/feat_th1.0_max64_min10"
     ],
     "val_txt_db": "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst_emowords_sentiword.db",

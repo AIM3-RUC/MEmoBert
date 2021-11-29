@@ -14,6 +14,7 @@ from code.uniter3m.data.data import (DetectFeatTxtTokDataset, TxtTokLmdb, \
                    
 class EmoClsDataset(DetectFeatTxtTokDataset):
     def __init__(self, txt_db, img_db=None, speech_db=None, emocls_type='hard', use_text=True, use_emolare=False):
+        assert isinstance(txt_db, TxtTokLmdb)
         super().__init__(txt_db, img_db, speech_db)
         # emocls_type: default is hard, use the hard label for downstream tasks
         self.img_shape = None
@@ -53,6 +54,7 @@ class EmoClsDataset(DetectFeatTxtTokDataset):
             if isinstance(input_ids[0], list):
                 input_ids = [y for x in input_ids for y in x]    
             input_ids = torch.tensor([self.txt_db.cls_] + input_ids + [self.txt_db.sep])
+            attn_masks = torch.ones(len(input_ids), dtype=torch.long)
             if self.use_emolare:
                 # text pos 
                 input_pos_ids = torch.tensor([4] + example['pos_ids'] + [4])
@@ -60,15 +62,9 @@ class EmoClsDataset(DetectFeatTxtTokDataset):
                 # text u-senti, use the unknown seq instead at inference stage
                 sentence_polarity_ids = torch.tensor([5] * len(input_ids))
             else:
-                input_pos_ids, input_senti_ids, sentence_polarity_ids = None, None, None 
+                input_pos_ids, input_senti_ids, sentence_polarity_ids = None, None, None       
         else:
-            # 只保留cls分类位置.
-            input_ids = [self.txt_db.cls_]
-            input_ids = torch.tensor(input_ids)
-            # input_pos_ids is not same as postions_ids, only for emolare
-            input_pos_ids, input_senti_ids, sentence_polarity_ids = None, None, None 
-
-        attn_masks = torch.ones(len(input_ids), dtype=torch.long)
+            input_ids, attn_masks, input_pos_ids, input_senti_ids, sentence_polarity_ids = None, None, None, None, None
 
         img_fname = example['img_fname']
         if self.img_db is not None:
@@ -95,6 +91,7 @@ class EmoClsDataset(DetectFeatTxtTokDataset):
             # print('[Debug] item {} speech attn mask {} and final attn mask {}'.format(i, speech_attn_masks.shape, attn_masks.shape))
         else:
             speech_feat = None
+
         # for visualization
         frame_name = example['img_fname']
         # print("[Debug empty] txt {} img {}".format(len(input_ids), num_bb))
@@ -116,18 +113,21 @@ def emocls_collate(inputs):
     
     attn_masks = pad_sequence(attn_masks, batch_first=True, padding_value=0)
 
-    
-    # at-least including [cls] token
-    txt_lens = [i.size(0) for i in input_ids]
-    input_ids = pad_sequence(input_ids, batch_first=True, padding_value=0)
-    position_ids = torch.arange(0, input_ids.size(1), dtype=torch.long).unsqueeze(0)
-    if input_pos_ids[0] is not None:
-        # only for emolare
-        input_pos_ids = pad_sequence(input_pos_ids, batch_first=True, padding_value=4)
-        input_senti_ids = pad_sequence(input_senti_ids, batch_first=True, padding_value=2)
-        # input_ids_senti
-        sentence_polarity_ids = pad_sequence(sentence_polarity_ids, batch_first=True, padding_value=5)
+    if input_ids[0] is not None:
+        # text batches
+        txt_lens = [i.size(0) for i in input_ids]
+        input_ids = pad_sequence(input_ids, batch_first=True, padding_value=0)
+        position_ids = torch.arange(0, input_ids.size(1), dtype=torch.long
+                                    ).unsqueeze(0)
+        if input_pos_ids[0] is not None:
+            input_pos_ids = pad_sequence(input_pos_ids, batch_first=True, padding_value=4)
+            input_senti_ids = pad_sequence(input_senti_ids, batch_first=True, padding_value=2)
+            # input_ids_senti
+            sentence_polarity_ids = pad_sequence(sentence_polarity_ids, batch_first=True, padding_value=5)
+        else:
+            input_pos_ids, input_senti_ids, sentence_polarity_ids = None, None, None
     else:
+        txt_lens, input_ids, position_ids = None, None, None
         input_pos_ids, input_senti_ids, sentence_polarity_ids = None, None, None
 
     if img_feats[0] is not None:

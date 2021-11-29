@@ -87,6 +87,20 @@ def evaluation(model, loader):
     model.train()
     return {'loss': avg_loss, 'WA': acc, 'WF1': wf1, 'UA': uar,  'F1': f1}
 
+@torch.no_grad()
+def evaluation_miss_conditions(model, val_dataloaders):
+    # 统计6种不同模态缺失场景的结果选择模型, 平均值即可
+    model.eval()
+    task2logs = {}
+    for task, loader in val_dataloaders.items():
+        LOGGER.info(f"validate on {task} task")
+        val_log = evaluation(model, val_dataloaders)
+        task2logs[task] = val_log
+    model.train()
+    # average six_missing conditions results
+    print(task2logs)
+    return task2logs
+
 def evaluation_metric(total_pred, total_label):
     acc = accuracy_score(total_label, total_pred)
     uar = recall_score(total_label, total_pred, average='macro')
