@@ -22,7 +22,7 @@ from tqdm import tqdm
 from code.uniter3m.data import (PrefetchLoader, MetaLoader, TokenBucketSampler, ConcatDatasetWithLens, 
                     TxtTokLmdb, ImageLmdbGroup, SpeechLmdbGroup, 
                     EmoClsDataset, emocls_collate)
-from code.uniter3m.model.emocls import UniterForEmoRecognition, evaluation, evaluation_miss_conditions
+from code.uniter3m.model.emocls import UniterForEmoRecognition, evaluation_miss_conditions
 from code.uniter3m.optim import get_lr_sched
 from code.uniter3m.optim.misc import build_optimizer
 from code.uniter3m.utils.logger import LOGGER, TB_LOGGER, RunningMeter, add_log_to_file
@@ -39,12 +39,11 @@ def build_dataloader(dataset, collate_fn, is_train, opts):
                             pin_memory=opts.pin_mem, collate_fn=collate_fn)
     return dataloader
 
-def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_dbs=None):
-    if all_img_dbs is None and opts.use_visual:
+def create_dataloaders(datasets, is_train, opts):
+    if opts.use_visual:
         LOGGER.info('[Debug] Use ImageLmdbGroup')
         all_img_dbs = ImageLmdbGroup(opts.compressed_db)
-    
-    if all_speech_dbs is None and opts.use_speech:
+    if opts.use_speech:
         LOGGER.info('[Debug] Use SpeechLmdbGroup')
         all_speech_dbs = SpeechLmdbGroup(opts.compressed_db)
     dataloaders = {}
@@ -74,18 +73,19 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
 
         for i, t in enumerate(dset['tasks']):
             task = f'{t}_{dset["name"]}'
-            LOGGER.info(f'-----Task : {task}')
             if is_train:
                 # cross-validation cvNo, need to rewrite the txt_db path
                 LOGGER.info(f"Loading {task} train dataset {dset['db']}")
                 txt_db = [TxtTokLmdb(path.format(opts.cvNo), opts.max_txt_len) for path in dset['db']]
             else:
-                LOGGER.info(f"Loading {task} train dataset {dset['db']}")
+                LOGGER.info(f"Loading {task} evaluation dataset {dset['db']}")
                 txt_db = TxtTokLmdb(dset['db'][0].format(opts.cvNo), max_txt_len=60)
 
             if task.startswith('emocls'):
+                LOGGER.info(f'-----Task : {task} txtdb {txt_db} imgdb {img_db} speechdb {speech_db}')
                 dataset = build_emocls_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('nolemocls'):
+                LOGGER.info(f'-----Task : {task} txtdb {txt_db} imgdb {img_db} speechdb {speech_db}')
                 dataset = build_nolemocls_dataset(txt_db, img_db, speech_db, is_train, opts)
             else:
                 raise ValueError(f'Undefined task {task} of dataloader')
@@ -103,18 +103,22 @@ def build_emocls_dataset(txt_db, img_db, speech_db, is_train, opts):
     # 可以处理多种不同的情况，通过use_text来控制
     if is_train:
         if img_db is not None and speech_db is not None:
+            LOGGER.info('[Debug in emocls dataset] the img and speech modality are not None!')
             datasets = [EmoClsDataset(t, i, s, use_text=opts.use_text, use_emolare=opts.use_emolare) for t, i, s in zip(txt_db, img_db, speech_db)]
         elif img_db is None and speech_db is not None:
+            LOGGER.info('[Debug in emocls dataset] the img modality is None!')
             datasets = [EmoClsDataset(t, None, s, use_text=opts.use_text, use_emolare=opts.use_emolare) for t, s in zip(txt_db, speech_db)]
         elif img_db is not None and speech_db is None:
+            LOGGER.info('[Debug in emocls dataset] the speech modality is None!')
             datasets = [EmoClsDataset(t, i, None, use_text=opts.use_text, use_emolare=opts.use_emolare) for t, i in zip(txt_db, img_db)]
         elif img_db is None and speech_db is None:
-            LOGGER.info('[Debug in mlm dataset] the img and speech modality are None!')
+            LOGGER.info('[Debug in emocls dataset] the img and speech modality are None!')
             datasets = [EmoClsDataset(t, None, None, use_text=opts.use_text, use_emolare=opts.use_emolare) for t in txt_db]
         else:
-            LOGGER.info('[Error] Error mlm_wwm datasets')
+            LOGGER.info('[Error] Error emocls datasets')
         dataset = ConcatDatasetWithLens(datasets)
     else:
+        # only one test dataset
         dataset = EmoClsDataset(txt_db, img_db, speech_db, use_text=opts.use_text, use_emolare=opts.use_emolare)
     return dataset, emocls_collate
 
@@ -128,10 +132,10 @@ def build_nolemocls_dataset(txt_db, img_db, speech_db, is_train, opts):
         elif img_db is not None and speech_db is None:
             datasets = [EmoClsDataset(t, i, None, use_text=False, use_emolare=opts.use_emolare) for t, i in zip(txt_db, img_db)]
         else:
-            LOGGER.info('[Error] Error mlm_wwm datasets')
+            LOGGER.info('[Error] Error nolemocls datasets')
         dataset = ConcatDatasetWithLens(datasets)
     else:
-        dataset = EmoClsDataset(txt_db, img_db, speech_db, use_text=False)
+        dataset = EmoClsDataset(txt_db, img_db, speech_db, use_text=False, use_emolare=opts.use_emolare)
     return dataset, emocls_collate
 
 
@@ -152,7 +156,6 @@ def main(opts):
                             opts.gradient_accumulation_steps))
 
     set_random_seed(opts.seed)
-
     if hvd.rank() == 0:
         save_training_meta(opts)
         TB_LOGGER.create(join(opts.output_dir, 'log'))
@@ -246,7 +249,7 @@ def main(opts):
     optimizer.step()
     for step, (name, batch) in enumerate(meta_loader):
         n_examples[name] += batch['input_ids'].size(0)
-        print('----- Current step {} task name {}'.format(step, name))
+        # print('----- Current step {} task name {}'.format(step, name))
         loss = model(batch, compute_loss=True)
         loss = loss.mean()  # loss is not normalized in model
         # backward pass
@@ -289,26 +292,20 @@ def main(opts):
                     f"============")
                 LOGGER.info("Cur learning rate {}".format(lr_this_step))
                 LOGGER.info("[Train] Loss {}".format(loss))
-                val_log = evaluation(model, val_dataloaders)
-                TB_LOGGER.log_scaler_dict(
-                    {f"valid/{k}": v for k, v in val_log.items()})
-                LOGGER.info(f"[Validation] Loss: {val_log['loss']:.2f},"
-                            f"\t WA: {val_log['WA']*100:.2f},"
-                            f"\t WF1: {val_log['WF1']*100:.2f},"
-                            f"\t UA: {val_log['UA']*100:.2f},\n")
-                test_log = evaluation(model, test_dataloaders)
-                TB_LOGGER.log_scaler_dict(
-                    {f"test/{k}": v for k, v in test_log.items()})
-                LOGGER.info(f"[Testing] Loss: {test_log['loss']:.2f},"
-                            f"\t WA: {test_log['WA']*100:.2f},"
-                            f"\t WF1: {val_log['WF1']*100:.2f},"
-                            f"\t UA: {test_log['UA']*100:.2f},\n")
+                val_log = evaluation_miss_conditions(model, val_dataloaders)
+                for task_name in val_log.keys():
+                    LOGGER.info(f"[Validation] {task_name} \t WA: {val_log[task_name]['WA']*100:.2f},"
+                                f"\t UA: {val_log[task_name]['UA']*100:.2f},\n")
+                test_log = evaluation_miss_conditions(model, tst_dataloaders)
+                for task_name in test_log.keys():
+                    LOGGER.info(f"[Testing] {task_name} \t WA: {test_log[task_name]['WA']*100:.2f},"
+                                    f"\t UA: {test_log[task_name]['UA']*100:.2f},\n")
                 steps2val_results[global_step] = val_log
                 steps2test_results[global_step] = test_log
                 # update the current best model based on validation results
-                if val_log[select_metrix] > best_eval_metrix:
+                if val_log['miss6coditions'][select_metrix] > best_eval_metrix:
                     best_eval_step = global_step
-                    best_eval_metrix = val_log[select_metrix]
+                    best_eval_metrix = val_log['miss6coditions'][select_metrix]
                     patience = opts.patience
                     LOGGER.info('Save model at {} global step'.format(global_step))
                     model_saver.save(model, global_step)
@@ -328,9 +325,7 @@ def main(opts):
     LOGGER.info('Val: {}'.format(steps2val_results[best_eval_step]))
     LOGGER.info('Test: {}'.format(steps2test_results[best_eval_step]))
     steps2val_results['beststep'] = best_eval_step
-    json.dump(steps2test_results, open(join(opts.output_dir, 'log', 'step2test_reuslts.json'),'w',encoding='utf-8'))
-    json.dump(steps2val_results, open(join(opts.output_dir, 'log', 'step2val_reuslts.json'),'w',encoding='utf-8'))
-    write_result_to_tsv(output_tsv, steps2test_results[best_eval_step], opts.cvNo)
+    write_result_to_tsv(output_tsv, steps2test_results[best_eval_step]['miss6coditions'], opts.cvNo)
     # remove the others model
     clean_chekpoints(join(opts.output_dir, 'ckpt'), best_eval_step)
 
@@ -350,7 +345,7 @@ def write_result_to_tsv(file_path, tst_log, cvNo):
     content = f_in.readlines()
     if len(content) != 12:
         content += ['\n'] * (12-len(content))
-    content[cvNo-1] = 'CV{}\t{:.4f}\t{:.4f}\t{:.4f}\n'.format(cvNo, tst_log['WA'], tst_log['WF1'], tst_log['UA'])
+    content[cvNo-1] = 'CV{}\t{:.4f}\t{:.4f}\n'.format(cvNo, tst_log['WA'], tst_log['UA'])
     f_out = open(file_path, 'w')
     f_out.writelines(content)
     f_out.close()

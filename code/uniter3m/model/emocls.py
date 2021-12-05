@@ -7,6 +7,7 @@ UNITER for Emo Recognition Model
 from collections import defaultdict
 from tqdm import tqdm
 import numpy as np
+import collections
 
 import torch
 from horovod import torch as hvd
@@ -89,16 +90,27 @@ def evaluation(model, loader):
 
 @torch.no_grad()
 def evaluation_miss_conditions(model, val_dataloaders):
-    # 统计6种不同模态缺失场景的结果选择模型, 平均值即可
+    # 统计6种不同模态缺失场景的结果选择模型, 平均值即可, 整理为如下的结果
+    # task2logs = {'testlva': {'WA', 'UA'}, 'testlv':[], testla:[], testl:[],
+    # 'testva': [], 'testlv':[], testla:[], testl:[], 'miss6coditions': []}
     model.eval()
-    task2logs = {}
-    for task, loader in val_dataloaders.items():
-        LOGGER.info(f"validate on {task} task")
-        val_log = evaluation(model, val_dataloaders)
-        task2logs[task] = val_log
+    task2logs = collections.OrderedDict()
+    for name in val_dataloaders.keys():
+        condition_name = name.split('_')[1]
+        loader = val_dataloaders[name]
+        val_log = evaluation(model, loader)
+        task2logs[condition_name] = val_log
     model.train()
     # average six_missing conditions results
-    print(task2logs)
+    miss_mean_wa, miss_mean_uar = 0, 0
+    for c_name in task2logs.keys():
+        if 'lva' not in c_name:
+            temp_dict = task2logs[c_name]
+            miss_mean_wa += temp_dict['WA']
+            miss_mean_uar += temp_dict['UA']
+    miss_mean_wa = miss_mean_wa/6
+    miss_mean_uar = miss_mean_uar/6
+    task2logs['miss6coditions'] = {'WA': miss_mean_wa, 'UA':miss_mean_uar}
     return task2logs
 
 def evaluation_metric(total_pred, total_label):

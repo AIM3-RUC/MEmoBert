@@ -62,7 +62,7 @@ class EmoClsDataset(DetectFeatTxtTokDataset):
             else:
                 input_pos_ids, input_senti_ids, sentence_polarity_ids = None, None, None 
         else:
-            # 只保留cls分类位置.
+            # 只保留 cls 分类位置.
             input_ids = [self.txt_db.cls_]
             input_ids = torch.tensor(input_ids)
             # input_pos_ids is not same as postions_ids, only for emolare
@@ -113,10 +113,8 @@ def emocls_collate(inputs):
     """
     (input_ids, img_feats, speech_feats, attn_masks, targets, batch_frame_names, \
                                 input_pos_ids, input_senti_ids, sentence_polarity_ids) = map(list, unzip(inputs))
-    
     attn_masks = pad_sequence(attn_masks, batch_first=True, padding_value=0)
 
-    
     # at-least including [cls] token
     txt_lens = [i.size(0) for i in input_ids]
     input_ids = pad_sequence(input_ids, batch_first=True, padding_value=0)
