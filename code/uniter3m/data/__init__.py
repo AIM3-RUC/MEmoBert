@@ -24,6 +24,5 @@ from .vfom import VFOMDataset, vfom_collate
 from .sfom import SFOMDataset, sfom_collate
 from .onemodalnegitm import OneModalNegItmDataset, onemodal_negitm_collate
 from .harditm import HardItmDataset, harditm_collate
-from .prompt_mask import PromptMaskDataset, prompt_mask_collate
+from .prompt_mask import PromptMaskDataset, prompt_mask_collate, CrossModalPromptMaskDataset
 from .prompt_nsp import PromptNSPDataset, prompt_nsp_collate
-from .cmprompt_mask import CrossModalPromptMaskDataset, cm_prompt_mask_collate

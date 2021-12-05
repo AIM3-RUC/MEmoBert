@@ -3,6 +3,17 @@ Copyright (c) Microsoft Corporation.
 Licensed under the MIT license.
 
 given the input_ids(with mask) and text_labels, just to predict the masked labels(emotion category)
+for example if no text modality:
+    [CLS] i am [MASK] . [SEP] v----  a---- 
+    [CLS] i am [MASK] . [SEP] v---- 
+    [CLS] i am [MASK] . [SEP] a---- 
+
+具体实现方式: 
+# 还是采用处理好的 text + i am [MASK] 的这种方式，然后从中截取 template 的部分
+# 比如 text + 'i am [MASK] .' 中，最后的4个位置对应的tokens
+template_tokens = [['i'], ['am'], ['@@[MASK]'], ['@@.']]
+template_ids = input_ids[-4:] = [[1045], [2572], [103], [1012]]
+template_text_labels = text_labels[-4:] = [[-1], [-1], [6517], [-1]]
 """
 import random
 import torch
@@ -123,3 +134,62 @@ def prompt_mask_collate(inputs):
              'gather_index': gather_index,
              'txt_labels': txt_labels}
     return batch
+
+class CrossModalPromptMaskDataset(DetectFeatTxtTokDataset):
+    def __init__(self, txt_db, img_db, speech_db, prompt_type='iam'):
+        assert isinstance(txt_db, TxtTokLmdb)
+        super().__init__(txt_db, img_db, speech_db)
+        self.img_shape = None
+        self.prompt_type2len = {
+            'iam': 4,
+            'itwas': 4}
+        self.prompt_len = self.prompt_type2len[prompt_type]
+
+    def __getitem__(self, i):
+        """
+        Return:
+        - input_ids    : (L, ), i.e., [cls, wd, wd, ..., sep, 0, 0], 0s padded
+        - img_feat     : (num_bb, d)
+        - attn_masks   : (L + num_bb, ), ie., [1, 1, ..., 0, 0, 1, 1]
+        - txt_labels   : (L, ), [-1, -1, wid, -1, -1, -1]
+        0's padded so that (L + num_bb) % 8 == 0
+        """
+        example = super().__getitem__(i)
+        # text input
+        input_ids, txt_labels = self.create_mlm_io(example['input_ids'], example['text_labels'], self.prompt_len)
+        attn_masks = torch.ones(len(input_ids), dtype=torch.long)
+        # print('[Debug] item {} text attn mask {} {}'.format(i, attn_masks, attn_masks.shape))
+
+        if self.img_db is not None:
+            # print(f'[Debug] item {i} img is not None')
+            img_feat, num_bb = self._get_img_feat(example['img_fname'], self.img_shape)
+            img_attn_masks = torch.ones(num_bb, dtype=torch.long)
+            self.img_shape = img_feat.shape[1:]
+            attn_masks = torch.cat((attn_masks, img_attn_masks))
+        else:
+            # print(f'[Debug] item img {i} is None')
+            img_feat = None
+        
+        if self.speech_db is not None:
+            # print(f'[Debug] item {i} speech is not None')
+            speech_feat, num_frame = self._get_speech_feat(example['img_fname'])
+            speech_attn_masks = torch.ones(num_frame, dtype=torch.long)
+            attn_masks = torch.cat((attn_masks, speech_attn_masks))
+            # print('[Debug] item {} speech attn mask {} and final attn mask {}'.format(i, speech_attn_masks.shape, attn_masks.shape))
+        else:
+            speech_feat = None
+
+        return input_ids, img_feat, speech_feat, attn_masks, txt_labels, i
+        
+    def create_mlm_io(self, input_ids, text_labels, prompt_len):
+        temp_input_ids = input_ids[-prompt_len:] 
+        temp_text_labels = text_labels[-prompt_len:]
+        flat_input_ids, flat_text_labels = [], []
+        for sub_input_ids, sub_text_labels in zip(temp_input_ids, temp_text_labels):
+            flat_input_ids.extend(sub_input_ids)
+            flat_text_labels.extend(sub_text_labels)
+        final_input_ids = torch.tensor([self.txt_db.cls_]
+                                 + flat_input_ids
+                                 + [self.txt_db.sep])
+        final_txt_labels = torch.tensor([-1] + flat_text_labels + [-1])
+        return final_input_ids, final_txt_labels

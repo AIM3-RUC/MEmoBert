@@ -207,6 +207,8 @@ corpus_name_L='IEMOCAP'
 
 
 ################# Part3: Explore WWM + Span - ITM tasks + cross-modality-prompt ################################################### 
+# 5000/32=156 156 * 20 epoch=3000 steps
+
 # case1: only mask-va mask-v mask-a
 # for lr in 5e-5
 # do
@@ -221,7 +223,7 @@ corpus_name_L='IEMOCAP'
 #                         --learning_rate ${lr} --lr_sched_type 'linear'  --gradient_accumulation_steps 1 \
 #                         --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                         --train_batch_size 32 --val_batch_size 32 \
-#                         --num_train_steps 5000 --warmup_steps 100 --valid_steps 100 \
+#                         --num_train_steps 3000 --warmup_steps 100 --valid_steps 100 \
 #                         --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt_onlycm_lr${lr}_trnval/${cvNo}
 #         done
 # done
@@ -240,34 +242,12 @@ corpus_name_L='IEMOCAP'
 #                         --learning_rate ${lr} --lr_sched_type 'linear'  --gradient_accumulation_steps 1 \
 #                         --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                         --train_batch_size 32 --val_batch_size 32 \
-#                         --num_train_steps 4000 --warmup_steps 100 --valid_steps 100 \
+#                         --num_train_steps 3000 --warmup_steps 100 --valid_steps 100 \
 #                         --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt_nocm_lr${lr}_trnval/${cvNo}
 #         done
 # done
 
-# case1: all seven cases
-# for lr in 3e-5
-# do
-#     for seed in 1234 4321 5678
-#     do
-#         for cvNo in $(seq 1 10)
-#         do
-#         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python pretrain.py \
-#                         --cvNo ${cvNo} --n_workers 1 --use_speech --use_visual \
-#                         --prompt_type iam --seed ${seed} \
-#                         --config config/downstream/pretrain-task-${corpus_name}-base-2gpu_cm_mask_prompt_trn.json \
-#                         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
-#                         --checkpoint  /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
-#                         --learning_rate ${lr} --lr_sched_type 'linear'  --gradient_accumulation_steps 1 \
-#                         --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
-#                         --train_batch_size 32 --val_batch_size 32 \
-#                         --num_train_steps 4000 --warmup_steps 100 --valid_steps 100 \
-#                         --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt_lr${lr}_trn_seed${seed}/${cvNo}
-#         done
-#     done
-# done
-
-# case1: only lva cases
+# case3: only lva cases
 # for lr in 5e-5
 # do
 #     for seed in 4321
@@ -283,7 +263,7 @@ corpus_name_L='IEMOCAP'
 #                         --learning_rate ${lr} --lr_sched_type 'linear'  --gradient_accumulation_steps 1 \
 #                         --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                         --train_batch_size 32 --val_batch_size 32 \
-#                         --num_train_steps 4000 --warmup_steps 100 --valid_steps 100 \
+#                         --num_train_steps 3000 --warmup_steps 100 --valid_steps 100 \
 #                         --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt_lr${lr}_lva_trn_seed${seed}/${cvNo}
 #         done
 #     done
@@ -303,10 +283,12 @@ corpus_name_L='IEMOCAP'
 #                         --learning_rate ${lr} --lr_sched_type 'linear'  --gradient_accumulation_steps 1 \
 #                         --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                         --train_batch_size 32 --val_batch_size 32 \
-#                         --num_train_steps 4000 --warmup_steps 100 --valid_steps 100 \
+#                         --num_train_steps 3000 --warmup_steps 100 --valid_steps 100 \
 #                         --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_melm_wwm_span_noitm_step3w-cm_mask_prompt_lr${lr}_trnval/${cvNo}
 #         done
 # done
+
+
 
 ################# Part4: Explore WWM + Span tasks + TaskPretain + Finetune ###################################################
 #case1: task-pretrained no itm + www + span + finetune text + wav2vec + visual, fintune on AVL --task finetune

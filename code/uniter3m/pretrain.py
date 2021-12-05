@@ -42,7 +42,7 @@ from code.uniter3m.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   SFOMDataset, sfom_collate,
                   MelmWWMDataset, melm_wwm_collate,
                   PromptMaskDataset, prompt_mask_collate,
-                  CrossModalPromptMaskDataset, cm_prompt_mask_collate,
+                  CrossModalPromptMaskDataset,
                   PromptNSPDataset, prompt_nsp_collate,
                   )
 from code.uniter3m.model.pretrain import UniterForPretraining
@@ -486,7 +486,7 @@ def build_cm_prompt_mask_dataset(txt_db, img_db, speech_db, is_train, opts):
         dataset = ConcatDatasetWithLens(datasets)
     else:
         dataset = CrossModalPromptMaskDataset(txt_db, img_db, speech_db, prompt_type=opts.prompt_type)
-    return dataset, cm_prompt_mask_collate
+    return dataset, prompt_mask_collate
 
 def build_prompt_nsp_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:

@@ -179,6 +179,7 @@ class BertPooler(nn.Module):
     def forward(self, hidden_states):
         # We "pool" the model by simply taking the hidden state corresponding
         # to the first token.
+        # print(hidden_states.shape) (batchsize, len, dim)
         first_token_tensor = hidden_states[:, 0]
         pooled_output = self.dense(first_token_tensor)
         pooled_output = self.activation(pooled_output)
