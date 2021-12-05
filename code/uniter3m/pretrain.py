@@ -670,10 +670,10 @@ def main(opts):
     else:
         tokenizer = meta_data['bert']
     # build data loaders
-    train_dataloaders, all_img_dbs, all_speech_dbs = create_dataloaders(
+    train_dataloaders, _ , _ = create_dataloaders(
         opts.train_datasets, True, opts)
     val_dataloaders, _, _ = create_dataloaders(
-        opts.val_datasets, False, opts, all_img_dbs, all_speech_dbs)
+        opts.val_datasets, False, opts)
     meta_loader = MetaLoader(train_dataloaders,
                              accum_steps=opts.gradient_accumulation_steps,
                              distributed=n_gpu > 1)
