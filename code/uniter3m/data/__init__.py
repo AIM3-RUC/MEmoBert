@@ -26,3 +26,4 @@ from .onemodalnegitm import OneModalNegItmDataset, onemodal_negitm_collate
 from .harditm import HardItmDataset, harditm_collate
 from .prompt_mask import PromptMaskDataset, prompt_mask_collate, CrossModalPromptMaskDataset
 from .prompt_nsp import PromptNSPDataset, prompt_nsp_collate
+from .flexprompt_mask import FlexPromptMaskDataset, flexprompt_mask_collate, CrossModalFlexPromptMaskDataset

@@ -44,6 +44,7 @@ from code.uniter3m.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   PromptMaskDataset, prompt_mask_collate,
                   CrossModalPromptMaskDataset,
                   PromptNSPDataset, prompt_nsp_collate,
+                  FlexPromptMaskDataset, flexprompt_mask_collate, CrossModalFlexPromptMaskDataset
                   )
 from code.uniter3m.model.pretrain import UniterForPretraining
 from code.uniter3m.optim.misc import build_optimizer
@@ -488,6 +489,39 @@ def build_cm_prompt_mask_dataset(txt_db, img_db, speech_db, is_train, opts):
         dataset = CrossModalPromptMaskDataset(txt_db, img_db, speech_db, prompt_type=opts.prompt_type)
     return dataset, prompt_mask_collate
 
+def build_flexprompt_mask_dataset(txt_db, img_db, speech_db, is_train, opts):
+    if is_train:
+        if img_db is not None and speech_db is not None:
+            datasets = [FlexPromptMaskDataset(t, i, s, prompt_type=opts.prompt_type) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif img_db is None and speech_db is not None:
+            datasets = [FlexPromptMaskDataset(t, None, s, prompt_type=opts.prompt_type) for t, s in zip(txt_db, speech_db)]
+        elif img_db is not None and speech_db is None:
+            datasets = [FlexPromptMaskDataset(t, i, None, prompt_type=opts.prompt_type) for t, i in zip(txt_db, img_db)]
+        elif img_db is None and speech_db is None:
+            LOGGER.info('[Debug in flexpromptmask dataset] the img and speech modality are None!')
+            datasets = [FlexPromptMaskDataset(t, None, None, prompt_type=opts.prompt_type) for t in txt_db]
+        else:
+            LOGGER.info('[Error] Error flexpromptmask mask datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = FlexPromptMaskDataset(txt_db, img_db, speech_db, prompt_type=opts.prompt_type)
+    return dataset, flexprompt_mask_collate
+
+def build_cm_flexprompt_mask_dataset(txt_db, img_db, speech_db, is_train, opts):
+    if is_train:
+        if img_db is not None and speech_db is not None:
+            datasets = [CrossModalFlexPromptMaskDataset(t, i, s, prompt_type=opts.prompt_type) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif img_db is None and speech_db is not None:
+            datasets = [CrossModalFlexPromptMaskDataset(t, None, s, prompt_type=opts.prompt_type) for t, s in zip(txt_db, speech_db)]
+        elif img_db is not None and speech_db is None:
+            datasets = [CrossModalFlexPromptMaskDataset(t, i, None, prompt_type=opts.prompt_type) for t, i in zip(txt_db, img_db)]
+        else:
+            LOGGER.info('[Error] Error cmflexpromptmask mask datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = CrossModalFlexPromptMaskDataset(txt_db, img_db, speech_db, prompt_type=opts.prompt_type)
+    return dataset, flexprompt_mask_collate
+
 def build_prompt_nsp_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:
         if img_db is not None and speech_db is not None:
@@ -606,6 +640,10 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
                 dataset = build_prompt_mask_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('cmpromptmask'):
                 dataset = build_cm_prompt_mask_dataset(txt_db, img_db, speech_db, is_train, opts)
+            elif task.startswith('flexpromptmask'):
+                dataset = build_flexprompt_mask_dataset(txt_db, img_db, speech_db, is_train, opts)
+            elif task.startswith('cmflexpromptmask'):
+                dataset = build_cm_flexprompt_mask_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('promptnsp'):
                 dataset = build_prompt_nsp_dataset(txt_db, img_db, speech_db, is_train, opts)
             else:
@@ -866,6 +904,10 @@ def validate(model, val_dataloaders):
         elif task.startswith('promptmask'):
             val_log = validate_prompt_mask(model, loader)
         elif task.startswith('cmpromptmask'):
+            val_log = validate_prompt_mask(model, loader)
+        elif task.startswith('flexpromptmask'):
+            val_log = validate_prompt_mask(model, loader)
+        elif task.startswith('cmflexpromptmask'):
             val_log = validate_prompt_mask(model, loader)
         elif task.startswith('promptnsp'):
             val_log = validate_prompt_nsp(model, loader)

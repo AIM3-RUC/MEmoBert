@@ -118,7 +118,7 @@ class UniterForPretraining(UniterPreTrainedModel):
         gather_index torch.Size([8, 64]) = batch['gather_index']
         '''
         batch = defaultdict(lambda: None, batch)
-        if task.startswith('mlm') or task.startswith('promptmask') or task.startswith('cmpromptmask'):
+        if task.startswith('mlm') or task.startswith('promptmask') or task.startswith('cmpromptmask') or task.startswith('flexpromptmask') or task.startswith('cmflexpromptmask'):
             txt_labels = batch['txt_labels']
             return self.forward_mlm(batch, txt_labels, compute_loss=compute_loss)
         elif task.startswith('melm'):

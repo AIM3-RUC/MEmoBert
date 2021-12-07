@@ -211,30 +211,28 @@ def get_all_6miss_cases_result(path):
     f = open(log_path)
     lines = f.readlines()
     f.close()
-    test_log = collections.OrderedDict()
     max_ua = 0
-    max_ua_index = 0
+    max_ua_step = 0
+    all_test_log = collections.OrderedDict()
     for index in range(len(lines)):
         line = lines[index]
-        if "====Step " in line:
-            result_line = lines[index+3]
-            WA, UAR = get_wa_ua_from_line(result_line)
-            if UAR >= max_ua:
-                max_ua = UAR
-                max_ua_index = index
-    best_step = get_above_best_step(max_ua_index, lines)
-    print('best index {} step {}'.format(max_ua_index, best_step))
-    # for tst_l_mask_av task
-    current_setname_index =  max_ua_index
-   
-    test_log['a'] = [WA, UAR]
-    if len(test_log) == 0:
-        print('error of {}'.format(log_path))
-    return test_log, best_step
+        if 'Step' in line and 'start validation' in line:
+            step_best_step = int(line[line.find('Step')+4: line.find(': start')])
+            step_test_log = get_current_step_reuslt(index, lines)
+            # get miss6 average ua 
+            miss6_avg_wa = sum([step_test_log[sn][0] for sn in ['la', 'lv', 'l', 'va', 'a', 'v']]) / 6
+            miss6_avg_ua = sum([step_test_log[sn][1] for sn in ['la', 'lv', 'l', 'va', 'a', 'v']]) / 6
+            step_test_log['miss6_avg'] = [miss6_avg_wa, miss6_avg_ua]
+            all_test_log[step_best_step] = step_test_log
+            if miss6_avg_ua >= max_ua:
+                max_ua = miss6_avg_ua
+                max_ua_step = step_best_step
+    print('best ua {} step {}'.format(max_ua, max_ua_step))
+    return all_test_log[max_ua_step], max_ua_step
 
 def get_current_step_reuslt(current_step_index, lines):
     test_log = collections.OrderedDict()
-    lav_index = current_step_index + 11
+    lav_index = current_step_index + 1
     assert 'tst_l_mask_av task' in lines[lav_index]
     result_line = lines[lav_index + 3]
     WA, UAR = get_wa_ua_from_line(result_line)
@@ -270,7 +268,7 @@ def get_current_step_reuslt(current_step_index, lines):
     WA, UAR = get_wa_ua_from_line(result_line)
     test_log['v'] = [WA, UAR]
     # for tst_mask_a task
-    a_index = max_ua_index + 3 + 2
+    a_index = v_index + 3 + 2
     assert 'tst_mask_a task' in lines[a_index]
     result_line =  lines[a_index + 3]
     WA, UAR = get_wa_ua_from_line(result_line)
@@ -311,40 +309,38 @@ def get_final_results_format(all_tst_results):
         wa_uas = all_info[setname]
         wa_results, ua_results = [], []
         for cvNo in range(len(wa_uas)):
-            all_lines.append('CV{}\t{}\t{}\n'.format(cvNo+1, wa_uas[cvNo][0], wa_uas[cvNo][1]))
+            all_lines.append('CV{}\t{:.2f}\t{:.2f}\n'.format(cvNo+1, wa_uas[cvNo][0], wa_uas[cvNo][1]))
             wa_results.append(wa_uas[cvNo][0])
             ua_results.append(wa_uas[cvNo][1])
         avg_wa = np.mean(wa_results)
         avg_ua = np.mean(ua_results)
-        all_lines.append('Avg \t{}\t{}\n'.format(avg_wa, avg_ua))
+        all_lines.append('Avg \t{:.2f}\t{:.2f}\n'.format(avg_wa, avg_ua))
     return all_lines
 
 if __name__ == '__main__':
-    result_dir = '/data7/emobert/exp/prompt_pretrain'
-    output_name = 'iemocap_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt_7cases_lr3e-5_trnval_seed1234'
+    root_dir = '/data7/emobert/exp/prompt_pretrain'
+    output_name = 'iemocap_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_flexpromptsoftprompt5_onlylva_lr3e-5_trnval_seed{}'
     type_eval = 'UA'
-    result_dir = os.path.join(result_dir, output_name)
-    result_path = os.path.join(result_dir, 'result.csv')
-    all_tst_results = []
-    for cvNo in range(1, 11):
-        log_dir = os.path.join(result_dir, str(cvNo), 'log')
-        if 'onlycm' in output_name:
-            test_log, best_step = get_latest_onlycm_result(log_dir)
-        elif 'nocm' in output_name:
-            test_log, best_step = get_latest_nocm_result(log_dir)
-        elif 'onlylva' in output_name or 'noaudio' in output_name or 'novisual' in output_name or '5tasks_noitm' in output_name:
-            test_log, best_step = get_latest_onlylva_result(log_dir)
-        elif '7cases' in output_name:
-            test_log, best_step = get_all_6miss_cases_result(log_dir)
-        else:
-            test_log, best_step = get_latest_onlylva_result(log_dir)
-        all_tst_results.append(test_log)
-        # clean other ckpkts 
-        ckpt_dir = os.path.join(result_dir, str(cvNo), 'ckpt')
-        clean_other_ckpts(ckpt_dir, best_step)
+    for seed in [1234, 4321, 5678]:
+        result_dir = os.path.join(root_dir, output_name.format(seed))
+        result_path = os.path.join(result_dir, 'result.csv')
+        all_tst_results = []
+        for cvNo in range(1, 11):
+            log_dir = os.path.join(result_dir, str(cvNo), 'log')
+            if 'onlycm' in output_name:
+                test_log, best_step = get_latest_onlycm_result(log_dir)
+            elif 'nocm' in output_name:
+                test_log, best_step = get_latest_nocm_result(log_dir)
+            elif 'onlylva' in output_name or 'noaudio' in output_name or 'novisual' in output_name or '5tasks_noitm' in output_name:
+                test_log, best_step = get_latest_onlylva_result(log_dir)
+            elif '7cases' in output_name:
+                test_log, best_step = get_all_6miss_cases_result(log_dir)
+            else:
+                test_log, best_step = get_latest_onlylva_result(log_dir)
+            all_tst_results.append(test_log)
+            # clean other ckpkts 
+            ckpt_dir = os.path.join(result_dir, str(cvNo), 'ckpt')
+            clean_other_ckpts(ckpt_dir, best_step)
 
-    all_lines = get_final_results_format(all_tst_results)
-    write_file(result_path, all_lines)
-
-# only cm 的中 va a v 的结果要比 seven 中 va a v 的结果要好.
-# 可以适当的调节某些情况的比例
+        all_lines = get_final_results_format(all_tst_results)
+        write_file(result_path, all_lines)

@@ -70,7 +70,7 @@
                 "cmpromptmask"
             ],
             "mix_ratio": [
-                1
+                2
             ]
         },
         {
@@ -104,7 +104,7 @@
                 "cmpromptmask"
             ],
             "mix_ratio": [
-                1
+                2
             ]
         },
         {
@@ -138,7 +138,7 @@
                 "cmpromptmask"
             ],
             "mix_ratio": [
-                1
+                2
             ]
         },
         {
@@ -157,21 +157,6 @@
     ],
     "val_datasets": [
         {
-            "name": "msp_val_l_mask_av",
-            "db": [
-                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/val_wwm_nrcemolex_prompt_mask_iam.db"
-            ],
-            "img": [
-                "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/feat_th0.0_max36_min10"
-            ],
-            "speech": [
-                "/data7/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10"
-            ],
-            "tasks": [
-                "promptmask"         
-            ]
-        },
-        {
             "name": "msp_tst_l_mask_av",
             "db": [
                 "/data7/emobert/exp/evaluation/MSP/txt_db/{}/tst_wwm_nrcemolex_prompt_mask_iam.db"
@@ -184,6 +169,78 @@
             ],
             "tasks": [
                 "promptmask"         
+            ]
+        },
+        {
+            "name": "msp_tst_l_mask_v",
+            "db": [
+                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/tst_wwm_nrcemolex_prompt_mask_iam.db"
+            ],
+            "img": [
+                "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/feat_th0.0_max36_min10"
+            ],
+            "tasks": [
+                "promptmask"         
+            ]
+        },
+        {
+            "name": "msp_tst_l_mask_a",
+            "db": [
+                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/tst_wwm_nrcemolex_prompt_mask_iam.db"
+            ],
+            "speech": [
+                "/data7/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10"
+            ],
+            "tasks": [
+                "promptmask"         
+            ]
+        },
+        {
+            "name": "msp_tst_l_mask",
+            "db": [
+                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/tst_wwm_nrcemolex_prompt_mask_iam.db"
+            ],
+            "tasks": [
+                "promptmask"         
+            ]
+        },
+        {
+            "name": "msp_tst_mask_av",
+            "db": [
+                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/tst_wwm_nrcemolex_prompt_mask_iam.db"
+            ],
+            "img": [
+                "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/feat_th0.0_max36_min10"
+            ],
+            "speech": [
+                "/data7/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10"
+            ],
+            "tasks": [
+                "cmpromptmask"         
+            ]
+        },
+        {
+            "name": "msp_tst_mask_v",
+            "db": [
+                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/tst_wwm_nrcemolex_prompt_mask_iam.db"
+            ],
+            "img": [
+                "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/feat_th0.0_max36_min10"
+            ],
+            "tasks": [
+                "cmpromptmask"         
+            ]
+        },
+        {
+            "name": "msp_tst_mask_a",
+            "db": [
+                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/tst_wwm_nrcemolex_prompt_mask_iam.db"
+            ],
+            "speech": [
+                "/data7/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10"
+            ],
+            "tasks": [
+                "cmpromptmask"         
             ]
         }
     ]
