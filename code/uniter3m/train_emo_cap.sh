@@ -1617,7 +1617,6 @@ corpus_name_L='IEMOCAP'
 
 
 ################# Part12: Explore more large span size for visual and speech (motivated by MAE) ################################################### 
-
 ##### case1:text + speech + visual + wwm + span -itm -- span=visual:5 and 0.5  speech 5 and 0.5
 # for seed in 1234 4321 5678
 # do

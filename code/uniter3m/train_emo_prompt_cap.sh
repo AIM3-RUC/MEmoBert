@@ -207,7 +207,6 @@ corpus_name_L='IEMOCAP'
 
 
 ################# Part3: Explore WWM + Span - ITM tasks + cross-modality-prompt ################################################### 
-# 4000/32=125 125 * 20 epoch=2500 steps
 #icassp setting:--- 终于复现了，可能是configure文件改了啥东西
 # for lr in 3e-5
 # do
@@ -881,6 +880,7 @@ corpus_name_L='IEMOCAP'
 ################# Part12: ablation, pretain with more efficient audio and visual masking strategies + prompt ###################################################
 # /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_noitm_spanS5.5V5.5_lr5e5_bs800/ckpt/model_step_30000.pt 
 # /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_noitm_spanS7.5V5.5_lr5e5_bs800/ckpt/model_step_30000.pt 
+# /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_mores5.5v5.5_noitm_lr5e5_bs800/ckpt/model_step_40000.pt 
 # /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_mrm_msrm_maskprobv.3s.3_noitm_lr5e5_bs800/ckpt/model_step_40000.pt 
 # /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_mrm_msrm_maskprobv.5s.5_noitm_lr5e5_bs800/ckpt/model_step_40000.pt 
 # /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_mrm_msrm_maskprobv.7s.7_noitm_lr5e5_bs800/ckpt/model_step_40000.pt 
@@ -895,7 +895,7 @@ corpus_name_L='IEMOCAP'
 #         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python pretrain.py \
 #                         --cvNo ${cvNo} --n_workers 1 --use_speech --use_visual \
 #                         --prompt_type iam --seed ${seed} \
-#                         --config config/downstream/pretrain-task-${corpus_name}-base-2gpu_cm_mask_prompt_onlylva.json \
+#                         --config config/downstream/pretrain-task-${corpus_name}-base-2gpu_cm_mask_prompt_icassp.json \
 #                         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
 #                         --checkpoint  /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_noitm_spanS5.5V5.5_lr5e5_bs800/ckpt/model_step_30000.pt \
 #                         --learning_rate ${lr} --lr_sched_type 'linear'  --gradient_accumulation_steps 1 \
@@ -903,6 +903,28 @@ corpus_name_L='IEMOCAP'
 #                         --train_batch_size 32 --val_batch_size 32 \
 #                         --num_train_steps 3000 --warmup_steps 100 --valid_steps 100 \
 #                         --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_spanS5.5V5.5_step3w-cm_mask_prompt_onlylva_lr${lr}_trnval_seed${seed}/${cvNo}
+#         done
+#     done
+# done
+
+# case1: all seven cases mores5.5v5.5
+# for lr in 5e-5
+# do
+#     for seed in 42 1234 4321 5678
+#     do
+#         for cvNo in $(seq 1 10)
+#         do
+#         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python pretrain.py \
+#                         --cvNo ${cvNo} --n_workers 1 --use_speech --use_visual \
+#                         --prompt_type iam --seed ${seed} \
+#                         --config config/downstream/pretrain-task-${corpus_name}-base-2gpu_cm_mask_prompt_icassp.json \
+#                         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#                         --checkpoint  /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_mores5.5v5.5_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
+#                         --learning_rate ${lr} --lr_sched_type 'linear'  --gradient_accumulation_steps 1 \
+#                         --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+#                         --train_batch_size 32 --val_batch_size 32 \
+#                         --num_train_steps 3000 --warmup_steps 100 --valid_steps 100 \
+#                         --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_mores5.5v5.5_noitm_step4w-cm_mask_prompt_icassp_lr${lr}_trnval_seed${seed}/${cvNo}
 #         done
 #     done
 # done
