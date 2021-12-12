@@ -207,64 +207,72 @@ corpus_name_L='IEMOCAP'
 
 
 ################# Part3: Explore WWM + Span - ITM tasks + cross-modality-prompt ################################################### 
-# 5000/32=156 156 * 20 epoch=3000 steps
-
-# case1: only mask-va mask-v mask-a
-# for lr in 5e-5
+# 4000/32=125 125 * 20 epoch=2500 steps
+#icassp setting:--- 终于复现了，可能是configure文件改了啥东西
+# for lr in 3e-5
 # do
-#         for cvNo in $(seq 1 10)
-#         do
-#         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python pretrain.py \
-#                         --cvNo ${cvNo} --n_workers 1 --use_speech --use_visual \
-#                         --prompt_type iam \
-#                         --config config/downstream/pretrain-task-${corpus_name}-base-2gpu_cm_mask_prompt_onlycm.json \
-#                         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
-#                         --checkpoint  /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
-#                         --learning_rate ${lr} --lr_sched_type 'linear'  --gradient_accumulation_steps 1 \
-#                         --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
-#                         --train_batch_size 32 --val_batch_size 32 \
-#                         --num_train_steps 3000 --warmup_steps 100 --valid_steps 100 \
-#                         --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt_onlycm_lr${lr}_trnval/${cvNo}
-#         done
-# done
-
-# case2: only l_mask-va l-mask-v l-mask-a l-mask
-# for lr in 5e-5
-# do
-#         for cvNo in $(seq 1 10)
-#         do
-#         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python pretrain.py \
-#                         --cvNo ${cvNo} --n_workers 1 --use_speech --use_visual \
-#                         --prompt_type iam \
-#                         --config config/downstream/pretrain-task-${corpus_name}-base-2gpu_cm_mask_prompt_nocm.json \
-#                         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
-#                         --checkpoint  /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
-#                         --learning_rate ${lr} --lr_sched_type 'linear'  --gradient_accumulation_steps 1 \
-#                         --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
-#                         --train_batch_size 32 --val_batch_size 32 \
-#                         --num_train_steps 3000 --warmup_steps 100 --valid_steps 100 \
-#                         --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt_nocm_lr${lr}_trnval/${cvNo}
-#         done
-# done
-
-# case3: only lva cases
-# for lr in 5e-5
-# do
-#     for seed in 4321
+#     for seed in 42 4321 5678
 #     do
 #         for cvNo in $(seq 1 10)
 #         do
+#         prompt_type=iam
 #         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python pretrain.py \
 #                         --cvNo ${cvNo} --n_workers 1 --use_speech --use_visual \
-#                         --prompt_type iam --seed ${seed} \
-#                         --config config/downstream/pretrain-task-${corpus_name}-base-2gpu_cm_mask_prompt_lva_trn.json \
+#                         --prompt_type ${prompt_type} --seed ${seed} \
+#                         --config config/downstream/pretrain-task-${corpus_name}-base-2gpu_cm_mask_prompt_icassp.json \
+#                         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#                         --checkpoint  /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
+#                         --learning_rate ${lr} --lr_sched_type 'linear'  --gradient_accumulation_steps 1 \
+#                         --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+#                         --train_batch_size 32 --val_batch_size 32 \
+#                         --num_train_steps 4000 --warmup_steps 100 --valid_steps 100 \
+#                         --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt${prompt_type}_icassp_lr${lr}_seed${seed}/${cvNo}
+#         done
+#     done
+# done
+
+#icassp onlylva:---
+# for lr in 5e-5
+# do
+#     for seed in 5678
+#     do
+#         for cvNo in $(seq 1 10)
+#         do
+#         prompt_type=iam
+#         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python pretrain.py \
+#                         --cvNo ${cvNo} --n_workers 1 --use_speech --use_visual \
+#                         --prompt_type ${prompt_type} --seed ${seed} \
+#                         --config config/downstream/pretrain-task-${corpus_name}-base-2gpu_cm_mask_prompt_icassp_onlylva.json \
+#                         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#                         --checkpoint  /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
+#                         --learning_rate ${lr} --lr_sched_type 'linear'  --gradient_accumulation_steps 1 \
+#                         --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+#                         --train_batch_size 32 --val_batch_size 32 \
+#                         --num_train_steps 4000 --warmup_steps 100 --valid_steps 100 \
+#                         --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt${prompt_type}_icassp_onlylva_lr${lr}_seed${seed}/${cvNo}
+#         done
+#     done
+# done
+
+# case3: only test lva cases
+# for lr in 3e-5
+# do
+#     for seed in 1234 4321 5678
+#     do
+#         for cvNo in $(seq 1 10)
+#         do
+#         prompt_type=iam
+#         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python pretrain.py \
+#                         --cvNo ${cvNo} --n_workers 1 --use_speech --use_visual \
+#                         --prompt_type ${prompt_type} --seed ${seed} \
+#                         --config config/downstream/pretrain-task-${corpus_name}-base-2gpu_cm_mask_prompt.json \
 #                         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
 #                         --checkpoint  /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
 #                         --learning_rate ${lr} --lr_sched_type 'linear'  --gradient_accumulation_steps 1 \
 #                         --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                         --train_batch_size 32 --val_batch_size 32 \
 #                         --num_train_steps 3000 --warmup_steps 100 --valid_steps 100 \
-#                         --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt_lr${lr}_lva_trn_seed${seed}/${cvNo}
+#                         --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt${prompt_type}_onlylva_lr${lr}_seed${seed}/${cvNo}
 #         done
 #     done
 # done
@@ -987,55 +995,33 @@ corpus_name_L='IEMOCAP'
 #     done
 # done
 
-################# Part12: Flexiable Prompt and softprompt ########################
+################# Part12: Flexiable Prompt and softprompt for lva modality########################
 # for lr in 3e-5
 # do
-#     for seed in 1234 4321 5678
+#     for seed in 5678
 #     do
 #         for cvNo in $(seq 1 10)
 #         do
 #         prompt_type=iam
+#         num_train_steps=4000
 #         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python pretrain.py \
 #                         --cvNo ${cvNo} --n_workers 1 --use_speech --use_visual \
 #                         --prompt_type ${prompt_type} --seed ${seed} \
-#                         --config config/downstream/pretrain-task-${corpus_name}-base-2gpu_cm_mask_flexprompt_onlylva.json \
+#                         --config config/downstream/pretrain-task-${corpus_name}-base-2gpu_cm_mask_flexprompt_miss.json \
 #                         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
 #                         --checkpoint  /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
 #                         --learning_rate ${lr} --lr_sched_type 'linear'  --gradient_accumulation_steps 1 \
 #                         --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                         --train_batch_size 32 --val_batch_size 32 \
-#                         --num_train_steps 3000 --warmup_steps 100 --valid_steps 100 \
-#                         --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_flexprompt${prompt_type}_onlylva_lr${lr}_trnval_seed${seed}/${cvNo}
+#                         --num_train_steps ${num_train_steps} --warmup_steps 100 --valid_steps 100 \
+#                         --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_flexprompt${prompt_type}_miss_lr${lr}_trn${num_train_steps}_trnval_seed${seed}/${cvNo}
 #         done
 #     done
 # done
-
-# for lr in 3e-5
+ 
+# for lr in 3e-5 5e-5
 # do
-#     for seed in 1234 4321 5678
-#     do
-#         for cvNo in $(seq 1 10)
-#         do
-#         prompt_type=ifeel
-#         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python pretrain.py \
-#                         --cvNo ${cvNo} --n_workers 1 --use_speech --use_visual \
-#                         --prompt_type ${prompt_type} --seed ${seed} \
-#                         --config config/downstream/pretrain-task-${corpus_name}-base-2gpu_cm_mask_flexprompt_onlylva.json \
-#                         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
-#                         --checkpoint  /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
-#                         --learning_rate ${lr} --lr_sched_type 'linear'  --gradient_accumulation_steps 1 \
-#                         --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
-#                         --train_batch_size 32 --val_batch_size 32 \
-#                         --num_train_steps 3000 --warmup_steps 100 --valid_steps 100 \
-#                         --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_flexprompt${prompt_type}_onlylva_lr${lr}_trnval_seed${seed}/${cvNo}
-#         done
-#     done
-# done
-
-
-# for lr in 3e-5
-# do
-#     for seed in 1234 4321 5678
+#     for seed in 5678
 #     do
 #         for cvNo in $(seq 1 10)
 #         do
@@ -1043,22 +1029,22 @@ corpus_name_L='IEMOCAP'
 #         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python pretrain.py \
 #                         --cvNo ${cvNo} --n_workers 1 --use_speech --use_visual \
 #                         --prompt_type ${prompt_type} --seed ${seed} \
-#                         --config config/downstream/pretrain-task-${corpus_name}-base-2gpu_cm_mask_flexprompt_onlylva.json \
+#                         --config config/downstream/pretrain-task-${corpus_name}-base-2gpu_cm_mask_flexprompt_miss.json \
 #                         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
 #                         --checkpoint  /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
 #                         --learning_rate ${lr} --lr_sched_type 'linear'  --gradient_accumulation_steps 1 \
 #                         --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                         --train_batch_size 32 --val_batch_size 32 \
-#                         --num_train_steps 3000 --warmup_steps 100 --valid_steps 100 \
-#                         --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_flexprompt${prompt_type}_onlylva_lr${lr}_trnval_seed${seed}/${cvNo}
+#                         --num_train_steps 4000 --warmup_steps 100 --valid_steps 100 \
+#                         --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_flexprompt${prompt_type}_miss_lr${lr}_trnval_seed${seed}/${cvNo}
 #         done
 #     done
 # done
 
 
-# for lr in 3e-5
+# for lr in 5e-5 3e-5
 # do
-#     for seed in 1234 4321 5678
+#     for seed in 5678
 #     do
 #         for cvNo in $(seq 1 10)
 #         do
@@ -1066,14 +1052,58 @@ corpus_name_L='IEMOCAP'
 #         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python pretrain.py \
 #                         --cvNo ${cvNo} --n_workers 1 --use_speech --use_visual \
 #                         --prompt_type ${prompt_type} --seed ${seed} \
-#                         --config config/downstream/pretrain-task-${corpus_name}-base-2gpu_cm_mask_flexprompt_onlylva.json \
+#                         --config config/downstream/pretrain-task-${corpus_name}-base-2gpu_cm_mask_flexprompt_miss.json \
 #                         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
 #                         --checkpoint  /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
 #                         --learning_rate ${lr} --lr_sched_type 'linear'  --gradient_accumulation_steps 1 \
 #                         --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                         --train_batch_size 32 --val_batch_size 32 \
-#                         --num_train_steps 3000 --warmup_steps 100 --valid_steps 100 \
-#                         --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_flexprompt${prompt_type}_onlylva_lr${lr}_trnval_seed${seed}/${cvNo}
+#                         --num_train_steps 4000 --warmup_steps 100 --valid_steps 100 \
+#                         --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_flexprompt${prompt_type}_miss_lr${lr}_trnval_seed${seed}/${cvNo}
+#         done
+#     done
+# done
+
+# for lr in 3e-5
+# do
+#     for seed in 4321
+#     do
+#         for cvNo in $(seq 1 10)
+#         do
+#         prompt_type=halfsoftprompt3
+#         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python pretrain.py \
+#                         --cvNo ${cvNo} --n_workers 1 --use_speech --use_visual \
+#                         --prompt_type ${prompt_type} --seed ${seed} \
+#                         --config config/downstream/pretrain-task-${corpus_name}-base-2gpu_cm_mask_flexprompt_miss.json \
+#                         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#                         --checkpoint  /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
+#                         --learning_rate ${lr} --lr_sched_type 'linear'  --gradient_accumulation_steps 1 \
+#                         --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+#                         --train_batch_size 32 --val_batch_size 32 \
+#                         --num_train_steps 4000 --warmup_steps 100 --valid_steps 100 \
+#                         --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_flexprompt${prompt_type}_miss_lr${lr}_trnval_seed${seed}/${cvNo}
+#         done
+#     done
+# done
+
+# for lr in 3e-5
+# do
+#     for seed in 4321
+#     do
+#         for cvNo in $(seq 1 10)
+#         do
+#         prompt_type=halfsoftprompt3iam
+#         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python pretrain.py \
+#                         --cvNo ${cvNo} --n_workers 1 --use_speech --use_visual \
+#                         --prompt_type ${prompt_type} --seed ${seed} \
+#                         --config config/downstream/pretrain-task-${corpus_name}-base-2gpu_cm_mask_flexprompt_miss.json \
+#                         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#                         --checkpoint  /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
+#                         --learning_rate ${lr} --lr_sched_type 'linear'  --gradient_accumulation_steps 1 \
+#                         --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+#                         --train_batch_size 32 --val_batch_size 32 \
+#                         --num_train_steps 4000 --warmup_steps 100 --valid_steps 100 \
+#                         --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_flexprompt${prompt_type}_miss_lr${lr}_trnval_seed${seed}/${cvNo}
 #         done
 #     done
 # done

@@ -24,6 +24,8 @@ class FlexPromptMaskDataset(DetectFeatTxtTokDataset):
             'svtifeel': [[1056], [1058], [1055], [1024], [1045], [2514], [103], [2083]],
             'softprompt3': [[2], [3], [4], [103], [5], [6], [7]],
             'softprompt5': [[2], [3], [4], [5], [6], [103], [7], [8], [9], [10], [11]],
+            'halfsoftprompt3': [[2], [3], [4], [103]],
+            'halfsoftprompt3iam': [[2], [3], [4], [1045], [2572], [103]],
         }
         self.prompt_input_ids = self.set_prompt_input_ids[prompt_type]
 
@@ -160,7 +162,9 @@ class CrossModalFlexPromptMaskDataset(DetectFeatTxtTokDataset):
             'ifeel': [[1045], [2514], [103], [2083]],
             'svtifeel': [[1056], [1058], [1055], [1024], [1045], [2514], [103], [2083]],
             'softprompt3': [[2], [3], [4], [103], [5], [6], [7]],
-            'softprompt5': [[2], [3], [4], [5], [6], [103], [7], [8], [9], [10], [11]]
+            'softprompt5': [[2], [3], [4], [5], [6], [103], [7], [8], [9], [10], [11]],
+            'halfsoftprompt3': [[2], [3], [4], [103]],
+            'halfsoftprompt3iam': [[2], [3], [4], [1045], [2572], [103]],
         }
         self.prompt_input_ids = self.set_prompt_input_ids[prompt_type]
 

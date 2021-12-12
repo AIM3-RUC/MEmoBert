@@ -730,7 +730,8 @@ def main(opts):
         checkpoint = {}
     model = UniterForPretraining.from_pretrained(
         opts.model_config, checkpoint, img_dim=opts.IMG_DIM, speech_dim=opts.Speech_DIM, 
-        img_label_dim=IMG_LABEL_DIM, use_visual=opts.use_visual, use_speech=opts.use_speech)
+        img_label_dim=IMG_LABEL_DIM, use_visual=opts.use_visual, use_speech=opts.use_speech,
+        frozen_en_layers=opts.frozen_en_layers)
         
     model.to(device)
     model.train()
@@ -1581,6 +1582,8 @@ if __name__ == "__main__":
     parser.add_argument("--warmup_steps", default=10000, type=int,
                         help="Number of training steps to perform linear "
                              "learning rate warmup for.")
+    parser.add_argument("--frozen_en_layers", default=0, type=int, 
+                help="frozen how many layers of the pretrained model")
 
     # device parameters
     parser.add_argument('--seed', type=int, default=42,

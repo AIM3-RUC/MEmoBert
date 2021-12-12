@@ -1797,7 +1797,7 @@ corpus_name_L='IEMOCAP'
 # do
 #         for lr in 5e-5
 #         do
-#                 for cvNo in $(seq 1 10)
+#                 for cvNo in $(seq 6 10)
 #                 do
 #                 num_train_steps=1500
 #                 valid_steps=100

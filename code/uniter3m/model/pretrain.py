@@ -55,11 +55,12 @@ class EmoClassification(nn.Module):
 
 class UniterForPretraining(UniterPreTrainedModel):
     """ UNITER pretraining """
-    def __init__(self, config, img_dim, speech_dim, img_label_dim, use_visual, use_speech):
+    def __init__(self, config, img_dim, speech_dim, img_label_dim, use_visual, use_speech, frozen_en_layers=0):
         super().__init__(config)
         self.config = config
         self.use_speech = use_speech
         self.use_visual = use_visual
+        self.frozen_en_layers = frozen_en_layers
         self.uniter = UniterModel(config, img_dim, speech_dim, use_visual=self.use_visual, 
                                     use_speech=self.use_speech)
 
@@ -174,7 +175,7 @@ class UniterForPretraining(UniterPreTrainedModel):
         '''
         input_ids = batch['input_ids']
         # (batch, max-len, dim)
-        sequence_output = self.uniter(batch, output_all_encoded_layers=False)
+        sequence_output = self.uniter(batch, output_all_encoded_layers=False, frozen_en_layers=self.frozen_en_layers)
         # get only the text part
         sequence_output = sequence_output[:, :input_ids.size(1), :]
         # only compute masked tokens for better efficiency
@@ -197,7 +198,7 @@ class UniterForPretraining(UniterPreTrainedModel):
         '''
         input_ids = batch['input_ids']
         # (batch, max-len, dim)
-        sequence_output = self.uniter(batch, output_all_encoded_layers=False)
+        sequence_output = self.uniter(batch, output_all_encoded_layers=False, frozen_en_layers=self.frozen_en_layers)
         # get only the text part
         sequence_output = sequence_output[:, :input_ids.size(1), :]
         # only compute masked tokens for better efficiency
@@ -242,7 +243,7 @@ class UniterForPretraining(UniterPreTrainedModel):
         '''
         input_ids = batch['input_ids']
         # (batch, max-len, dim)
-        sequence_output = self.uniter(batch, use_emolare_input, output_all_encoded_layers=False)
+        sequence_output = self.uniter(batch, use_emolare_input, output_all_encoded_layers=False, frozen_en_layers=self.frozen_en_layers)
         # get only the text part
         sequence_output = sequence_output[:, :input_ids.size(1), :]
         prediction_scores = self.cls(sequence_output)
@@ -306,7 +307,7 @@ class UniterForPretraining(UniterPreTrainedModel):
                      feat_targets, compute_loss=True):
 
         sequence_output = self.uniter(batch, output_all_encoded_layers=False,
-                                      img_masks=img_masks)
+                                      img_masks=img_masks, frozen_en_layers=self.frozen_en_layers)
         # only compute masked tokens for better efficiency
         masked_output = self._compute_masked_hidden(sequence_output,
                                                     img_mask_tgt)
@@ -323,7 +324,7 @@ class UniterForPretraining(UniterPreTrainedModel):
                      feat_targets, compute_loss=True):
 
         sequence_output = self.uniter(batch, output_all_encoded_layers=False,
-                                      speech_masks=speech_masks)
+                                      speech_masks=speech_masks, frozen_en_layers=self.frozen_en_layers)
         # only compute masked tokens for better efficiency
         masked_output = self._compute_masked_hidden(sequence_output,
                                                     speech_mask_tgt)
@@ -338,7 +339,7 @@ class UniterForPretraining(UniterPreTrainedModel):
 
 
     def forward_itm(self, batch, targets, compute_loss=True):
-        sequence_output = self.uniter(batch, output_all_encoded_layers=False)
+        sequence_output = self.uniter(batch, output_all_encoded_layers=False, frozen_en_layers=self.frozen_en_layers)
         pooled_output = self.uniter.pooler(sequence_output)
         itm_scores = self.itm_output(pooled_output)
 
@@ -349,7 +350,7 @@ class UniterForPretraining(UniterPreTrainedModel):
             return itm_scores
     
     def forward_eitm(self, batch, targets, compute_loss=True):
-        sequence_output = self.uniter(batch, output_all_encoded_layers=False)
+        sequence_output = self.uniter(batch, output_all_encoded_layers=False, frozen_en_layers=self.frozen_en_layers)
         pooled_output = self.uniter.pooler(sequence_output)
         eitm_scores = self.eitm_output(pooled_output)
         if compute_loss:
@@ -363,7 +364,7 @@ class UniterForPretraining(UniterPreTrainedModel):
         targets: probs or logits or hard-category
             emocls_type: soft using kl-loss, logits using kl-loss, hard using ce-loss
         '''
-        sequence_output = self.uniter(batch, output_all_encoded_layers=False)
+        sequence_output = self.uniter(batch, output_all_encoded_layers=False, frozen_en_layers=self.frozen_en_layers)
         pooled_output = self.uniter.pooler(sequence_output)
         prediction_soft_label = self.emo_classifier(pooled_output) # logits
 
@@ -395,7 +396,7 @@ class UniterForPretraining(UniterPreTrainedModel):
     def forward_mrc(self, batch, img_masks, img_mask_tgt,
                     label_targets, task, compute_loss=True):
         sequence_output = self.uniter(batch, output_all_encoded_layers=False,
-                                      img_masks=img_masks)
+                                      img_masks=img_masks, frozen_en_layers=self.frozen_en_layers)
 
         # only compute masked regions for better efficiency
         masked_output = self._compute_masked_hidden(sequence_output,
@@ -419,7 +420,7 @@ class UniterForPretraining(UniterPreTrainedModel):
         shuffled_orders = batch['shuffled_orders']
         targets = batch['targets']
         sequence_output = self.uniter(batch, output_all_encoded_layers=False,
-                                      v_shuffled_orders=shuffled_orders)
+                                      v_shuffled_orders=shuffled_orders, frozen_en_layers=self.frozen_en_layers)
         masked_output = self._compute_masked_hidden(sequence_output, targets != -1)
         # only compute masked regions for better efficiency
         frame_reorder_outputs = self.vfom_output(masked_output)
@@ -432,7 +433,7 @@ class UniterForPretraining(UniterPreTrainedModel):
         shuffled_orders = batch['shuffled_orders']
         targets = batch['targets']
         sequence_output = self.uniter(batch, output_all_encoded_layers=False,
-                                      s_shuffled_orders=shuffled_orders)
+                                      s_shuffled_orders=shuffled_orders, frozen_en_layers=self.frozen_en_layers)
         masked_output = self._compute_masked_hidden(sequence_output, targets != -1)
         # only compute masked regions for better efficiency
         frame_reorder_outputs = self.sfom_output(masked_output)

@@ -70,7 +70,7 @@
                 "cmflexpromptmask"
             ],
             "mix_ratio": [
-                2
+                1
             ]
         },
         {
@@ -104,7 +104,7 @@
                 "cmflexpromptmask"
             ],
             "mix_ratio": [
-                2
+                1
             ]
         },
         {
@@ -138,7 +138,7 @@
                 "cmflexpromptmask"
             ],
             "mix_ratio": [
-                2
+                1
             ]
         },
         {
@@ -157,6 +157,93 @@
     ],
     "val_datasets": [
         {
+            "name": "iemocap_val_l_mask_av",
+            "db": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val_wwm_nrcemolex.db"
+            ],
+            "img": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/feat_th0.0_max36_min10"
+            ],
+            "speech": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10"
+            ],
+            "tasks": [
+                "flexpromptmask"
+            ]
+        },
+        {
+            "name": "iemocap_val_l_mask_v",
+            "db": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val_wwm_nrcemolex.db"
+            ],
+            "img": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/feat_th0.0_max36_min10"
+            ],
+            "tasks": [
+                "flexpromptmask"
+            ]
+        },
+        {
+            "name": "iemocap_val_l_mask_a",
+            "db": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val_wwm_nrcemolex.db"
+            ],
+            "speech": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10"
+            ],
+            "tasks": [
+                "flexpromptmask"
+            ]
+        },
+        {
+            "name": "iemocap_val_l_mask",
+            "db": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val_wwm_nrcemolex.db"
+            ],
+            "tasks": [
+                "flexpromptmask"
+            ]
+        },
+        {
+            "name": "iemocap_val_mask_av",
+            "db": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val_wwm_nrcemolex.db"
+            ],
+            "img": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/feat_th0.0_max36_min10"
+            ],
+            "speech": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10"
+            ],
+            "tasks": [
+                "cmflexpromptmask"
+            ]
+        },
+        {
+            "name": "iemocap_val_mask_v",
+            "db": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val_wwm_nrcemolex.db"
+            ],
+            "img": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/feat_th0.0_max36_min10"
+            ],
+            "tasks": [
+                "cmflexpromptmask"
+            ]
+        },
+        {
+            "name": "iemocap_val_mask_a",
+            "db": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/val_wwm_nrcemolex.db"
+            ],
+            "speech": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10"
+            ],
+            "tasks": [
+                "cmflexpromptmask"
+            ]
+        },
+        {
             "name": "iemocap_tst_l_mask_av",
             "db": [
                 "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst_wwm_nrcemolex.db"
@@ -168,7 +255,79 @@
                 "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10"
             ],
             "tasks": [
-                "flexpromptmask"         
+                "flexpromptmask"
+            ]
+        },
+        {
+            "name": "iemocap_tst_l_mask_v",
+            "db": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst_wwm_nrcemolex.db"
+            ],
+            "img": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/feat_th0.0_max36_min10"
+            ],
+            "tasks": [
+                "flexpromptmask"
+            ]
+        },
+        {
+            "name": "iemocap_tst_l_mask_a",
+            "db": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst_wwm_nrcemolex.db"
+            ],
+            "speech": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10"
+            ],
+            "tasks": [
+                "flexpromptmask"
+            ]
+        },
+        {
+            "name": "iemocap_tst_l_mask",
+            "db": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst_wwm_nrcemolex.db"
+            ],
+            "tasks": [
+                "flexpromptmask"
+            ]
+        },
+        {
+            "name": "iemocap_tst_mask_av",
+            "db": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst_wwm_nrcemolex.db"
+            ],
+            "img": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/feat_th0.0_max36_min10"
+            ],
+            "speech": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10"
+            ],
+            "tasks": [
+                "cmflexpromptmask"
+            ]
+        },
+        {
+            "name": "iemocap_tst_mask_v",
+            "db": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst_wwm_nrcemolex.db"
+            ],
+            "img": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/feature/denseface_openface_iemocap_mean_std_torch/img_db/fc/feat_th0.0_max36_min10"
+            ],
+            "tasks": [
+                "cmflexpromptmask"
+            ]
+        },
+        {
+            "name": "iemocap_tst_mask_a",
+            "db": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{}/tst_wwm_nrcemolex.db"
+            ],
+            "speech": [
+                "/data7/emobert/exp/evaluation/IEMOCAP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10"
+            ],
+            "tasks": [
+                "cmflexpromptmask"
             ]
         }
     ]
