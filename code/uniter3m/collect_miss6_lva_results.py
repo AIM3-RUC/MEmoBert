@@ -10,7 +10,7 @@ def write_file(filepath, lines):
     with open(filepath, 'w', encoding='utf-8') as f:
         f.writelines(lines)
 
-def get_latest_result(path, result_template):
+def get_latest_lva_result(path, result_template):
     # 挑选UA最大的那组
     log_path = os.path.join(path, 'log.txt')
     f = open(log_path)
@@ -29,10 +29,10 @@ def get_latest_result(path, result_template):
 
 if __name__ == '__main__':
     result_root = '/data7/MEmoBert/emobert/exp/evaluation/MSP/finetune'
-    output_name = 'miss-nomask-movies-v1v2v3-base-uniter3m_speechwav2vec_5tasks_wwm_span_noitm_train4w_froze0-lr3e-5_trnval_seed{}/drop0.1_frozen0_vqa_none'
+    output_name = 'miss-nomask-directTrain-uniter3m_visual_wav2vec_text-lr5e-5_train2500_trnval_seed{}/drop0.1_frozen0_vqa_none'
     type_eval = 'UA'
     result_template = 'Test: OrderedDict'
-    for seed in [1234, 4321, 5678]:
+    for seed in [42, 1234, 4321, 5678]:
         all_lines = []
         all_tst_wa_results = []
         all_tst_ua_results = []
@@ -40,7 +40,7 @@ if __name__ == '__main__':
         result_path = os.path.join(result_dir,  'result_lva.csv')
         for cvNo in range(1, 13):
             log_dir = os.path.join(result_dir,  str(cvNo), 'log')
-            test_log = get_latest_result(log_dir, result_template)
+            test_log = get_latest_lva_result(log_dir, result_template)
             all_tst_wa_results.append(test_log['testlva']['WA'])
             all_tst_ua_results.append(test_log['testlva']['UA'])
             # remove one bad result and average 

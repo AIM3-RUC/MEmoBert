@@ -63,37 +63,37 @@ from code.uniter.pretrain import build_dataloader, build_dataloader_itm
 def build_mlm_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:
         if img_db is not None and speech_db is not None:
-            datasets = [MlmDataset(t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+            datasets = [MlmDataset(t, i, s, mask_prob=opts.mlm_prob) for t, i, s in zip(txt_db, img_db, speech_db)]
         elif img_db is None and speech_db is not None:
-            datasets = [MlmDataset(t, None, s) for t, s in zip(txt_db, speech_db)]
+            datasets = [MlmDataset(t, None, s, mask_prob=opts.mlm_prob) for t, s in zip(txt_db, speech_db)]
         elif img_db is not None and speech_db is None:
-            datasets = [MlmDataset(t, i, None) for t, i in zip(txt_db, img_db)]
+            datasets = [MlmDataset(t, i, None, mask_prob=opts.mlm_prob) for t, i in zip(txt_db, img_db)]
         elif img_db is None and speech_db is None:
             LOGGER.info('[Debug in mlm dataset] the img and speech modality are None!')
-            datasets = [MlmDataset(t, None, None) for t in txt_db]
+            datasets = [MlmDataset(t, None, None, mask_prob=opts.mlm_prob) for t in txt_db]
         else:
             LOGGER.info('[Error] Error mlm datasets')
         dataset = ConcatDatasetWithLens(datasets)
     else:
-        dataset = MlmDataset(txt_db, img_db, speech_db)
+        dataset = MlmDataset(txt_db, img_db, speech_db, mask_prob=opts.mlm_prob)
     return dataset, mlm_collate
 
 def build_mlm_wwm_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:
         if img_db is not None and speech_db is not None:
-            datasets = [MlmWWMDataset(t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+            datasets = [MlmWWMDataset(t, i, s, mask_prob=opts.mlm_prob) for t, i, s in zip(txt_db, img_db, speech_db)]
         elif img_db is None and speech_db is not None:
-            datasets = [MlmWWMDataset(t, None, s) for t, s in zip(txt_db, speech_db)]
+            datasets = [MlmWWMDataset(t, None, s, mask_prob=opts.mlm_prob) for t, s in zip(txt_db, speech_db)]
         elif img_db is not None and speech_db is None:
-            datasets = [MlmWWMDataset(t, i, None) for t, i in zip(txt_db, img_db)]
+            datasets = [MlmWWMDataset(t, i, None, mask_prob=opts.mlm_prob) for t, i in zip(txt_db, img_db)]
         elif img_db is None and speech_db is None:
             LOGGER.info('[Debug in mlm dataset] the img and speech modality are None!')
-            datasets = [MlmWWMDataset(t, None, None) for t in txt_db]
+            datasets = [MlmWWMDataset(t, None, None, mask_prob=opts.mlm_prob) for t in txt_db]
         else:
             LOGGER.info('[Error] Error mlm_wwm datasets')
         dataset = ConcatDatasetWithLens(datasets)
     else:
-        dataset = MlmWWMDataset(txt_db, img_db, speech_db)
+        dataset = MlmWWMDataset(txt_db, img_db, speech_db, mask_prob=opts.mlm_prob)
     return dataset, mlm_wwm_collate
 
 
@@ -1492,6 +1492,8 @@ if __name__ == "__main__":
     parser.add_argument('--melm_prob', default=0.5, type=float,
                         help='probability to mask in MELM training')
     # traditional task
+    parser.add_argument('--mlm_prob', default=0.15, type=float,
+                        help='probability to mask in MLM or WWM-MLM training')
     parser.add_argument('--mrm_prob', default=0.15, type=float,
                         help='probability to mask in MRM training')
     parser.add_argument('--msrm_prob', default=0.15, type=float,

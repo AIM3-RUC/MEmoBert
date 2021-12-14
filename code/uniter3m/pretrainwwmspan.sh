@@ -229,7 +229,6 @@ export PYTHONPATH=/data7/MEmoBert
 #         --num_train_steps 40000 --warmup_steps 4000 --valid_steps 5000 \
 #         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechcomparE_4tasks_wwm_span_noitm_lr5e5_bs800
 
-
 ## case11: speech + visual + text running on wwm + span - itm -- Use this 
 # CUDA_VISIBLE_DEVICES=4 horovodrun -np 1 python pretrain.py \
 #         --cvNo 0 --n_workers 4 --use_visual --use_speech \
@@ -253,3 +252,27 @@ export PYTHONPATH=/data7/MEmoBert
 #         --train_batch_size 160 --val_batch_size 160 \
 #         --num_train_steps 40000 --warmup_steps 4000 --valid_steps 5000 \
 #         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_mores5.5v5.5_noitm_lr5e5_bs800
+
+#### case12: speech + visual + text running on noitm + wwm + mrm and msrm with whole mask
+# CUDA_VISIBLE_DEVICES=1 horovodrun -np 1 python pretrain.py \
+#         --cvNo 0 --n_workers 4 --use_visual --use_speech \
+#         --mrm_prob 1.0 --msrm_prob 1.0 \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks_wwm_mrm_msrm_noitm.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --learning_rate 5e-05 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 768 \
+#         --train_batch_size 160 --val_batch_size 160 \
+#         --num_train_steps 60000 --warmup_steps 6000 --valid_steps 10000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_mrm_msrm_maskprobv.1s.1_noitm_lr5e5_bs800
+
+#### case12: speech + visual + text running on noitm + wwm + mrm and msrm with whole mask
+# CUDA_VISIBLE_DEVICES=2 horovodrun -np 1 python pretrain.py \
+#         --cvNo 0 --n_workers 4 --use_visual --use_speech \
+#         --mrm_prob 1.0 --msrm_prob 1.0 --mlm_prob 1.0 \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks_wwm_mrm_msrm_noitm.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --learning_rate 5e-05 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 768 \
+#         --train_batch_size 160 --val_batch_size 160 \
+#         --num_train_steps 60000 --warmup_steps 6000 --valid_steps 10000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_mrm_msrm_maskprobv.1s.1t.1_noitm_lr5e5_bs800

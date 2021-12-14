@@ -11,12 +11,13 @@ from toolz.sandbox import unzip
 from code.uniter3m.data.data import (DetectFeatTxtTokDataset, TxtTokLmdb,
                    pad_tensors, get_gather_index)
 
-def random_wwm_word(tokens, vocab_range, mask):
+def random_wwm_word(tokens, vocab_range, mask, mask_prob):
     """
     Masking some random tokens for Language Model task with probabilities as in
         the original BERT paper.
     :param tokens: list of list, tokenized sentence. [word1_tokens, word2_tokens]
     :param vocab_range: for choosing a random word
+    :param mask_prob: default is 0.15 which is similar with BERT
     :return: (list of int), masked tokens and related labels for
         LM prediction
     """
@@ -25,8 +26,8 @@ def random_wwm_word(tokens, vocab_range, mask):
     for i, word_tokens in enumerate(tokens):
         prob = random.random()
         # mask token with 15% probability
-        if prob < 0.15:
-            prob /= 0.15
+        if prob < mask_prob:
+            prob /= mask_prob
             # 80% randomly change token to mask token
             if prob < 0.8:
                 # print('[Debug] 0.8 predict mask token {}'.format(token))
@@ -59,9 +60,10 @@ def random_wwm_word(tokens, vocab_range, mask):
     return new_tokens, new_output_label
 
 class MlmWWMDataset(DetectFeatTxtTokDataset):
-    def __init__(self, txt_db, img_db, speech_db):
+    def __init__(self, txt_db, img_db, speech_db, mask_prob=0.15):
         assert isinstance(txt_db, TxtTokLmdb)
         super().__init__(txt_db, img_db, speech_db)
+        self.mask_prob = mask_prob
         self.img_shape = None
 
     def __getitem__(self, i):
@@ -104,7 +106,8 @@ class MlmWWMDataset(DetectFeatTxtTokDataset):
         # print('[Debug] In MLM, the original input ids: {}'.format(input_ids))
         input_ids, txt_labels = random_wwm_word(input_ids,
                                             self.txt_db.v_range,
-                                            self.txt_db.mask)
+                                            self.txt_db.mask,
+                                            self.mask_prob)
         input_ids = torch.tensor([self.txt_db.cls_]
                                  + input_ids
                                  + [self.txt_db.sep])
