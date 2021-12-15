@@ -549,26 +549,34 @@ def combine_several_dbs(txt_db_lists, all_db_path):
     id2len = collections.OrderedDict()
     txt2img = collections.OrderedDict()
     img2txt = defaultdict(list)
+    total_text_ids = []
+    total_examples = []
+    current_set_start_textId = 0
+    for part_txt_db in txt_db_lists:
+        text2img_path = os.path.join(part_txt_db, 'txt2img.json')
+        text2img = json.load(open(text2img_path))
+        textIds = list(text2img.keys())
+        print('exist {} txts'.format(len(textIds)))
+        txn = read_txt_db(part_txt_db)
+        for textId in textIds:
+            example = msgpack.loads(decompress(txn.get(textId.encode('utf-8'))), raw=False)
+            total_text_ids.append(str(current_set_start_textId + int(textId)))
+            example['id'] = str(current_set_start_textId + int(textId))
+            total_examples.append(example)
+        current_set_start_textId = current_set_start_textId + 1 + int(textId)
+    print('total samples {} {} {}'.format(len(total_text_ids), len(list(set(total_text_ids))), len(total_examples)))
     open_db = curry(open_lmdb, all_db_path, readonly=False)
-    current_text_id = 0
     with open_db() as db:
-        for part_txt_db in txt_db_lists:
-            text2img_path = os.path.join(part_txt_db, 'txt2img.json')
-            text2img = json.load(open(text2img_path))
-            textIds = list(text2img.keys())
-            print('total {} txts'.format(len(text2img)))
-            txn = read_txt_db(part_txt_db)
-            for textId in tqdm(textIds, total=len(textIds)):
-                current_text_id = current_text_id + int(textId.encode('utf-8'))
-                current_text_id = str(current_text_id)
-                example = msgpack.loads(decompress(txn.get(current_text_id)), raw=False)
-                assert example['id'] == current_text_id
-                db[current_text_id] = example
-                id2len[current_text_id] = len(example['input_ids'])
-                img_fname = example['img_fname']
-                txt2img[current_text_id] = img_fname
-                img2txt[img_fname] = current_text_id
-    print('total samples {} {}'.format(current_text_id, len(id2len)))
+        print('hahhahha')
+        for i, textId in enumerate(total_text_ids):
+            example = total_examples[i]
+            assert example['id'] == textId
+            db[textId] = example
+            id2len[textId] = len(example['input_ids'])
+            img_fname = example['img_fname']
+            txt2img[textId] = img_fname
+            img2txt[img_fname] = textId
+    print('total samples {} {}'.format(textId, len(id2len)))
     with open(f'{all_db_path}/id2len.json', 'w') as f:
         json.dump(id2len, f)
     with open(f'{all_db_path}/txt2img.json', 'w') as f:
@@ -577,7 +585,7 @@ def combine_several_dbs(txt_db_lists, all_db_path):
         json.dump(img2txt, f)
     meta = {}
     meta['output'] = all_db_path
-    meta['num_samples'] = len(textIds)
+    meta['num_samples'] = len(total_text_ids)
     meta['tokenizer'] = "bert-base-uncased"
     meta['toker'] = "bert-base-uncased"
     meta['UNK'] = 100
@@ -676,9 +684,9 @@ if __name__ == '__main__':
 
     if True:
         dbs = [
-            '/data7/emobert/exp/evaluation/IEMOCAP/txt_db/1/trn_emowords_sentiword.db',
-            '/data7/emobert/exp/evaluation/IEMOCAP/txt_db/1/val_emowords_sentiword.db',
-            '/data7/emobert/exp/evaluation/IEMOCAP/txt_db/1/tst_emowords_sentiword.db',
+            '/data7/emobert/exp/evaluation/MSP/txt_db/1/trn_emowords_sentiword.db',
+            '/data7/emobert/exp/evaluation/MSP/txt_db/1/val_emowords_sentiword.db',
+            '/data7/emobert/exp/evaluation/MSP/txt_db/1/tst_emowords_sentiword.db',
         ]
-        all_db_path = '/data7/emobert/exp/evaluation/IEMOCAP/txt_db/1/all_emowords_sentiword.db',
+        all_db_path = '/data7/emobert/exp/evaluation/MSP/txt_db/1/all_emowords_sentiword.db'
         combine_several_dbs(dbs, all_db_path)
