@@ -545,6 +545,49 @@ def modify_emotype_vox(setname):
             example['target'] = np.array(target)
             db[textId] = example
 
+def combine_several_dbs(txt_db_lists, all_db_path):
+    id2len = collections.OrderedDict()
+    txt2img = collections.OrderedDict()
+    img2txt = defaultdict(list)
+    open_db = curry(open_lmdb, all_db_path, readonly=False)
+    current_text_id = 0
+    with open_db() as db:
+        for part_txt_db in txt_db_lists:
+            text2img_path = os.path.join(part_txt_db, 'txt2img.json')
+            text2img = json.load(open(text2img_path))
+            textIds = list(text2img.keys())
+            print('total {} txts'.format(len(text2img)))
+            txn = read_txt_db(part_txt_db)
+            for textId in tqdm(textIds, total=len(textIds)):
+                current_text_id = current_text_id + int(textId.encode('utf-8'))
+                current_text_id = str(current_text_id)
+                example = msgpack.loads(decompress(txn.get(current_text_id)), raw=False)
+                assert example['id'] == current_text_id
+                db[current_text_id] = example
+                id2len[current_text_id] = len(example['input_ids'])
+                img_fname = example['img_fname']
+                txt2img[current_text_id] = img_fname
+                img2txt[img_fname] = current_text_id
+    print('total samples {} {}'.format(current_text_id, len(id2len)))
+    with open(f'{all_db_path}/id2len.json', 'w') as f:
+        json.dump(id2len, f)
+    with open(f'{all_db_path}/txt2img.json', 'w') as f:
+        json.dump(txt2img, f)
+    with open(f'{all_db_path}/img2txts.json', 'w') as f:
+        json.dump(img2txt, f)
+    meta = {}
+    meta['output'] = all_db_path
+    meta['num_samples'] = len(textIds)
+    meta['tokenizer'] = "bert-base-uncased"
+    meta['toker'] = "bert-base-uncased"
+    meta['UNK'] = 100
+    meta['CLS'] = 101
+    meta['SEP'] = 102
+    meta['MASK'] = 103
+    meta['v_range'] = [999, 30522]
+    with open(f'{all_db_path}/meta.json', 'w') as f:
+        json.dump(meta, f, indent=4)
+
 # export PYTHONPATH=/data7/MEmoBert
 if __name__ == '__main__':
     pass
@@ -614,14 +657,14 @@ if __name__ == '__main__':
     #         output_txt_db_dir = f'/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls_part{part_ratio}.db'
     #         get_part_data(txt_db_dir, output_txt_db_dir, part_ratio=part_ratio)
     #### 保证相同的数据，所以取出前面划分好的数据的key，根据key把相应的数据取出来
-    part_ratio = 0.1
-    for cvNo in range(1, 11):
-        for setname in ['trn', 'val']:
-            print(f'cur cvNo {cvNo} setnemt {setname}')
-            txt_db_dir = f'/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls_part{part_ratio}.db'
-            ori_output_txt_db_dir = f'/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{cvNo}/{setname}_wwm_nrcemolex_prompt_mask_iam.db'
-            output_txt_db_dir = f'/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{cvNo}/{setname}_wwm_nrcemolex_prompt_mask_iam_part{part_ratio}.db'
-            get_part_data_by_exist_dbs(txt_db_dir, ori_output_txt_db_dir, output_txt_db_dir)
+    # part_ratio = 0.1
+    # for cvNo in range(1, 11):
+    #     for setname in ['trn', 'val']:
+    #         print(f'cur cvNo {cvNo} setnemt {setname}')
+    #         txt_db_dir = f'/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{cvNo}/{setname}_emowords_sentiword_emocls_part{part_ratio}.db'
+    #         ori_output_txt_db_dir = f'/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{cvNo}/{setname}_wwm_nrcemolex_prompt_mask_iam.db'
+    #         output_txt_db_dir = f'/data7/emobert/exp/evaluation/IEMOCAP/txt_db/{cvNo}/{setname}_wwm_nrcemolex_prompt_mask_iam_part{part_ratio}.db'
+    #         get_part_data_by_exist_dbs(txt_db_dir, ori_output_txt_db_dir, output_txt_db_dir)
 
     # if True:
     #     for setname in ['val3k', 'trn3k', 'trn']:
@@ -630,3 +673,12 @@ if __name__ == '__main__':
     # if True:
     #     version = 'p4' #  v1 v2 v3
     #     modify_emotype_opensub(version)
+
+    if True:
+        dbs = [
+            '/data7/emobert/exp/evaluation/IEMOCAP/txt_db/1/trn_emowords_sentiword.db',
+            '/data7/emobert/exp/evaluation/IEMOCAP/txt_db/1/val_emowords_sentiword.db',
+            '/data7/emobert/exp/evaluation/IEMOCAP/txt_db/1/tst_emowords_sentiword.db',
+        ]
+        all_db_path = '/data7/emobert/exp/evaluation/IEMOCAP/txt_db/1/all_emowords_sentiword.db',
+        combine_several_dbs(dbs, all_db_path)
