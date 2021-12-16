@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader, ConcatDataset
 from horovod import torch as hvd
 
 from code.uniter3m.data import (PrefetchLoader, TxtTokLmdb, ImageLmdbGroup, SpeechLmdbGroup, EmoClsDataset, emocls_collate)
-from code.uniter3m.model.emocls import UniterForEmoRecognition, evaluation
+from code.uniter3m.model.emocls import UniterForEmoRecognition, UniterForEmoRecognitionPrompt, evaluation, evaluation_prompt
 from code.uniter3m.utils.logger import LOGGER, TB_LOGGER, add_log_to_file
 from code.uniter3m.utils.distributed import (all_reduce_and_rescale_tensors, broadcast_tensors)
 from code.uniter3m.utils.misc import NoOp, parse_with_config, set_random_seed
@@ -64,21 +64,6 @@ def main(opts):
         eval_all_img_dbs = ImageLmdbGroup(compress=opts.compressed_db)
     if opts.use_speech:
         eval_all_speech_dbs = SpeechLmdbGroup(compress=opts.compressed_db)              
-    # val
-    LOGGER.info(f"Loading Val Dataset {opts.val_img_db}, {opts.val_txt_db}, {opts.val_speech_db}")
-    opts.val_txt_db = opts.val_txt_db.format(opts.cvNo)
-    val_txt_db = TxtTokLmdb(opts.val_txt_db, -1)
-    if opts.use_visual:
-        val_img_db = eval_all_img_dbs[opts.val_img_db]
-    else:
-        val_img_db = None
-    if opts.use_speech:
-        val_speech_db = eval_all_speech_dbs[opts.val_speech_db]
-    else:
-        val_speech_db = None
-    val_dataset = EmoClsDataset(val_txt_db, val_img_db, val_speech_db, use_text=opts.use_text, use_emolare=opts.use_emolare)
-    val_dataloader = build_dataloader(val_dataset, emocls_collate, False, opts)
-    # test
     LOGGER.info(f"Loading Test Dataset {opts.test_img_db}, {opts.test_txt_db} {opts.test_speech_db}")
     opts.test_txt_db = opts.test_txt_db.format(opts.cvNo)
     test_txt_db = TxtTokLmdb(opts.test_txt_db, -1)
@@ -103,19 +88,26 @@ def main(opts):
     new_checkpoint = {}
     for k, v in checkpoint.items():
         if k.startswith('output'):
-            # new_checkpoint['output.' + k] = v
             new_checkpoint[k] = v
         else:
             bert_part_checkpoint[k] = v
             new_checkpoint[k] = v
-    model = UniterForEmoRecognition.from_pretrained(opts.model_config, state_dict=bert_part_checkpoint, \
+    
+    if 'prompt' in checkpoint_model_path:
+        LOGGER.info('[Info] Loading prompt model parameters success!')
+        model = UniterForEmoRecognitionPrompt.from_pretrained(opts.model_config, state_dict=bert_part_checkpoint, \
+                            img_dim=IMG_DIM, speech_dim=Speech_DIM, \
+                            use_visual=opts.use_visual, use_speech=opts.use_speech, \
+                            use_emolare=opts.use_emolare)
+    else:
+        LOGGER.info('[Info] Loading category model parameters success!')
+        model = UniterForEmoRecognition.from_pretrained(opts.model_config, state_dict=bert_part_checkpoint, \
                             img_dim=IMG_DIM, speech_dim=Speech_DIM, \
                             use_visual=opts.use_visual, use_speech=opts.use_speech, \
                             cls_num=opts.cls_num, \
                             frozen_en_layers=opts.frozen_en_layers, \
                             cls_dropout=opts.cls_dropout, cls_type=opts.cls_type, \
                             use_emolare=opts.use_emolare)
-    LOGGER.info('[Info] Loading bert model parameters success!')
     model.load_state_dict(new_checkpoint)
     LOGGER.info('[Info] Loading classifer model parameters success!')
 
@@ -123,18 +115,14 @@ def main(opts):
     # make sure every process has same model parameters in the beginning
     broadcast_tensors([p.data for p in model.parameters()], 0)
 
-    val_log = evaluation(model, val_dataloader)
-    LOGGER.info(f"[Validation] Loss: {val_log['loss']:.2f},"
-                f"\t WA: {val_log['WA']*100:.2f},"
-                f"\t WF1: {val_log['WF1']*100:.2f},"
-                f"\t UA: {val_log['UA']*100:.2f},\n")
-    test_log = evaluation(model, test_dataloader)
+    if 'prompt' in checkpoint_model_path:
+        test_log = evaluation_prompt(model, test_dataloader)
+    else:
+        test_log = evaluation(model, test_dataloader)
     LOGGER.info(f"[Testing] Loss: {test_log['loss']:.2f},"
                 f"\t WA: {test_log['WA']*100:.2f},"
-                f"\t WF1: {val_log['WF1']*100:.2f},"
+                f"\t WF1: {test_log['WF1']*100:.2f},"
                 f"\t UA: {test_log['UA']*100:.2f},\n")
-    ### final use the best model tested on validation set.
-    LOGGER.info('Val: {}'.format(val_log))
     LOGGER.info('Test: {}'.format(test_log))
     write_result_to_tsv(output_tsv, test_log, opts.cvNo)
 
@@ -171,7 +159,7 @@ if __name__ == "__main__":
     # self-modify
     parser.add_argument('--cvNo', type=int, required=True,
                         help='which cross-valiation folder')
-    parser.add_argument('--frozen_en_layers', type=int, required=True,
+    parser.add_argument('--frozen_en_layers', default=12, type=int,
                         help='frozen how many layers of the pretrained model')
     parser.add_argument("--cls_dropout", default=0.3, type=float,
                         help="tune dropout regularization of final classification layer")
@@ -255,9 +243,6 @@ if __name__ == "__main__":
                         help="number of data workers")
     parser.add_argument('--pin_mem', action='store_true',
                         help="pin memory")
-    parser.add_argument('--corpus_name',  default='iemocap', type=str,
-                        help="downstream task name")
-
     # can use config files
     parser.add_argument('--config', help='JSON config files')
 

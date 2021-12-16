@@ -350,11 +350,12 @@ def get_final_results_format(all_tst_results):
 
 if __name__ == '__main__':
     root_dir = '/data7/emobert/exp/prompt_pretrain'
-    output_name = 'msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_mores5.5v5.5_noitm_step4w-cm_mask_prompt_icassp_lr3e-5_trnval_seed{}'
+    output_name = 'msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_mrm_msrm_maskprobv.1s.1t.1_noitm_step6w-cm_mask_prompt_icassp_lr3e-5_trnval_seed{}'
     type_eval = 'UA'
-    for seed in [42, 1234, 4321, 5678]:
+    for seed in [1234, 4321, 5678]:
         result_dir = os.path.join(root_dir, output_name.format(seed))
-        result_path = os.path.join(result_dir, 'result_miss6.csv')
+        # result_path = os.path.join(result_dir, 'result_miss6.csv')
+        result_path = os.path.join(result_dir, 'result_lva.csv')
         all_tst_results = []
         for cvNo in range(1, 13):
             log_dir = os.path.join(result_dir, str(cvNo), 'log')
@@ -379,8 +380,8 @@ if __name__ == '__main__':
             elif '7cases' in output_name:
                 test_log, best_step = get_all_6miss_cases_result(log_dir)
             else:
-                test_log, best_step = get_all_6miss_cases_result(log_dir)
-                # test_log, best_step = get_latest_onlylva_result(log_dir)
+                # test_log, best_step = get_all_6miss_cases_result(log_dir)
+                test_log, best_step = get_latest_onlylva_result(log_dir)
             all_tst_results.append(test_log)
             # clean other ckpkts 
             ckpt_dir = os.path.join(result_dir, str(cvNo), 'ckpt')

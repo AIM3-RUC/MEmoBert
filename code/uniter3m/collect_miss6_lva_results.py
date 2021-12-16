@@ -29,7 +29,7 @@ def get_latest_lva_result(path, result_template):
 
 if __name__ == '__main__':
     result_root = '/data7/MEmoBert/emobert/exp/evaluation/MSP/finetune'
-    output_name = 'miss-nomask-directTrain-uniter3m_visual_wav2vec_text-lr5e-5_train2500_trnval_seed{}/drop0.1_frozen0_vqa_none'
+    output_name = 'msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_promptiam_icassp_lr3e-5_seed{}/drop0.1_frozen0_vqa_none'
     type_eval = 'UA'
     result_template = 'Test: OrderedDict'
     for seed in [42, 1234, 4321, 5678]:
