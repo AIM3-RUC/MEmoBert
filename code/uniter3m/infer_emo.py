@@ -14,7 +14,8 @@ import torch
 from torch.utils.data import DataLoader, ConcatDataset
 from horovod import torch as hvd
 
-from code.uniter3m.data import (PrefetchLoader, TxtTokLmdb, ImageLmdbGroup, SpeechLmdbGroup, EmoClsDataset, emocls_collate)
+from code.uniter3m.data import (PrefetchLoader, TxtTokLmdb, ImageLmdbGroup, SpeechLmdbGroup, 
+                                    EmoClsDataset, emocls_collate, PromptMaskDataset, prompt_mask_collate)
 from code.uniter3m.model.emocls import UniterForEmoRecognition, UniterForEmoRecognitionPrompt, evaluation, evaluation_prompt
 from code.uniter3m.utils.logger import LOGGER, TB_LOGGER, add_log_to_file
 from code.uniter3m.utils.distributed import (all_reduce_and_rescale_tensors, broadcast_tensors)
@@ -75,8 +76,12 @@ def main(opts):
         test_speech_db = eval_all_speech_dbs[opts.test_speech_db]
     else:
         test_speech_db = None
-    test_dataset = EmoClsDataset(test_txt_db, test_img_db, test_speech_db, use_text=opts.use_text, use_emolare=opts.use_emolare)
-    test_dataloader = build_dataloader(test_dataset, emocls_collate, False, opts)
+    if 'prompt' in opts.output_dir:
+        test_dataset = PromptMaskDataset(test_txt_db, test_img_db, test_speech_db)
+        test_dataloader = build_dataloader(test_dataset, prompt_mask_collate, False, opts)
+    else:
+        test_dataset = EmoClsDataset(test_txt_db, test_img_db, test_speech_db, use_text=opts.use_text, use_emolare=opts.use_emolare)
+        test_dataloader = build_dataloader(test_dataset, emocls_collate, False, opts)
 
     # Prepare model
     LOGGER.info('[Info] Loading from pretrained model {}'.format(opts.checkpoint))
@@ -92,15 +97,16 @@ def main(opts):
         else:
             bert_part_checkpoint[k] = v
             new_checkpoint[k] = v
-    
-    if 'prompt' in checkpoint_model_path:
+    if 'prompt' in opts.output_dir:
         LOGGER.info('[Info] Loading prompt model parameters success!')
+        LOGGER.info(bert_part_checkpoint.keys())
         model = UniterForEmoRecognitionPrompt.from_pretrained(opts.model_config, state_dict=bert_part_checkpoint, \
                             img_dim=IMG_DIM, speech_dim=Speech_DIM, \
                             use_visual=opts.use_visual, use_speech=opts.use_speech, \
                             use_emolare=opts.use_emolare)
     else:
         LOGGER.info('[Info] Loading category model parameters success!')
+        LOGGER.info(new_checkpoint.keys())
         model = UniterForEmoRecognition.from_pretrained(opts.model_config, state_dict=bert_part_checkpoint, \
                             img_dim=IMG_DIM, speech_dim=Speech_DIM, \
                             use_visual=opts.use_visual, use_speech=opts.use_speech, \
@@ -108,8 +114,7 @@ def main(opts):
                             frozen_en_layers=opts.frozen_en_layers, \
                             cls_dropout=opts.cls_dropout, cls_type=opts.cls_type, \
                             use_emolare=opts.use_emolare)
-    model.load_state_dict(new_checkpoint)
-    LOGGER.info('[Info] Loading classifer model parameters success!')
+        model.load_state_dict(new_checkpoint)
 
     model.to(device)
     # make sure every process has same model parameters in the beginning

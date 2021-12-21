@@ -119,7 +119,8 @@ class UniterForPretraining(UniterPreTrainedModel):
         gather_index torch.Size([8, 64]) = batch['gather_index']
         '''
         batch = defaultdict(lambda: None, batch)
-        if task.startswith('mlm') or task.startswith('promptmask') or task.startswith('cmpromptmask') or task.startswith('flexpromptmask') or task.startswith('cmflexpromptmask'):
+        if task.startswith('mlm') or task.startswith('promptmask') or task.startswith('cmpromptmask') or \
+                        task.startswith('flexprompt') or task.startswith('cmflexprompt'):
             txt_labels = batch['txt_labels']
             return self.forward_mlm(batch, txt_labels, compute_loss=compute_loss)
         elif task.startswith('melm'):
@@ -131,13 +132,13 @@ class UniterForPretraining(UniterPreTrainedModel):
                 txt_emo_labels = None
             # print('[Debug in MELM forward] the txt_emo_labels {}'.format(txt_emo_labels))
             return self.forward_melm(batch, txt_labels, txt_emo_labels, compute_loss=compute_loss)
-        elif task == 'mrfr' or task == 'merfr' or task == 'mspanrfr' or task == 'mspanrfrnotext':
+        elif task == 'mrfr' or task == 'merfr' or task == 'mspanrfr' or task == 'monespanrfr' or task == 'mspanrfrnotext':
             img_mask_tgt = batch['img_mask_tgt']
             img_masks = batch['img_masks']
             mrfr_feat_target = batch['feat_targets']
             return self.forward_mrfr(batch, img_masks, img_mask_tgt,
                                      mrfr_feat_target, compute_loss=compute_loss)
-        elif task == 'msrfr' or task == 'mspansrfr' or task == 'mspansrfrnotext':
+        elif task == 'msrfr' or task == 'mspansrfr' or task == 'monespansrfr' or task == 'mspansrfrnotext':
             # mspansrfr includes mspansrfrnotext
             speech_mask_tgt = batch['speech_mask_tgt']
             speech_masks = batch['speech_masks']
@@ -150,7 +151,7 @@ class UniterForPretraining(UniterPreTrainedModel):
         elif task == 'eitm':
             targets = batch['targets']
             return self.forward_eitm(batch, targets, compute_loss=compute_loss)
-        elif task.startswith('mrc') or task.startswith('merc') or task.startswith('mspanrc')  or task.startswith('mspanrcnotext'):
+        elif task.startswith('mrc') or task.startswith('merc') or task.startswith('mspanrc') or task.startswith('monespanrc') or task.startswith('mspanrcnotext'):
             img_mask_tgt = batch['img_mask_tgt']
             img_masks = batch['img_masks']
             mrc_label_target = batch['label_targets']

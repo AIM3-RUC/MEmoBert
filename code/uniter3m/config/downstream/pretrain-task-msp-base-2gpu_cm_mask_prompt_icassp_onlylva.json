@@ -34,12 +34,15 @@
         {
             "name": "msp_l_mask_va",
             "db": [
-                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/trn_wwm_nrcemolex_prompt_mask_iam.db"
+                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/trn_wwm_nrcemolex_prompt_mask_iam.db",
+                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/val_wwm_nrcemolex_prompt_mask_iam.db"
             ],
             "img": [
+                "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/feat_th0.0_max36_min10",
                 "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/feat_th0.0_max36_min10"
             ],
             "speech": [
+                "/data7/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10",
                 "/data7/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10"
             ],
             "tasks": [
@@ -52,21 +55,6 @@
     ],
     "val_datasets": [
         {
-            "name": "msp_val_l_mask_av",
-            "db": [
-                "/data7/emobert/exp/evaluation/MSP/txt_db/{}/val_wwm_nrcemolex_prompt_mask_iam.db"
-            ],
-            "img": [
-                "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/feat_th0.0_max36_min10"
-            ],
-            "speech": [
-                "/data7/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10"
-            ],
-            "tasks": [
-                "promptmask"         
-            ]
-        },
-        {
             "name": "msp_tst_l_mask_av",
             "db": [
                 "/data7/emobert/exp/evaluation/MSP/txt_db/{}/tst_wwm_nrcemolex_prompt_mask_iam.db"
@@ -78,7 +66,7 @@
                 "/data7/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10"
             ],
             "tasks": [
-                "promptmask"         
+                "promptmask"
             ]
         }
     ]

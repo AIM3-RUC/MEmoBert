@@ -291,6 +291,7 @@ corpus_name_L='IEMOCAP'
 # done
 
 ################# Part2: Finetune on different modalities and testing on unified model (Data-augmentation) ########################
+# # 7cases * (5000/32) * 8 = 8000
 # nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_mrm_msrm_maskprobv.5s.5_noitm_lr5e5_bs800
 # nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_mrm_msrm_maskprobv.3s.3_noitm_lr5e5_bs800
 # nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_mores5.5v5.5_noitm_lr5e5_bs800
@@ -299,7 +300,7 @@ corpus_name_L='IEMOCAP'
 # nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_mrm_msrm_maskprobv.1s.1_noitm_lr5e5_bs800/ckpt/model_step_60000.pt
 # nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_mrm_msrm_maskprobv.1s.1t.1_noitm_lr5e5_bs800/ckpt/model_step_60000.pt
 # 学习率的问题，参数少需要大学习率，全部Finetune的结果也都很差, 因此这里还是采用正常的学习率
-# for seed in 1234 4321 5678
+# for seed in 4321
 # do
 #     for frozens in 0
 #     do
@@ -307,8 +308,8 @@ corpus_name_L='IEMOCAP'
 #         do
 #             for cvNo in $(seq 1 10)
 #             do
-#             num_train_steps=2000
-#             valid_steps=100
+#             num_train_steps=8000
+#             valid_steps=200
 #             train_batch_size=32
 #             inf_batch_size=32
 #             CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo_miss.py \
@@ -323,7 +324,7 @@ corpus_name_L='IEMOCAP'
 #                     --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
 #                     --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
 #                     --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
-#                     --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/miss-nomask-movies-v1v2v3-base-uniter3m_speechwav2vec_5tasks_wwm_span_noitm_train4w_froze${frozens}-lr${lr}_trnval_seed${seed}
+#                     --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/miss-nomask-movies-v1v2v3-base-uniter3m_speechwav2vec_5tasks_wwm_span_noitm_train4w_froze${frozens}-lr${lr}_trnval_trn${num_train_steps}_seed${seed}
 #             done
 #         done
 #     done
@@ -874,6 +875,7 @@ corpus_name_L='IEMOCAP'
 # done
 
 
+
 ################# Part5: Explore ComparE speech features ################################################### 
 # for seed in 5678
 # do
@@ -901,6 +903,34 @@ corpus_name_L='IEMOCAP'
 #                     --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
 #                     --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/miss-nomask-movies-v1v2v3-base-speechcomparE_4tasks_wwm_span_noitm_train4w_froze${frozens}-lr${lr}_trnval_seed${seed}
 #             done
+#         done
+#     done
+# done
+
+################# Part5: Flexiable Prompt with task names on different modalities and testing on unified model ########################
+# 7cases * (5000/32) * 8 = 8000
+# for lr in 3e-5
+# do
+#     for seed in 4321
+#     do
+#         for cvNo in $(seq 1 10)
+#         do
+#         prompt_type=iam
+#         num_train_steps=8000
+#         valid_steps=200
+#         train_batch_size=32
+#         inf_batch_size=32
+#         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python pretrain.py \
+#                         --cvNo ${cvNo} --n_workers 1 --use_speech --use_visual \
+#                         --prompt_type ${prompt_type} --seed ${seed} \
+#                         --config config/downstream/pretrain-task-${corpus_name}-base-2gpu_cm_mask_flexpromptmiss_mask.json \
+#                         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#                         --checkpoint  /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
+#                         --learning_rate ${lr} --lr_sched_type 'linear'  --gradient_accumulation_steps 1 \
+#                         --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+#                         --train_batch_size ${train_batch_size} --val_batch_size ${inf_batch_size} \
+#                         --num_train_steps ${num_train_steps} --warmup_steps 100 --valid_steps ${valid_steps} \
+#                         --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_flexpromptmiss_mask${prompt_type}_lr${lr}_trnval_trn${num_train_steps}_seed${seed}/${cvNo}
 #         done
 #     done
 # done

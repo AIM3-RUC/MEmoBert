@@ -37,6 +37,8 @@ from code.uniter3m.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   MerfrDataset, MercDataset,
                   MSpanrfrDataset, mspanrfr_collate, MSpanrcDataset, mspanrc_collate,
                   MSpansrfrDataset, mspansrfr_collate,
+                  MOneSpanrfrDataset, monespanrfr_collate, MOneSpanrcDataset, monespanrc_collate,
+                  MOneSpansrfrDataset, monespansrfr_collate,
                   MlmWWMDataset, mlm_wwm_collate,
                   VFOMDataset, vfom_collate,
                   SFOMDataset, sfom_collate,
@@ -44,7 +46,8 @@ from code.uniter3m.data import (TokenBucketSampler, TokenBucketSamplerForItm,
                   PromptMaskDataset, prompt_mask_collate,
                   CrossModalPromptMaskDataset,
                   PromptNSPDataset, prompt_nsp_collate,
-                  FlexPromptMaskDataset, flexprompt_mask_collate, CrossModalFlexPromptMaskDataset
+                  FlexPromptMaskDataset, flexprompt_mask_collate, CrossModalFlexPromptMaskDataset,
+                  FlexPromptMissMaskDataset, flexpromptmiss_mask_collate,
                   )
 from code.uniter3m.model.pretrain import UniterForPretraining
 from code.uniter3m.optim.misc import build_optimizer
@@ -204,6 +207,24 @@ def build_mspanrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
         dataset = MSpanrfrDataset(opts.mask_visual_len_ratio,  opts.mask_visual_consecutive, opts.mixed_ratios, txt_db, img_db, speech_db)
     return dataset, mspanrfr_collate
 
+def build_monespanrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
+    # use the one span mrfr collection function
+    assert img_db != None
+    if is_train:
+        if speech_db is not None:
+            datasets = [MOneSpanrfrDataset(opts.mask_visual_len_ratio, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif speech_db is None:
+            datasets = [MOneSpanrfrDataset(opts.mask_visual_len_ratio, t, i, None) for t, i in zip(txt_db, img_db)]
+        elif txt_db is None and speech_db is None:
+            LOGGER.info('[Debug in monespanrfr dataset] the text and speech modality are None!')
+            datasets = [MOneSpanrfrDataset(opts.mask_visual_len_ratio, None, i, None) for i in img_db]
+        else:
+            LOGGER.info('[Error] Error monespanrfr datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = MOneSpanrfrDataset(opts.mask_visual_len_ratio, txt_db, img_db, speech_db)
+    return dataset, monespanrfr_collate
+
 def build_vfom_dataset(txt_db, img_db, speech_db, is_train, opts):
     assert img_db != None
     if is_train:
@@ -271,8 +292,24 @@ def build_mspansrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
         dataset = ConcatDatasetWithLens(datasets)
     else:
         dataset = MSpansrfrDataset(opts.mask_speech_len_ratio, opts.mask_speech_consecutive, opts.mixed_ratios, txt_db, img_db, speech_db)
-
     return dataset, mspansrfr_collate
+
+def build_monespansrfr_dataset(txt_db, img_db, speech_db, is_train, opts):
+    assert speech_db != None
+    if is_train:
+        if img_db is not None:
+            datasets = [MOneSpansrfrDataset(opts.mask_speech_len_ratio, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif img_db is None:
+            datasets = [MOneSpansrfrDataset(opts.mask_speech_len_ratio, t, None, s) for t, s in zip(txt_db, speech_db)]
+        elif txt_db is None and img_db is None:
+            LOGGER.info('[Debug in mspansrfr dataset] the text and img modality are None!')
+            datasets = [MOneSpansrfrDataset(opts.mask_speech_len_ratio, None, None, s) for s in speech_db]
+        else:
+            LOGGER.info('[Error] Error mspansrfr datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = MOneSpansrfrDataset(opts.mask_speech_len_ratio, txt_db, img_db, speech_db)
+    return dataset, monespansrfr_collate
 
 def build_mspansrfrnotext_dataset(txt_db, img_db, speech_db, is_train, opts):
     assert speech_db != None
@@ -339,8 +376,24 @@ def build_mspanrc_dataset(txt_db, img_db, speech_db, is_train, opts):
         dataset = ConcatDatasetWithLens(datasets)
     else:
         dataset = MSpanrcDataset(opts.mask_visual_len_ratio, opts.mask_visual_consecutive, opts.mixed_ratios, txt_db, img_db, speech_db)
-
     return dataset, mspanrc_collate
+
+def build_monespanrc_dataset(txt_db, img_db, speech_db, is_train, opts):
+    assert img_db != None
+    if is_train:
+        if speech_db is not None:
+            datasets = [MOneSpanrcDataset(opts.mask_visual_len_ratio, t, i, s) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif speech_db is None:
+            datasets = [MOneSpanrcDataset(opts.mask_visual_len_ratio, t, i, None) for t, i in zip(txt_db, img_db)]
+        elif txt_db is None and speech_db is None:
+            LOGGER.info('[Debug in mspanrc dataset] the text and speech modality are None!')
+            datasets = [MOneSpanrcDataset(opts.mask_visual_len_ratio, None, i, None) for i in img_db]
+        else:
+            LOGGER.info('[Error] Error mspanrc datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = MOneSpanrcDataset(opts.mask_visual_len_ratio, txt_db, img_db, speech_db)
+    return dataset, monespanrc_collate
 
 def build_mspanrfrnotext_dataset(txt_db, img_db, speech_db, is_train, opts):
     # use the mrfr collection function
@@ -522,6 +575,40 @@ def build_cm_flexprompt_mask_dataset(txt_db, img_db, speech_db, is_train, opts):
         dataset = CrossModalFlexPromptMaskDataset(txt_db, img_db, speech_db, prompt_type=opts.prompt_type)
     return dataset, flexprompt_mask_collate
 
+def build_flexpromptmiss_mask_dataset(txt_db, img_db, speech_db, is_train, opts):
+    if is_train:
+        if img_db is not None and speech_db is not None:
+            datasets = [FlexPromptMissMaskDataset(t, i, s, use_text=True, prompt_type=opts.prompt_type) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif img_db is None and speech_db is not None:
+            datasets = [FlexPromptMissMaskDataset(t, None, s, use_text=True,  prompt_type=opts.prompt_type) for t, s in zip(txt_db, speech_db)]
+        elif img_db is not None and speech_db is None:
+            datasets = [FlexPromptMissMaskDataset(t, i, None, use_text=True,  prompt_type=opts.prompt_type) for t, i in zip(txt_db, img_db)]
+        elif img_db is None and speech_db is None:
+            LOGGER.info('[Debug in flexpromptmask dataset] the img and speech modality are None!')
+            datasets = [FlexPromptMissMaskDataset(t, None, None, use_text=True, prompt_type=opts.prompt_type) for t in txt_db]
+        else:
+            LOGGER.info('[Error] Error flexpromptmask mask datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = FlexPromptMissMaskDataset(txt_db, img_db, speech_db, use_text=True,  prompt_type=opts.prompt_type)
+    return dataset, flexpromptmiss_mask_collate
+
+def build_cm_flexpromptmiss_mask_dataset(txt_db, img_db, speech_db, is_train, opts):
+    # use_text: use text modality or not.
+    if is_train:
+        if img_db is not None and speech_db is not None:
+            datasets = [FlexPromptMissMaskDataset(t, i, s, use_text=False, prompt_type=opts.prompt_type) for t, i, s in zip(txt_db, img_db, speech_db)]
+        elif img_db is None and speech_db is not None:
+            datasets = [FlexPromptMissMaskDataset(t, None, s, use_text=False, prompt_type=opts.prompt_type) for t, s in zip(txt_db, speech_db)]
+        elif img_db is not None and speech_db is None:
+            datasets = [FlexPromptMissMaskDataset(t, i, None, use_text=False, prompt_type=opts.prompt_type) for t, i in zip(txt_db, img_db)]
+        else:
+            LOGGER.info('[Error] Error cmflexpromptmask mask datasets')
+        dataset = ConcatDatasetWithLens(datasets)
+    else:
+        dataset = FlexPromptMissMaskDataset(txt_db, img_db, speech_db, use_text=False, prompt_type=opts.prompt_type)
+    return dataset, flexpromptmiss_mask_collate
+
 def build_prompt_nsp_dataset(txt_db, img_db, speech_db, is_train, opts):
     if is_train:
         if img_db is not None and speech_db is not None:
@@ -620,6 +707,12 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
                 dataset = build_mspanrc_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('mspansrfr'):
                 dataset = build_mspansrfr_dataset(txt_db, img_db, speech_db, is_train, opts)
+            elif task.startswith('monespanrfr'):
+                dataset = build_monespanrfr_dataset(txt_db, img_db, speech_db, is_train, opts)
+            elif task.startswith('monespanrc'):
+                dataset = build_monespanrc_dataset(txt_db, img_db, speech_db, is_train, opts)
+            elif task.startswith('monespansrfr'):
+                dataset = build_monespansrfr_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('emocls'):
                 dataset = build_emocls_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('itm'):
@@ -640,6 +733,10 @@ def create_dataloaders(datasets, is_train, opts, all_img_dbs=None, all_speech_db
                 dataset = build_prompt_mask_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('cmpromptmask'):
                 dataset = build_cm_prompt_mask_dataset(txt_db, img_db, speech_db, is_train, opts)
+            elif task.startswith('flexpromptmissmask'):
+                dataset = build_flexpromptmiss_mask_dataset(txt_db, img_db, speech_db, is_train, opts)
+            elif task.startswith('cmflexpromptmissmask'):
+                dataset = build_cm_flexpromptmiss_mask_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('flexpromptmask'):
                 dataset = build_flexprompt_mask_dataset(txt_db, img_db, speech_db, is_train, opts)
             elif task.startswith('cmflexpromptmask'):
@@ -727,6 +824,7 @@ def main(opts):
                 new_checkpoint[k] = v
         checkpoint = new_checkpoint
     else:
+        LOGGER.info('[Info] Loading None pretrained model')
         checkpoint = {}
     model = UniterForPretraining.from_pretrained(
         opts.model_config, checkpoint, img_dim=opts.IMG_DIM, speech_dim=opts.Speech_DIM, 
@@ -871,13 +969,16 @@ def validate(model, val_dataloaders):
         elif task.startswith('merfr') and args.use_visual:
             val_log = validate_mrfr(model, loader, task)
         elif task.startswith('mspanrfr') and args.use_visual:
-            # LOGGER.info('In mspanrfr and task name {}'.format(task))
+            val_log = validate_mrfr(model, loader, task)
+        elif task.startswith('monespanrfr') and args.use_visual:
             val_log = validate_mrfr(model, loader, task)
         elif task.startswith('mrc') and args.use_visual:
             val_log = validate_mrc(model, loader, task)
         elif task.startswith('merc') and args.use_visual:
             val_log = validate_mrc(model, loader, task)
         elif task.startswith('mspanrc') and args.use_visual:
+            val_log = validate_mrc(model, loader, task)
+        elif task.startswith('monespanrc') and args.use_visual:
             val_log = validate_mrc(model, loader, task)
         elif task.startswith('vfom') and args.use_visual:
             val_log = validate_vfom(model, loader, task)
@@ -886,6 +987,8 @@ def validate(model, val_dataloaders):
         elif task.startswith('msrfr') and args.use_speech:
             val_log = validate_msrfr(model, loader, task)
         elif task.startswith('mspansrfr') and args.use_speech:
+            val_log = validate_msrfr(model, loader, task)
+        elif task.startswith('monespansrfr') and args.use_speech:
             val_log = validate_msrfr(model, loader, task)
         elif task.startswith('emocls'):
             val_log = validate_emocls(model, loader, emocls_type=args.emocls_type)
@@ -905,6 +1008,10 @@ def validate(model, val_dataloaders):
         elif task.startswith('promptmask'):
             val_log = validate_prompt_mask(model, loader)
         elif task.startswith('cmpromptmask'):
+            val_log = validate_prompt_mask(model, loader)
+        elif task.startswith('flexpromptmissmask'):
+            val_log = validate_prompt_mask(model, loader)
+        elif task.startswith('cmflexpromptmissmask'):
             val_log = validate_prompt_mask(model, loader)
         elif task.startswith('flexpromptmask'):
             val_log = validate_prompt_mask(model, loader)
@@ -1124,6 +1231,8 @@ def validate_mrfr(model, val_loader, task):
             loss = model(batch, task='merfr', compute_loss=True)
         elif task.startswith('mspanrfr'):
             loss = model(batch, task='mspanrfr', compute_loss=True)
+        elif task.startswith('monespanrfr'):
+            loss = model(batch, task='monespanrfr', compute_loss=True)
         else:
             LOGGER.info(f'[Error in valid_mrfr] Error task name {task}')
         val_loss += loss.sum().item() / IMG_DIM
@@ -1207,6 +1316,8 @@ def validate_msrfr(model, val_loader, task='msrfr'):
             loss = model(batch, task='msrfr', compute_loss=True)
         elif task.startswith('mspansrfr'):
             loss = model(batch, task='mspansrfr', compute_loss=True)
+        elif task.startswith('monespansrfr'):
+            loss = model(batch, task='monespansrfr', compute_loss=True)
         else:
             LOGGER.info(f'[Error in valid_mrfr] Error task name {task}')
         val_loss += loss.sum().item() / Speech_DIM
@@ -1236,6 +1347,8 @@ def validate_mrc(model, val_loader, task):
             prediction_soft_label = model(batch, task='merckl', compute_loss=False)   
         elif task.startswith('mspanrc'):
             prediction_soft_label = model(batch, task='mspanrckl', compute_loss=False)   
+        elif task.startswith('monespanrc'):
+            prediction_soft_label = model(batch, task='monespanrckl', compute_loss=False)   
         else:
             LOGGER.info(f'[Error in valid_mrc] error task name {task}')
         # default use "kl" in task:

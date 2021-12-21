@@ -350,9 +350,9 @@ def get_final_results_format(all_tst_results):
 
 if __name__ == '__main__':
     root_dir = '/data7/emobert/exp/prompt_pretrain'
-    output_name = 'msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_mrm_msrm_maskprobv.1s.1t.1_noitm_step6w-cm_mask_prompt_icassp_lr3e-5_trnval_seed{}'
+    output_name = 'msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_promptiam_icassp_onlylva_lr3e-5_seed{}'
     type_eval = 'UA'
-    for seed in [1234, 4321, 5678]:
+    for seed in [42]:
         result_dir = os.path.join(root_dir, output_name.format(seed))
         # result_path = os.path.join(result_dir, 'result_miss6.csv')
         result_path = os.path.join(result_dir, 'result_lva.csv')

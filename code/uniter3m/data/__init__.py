@@ -17,7 +17,9 @@ from .emolare import EmoLareDataset, emolare_collate
 from .eitm import EItmDataset, eitm_collate
 from .merm import MerfrDataset, MercDataset
 from .mspanrm import MSpanrfrDataset, mspanrfr_collate, MSpanrcDataset, mspanrc_collate
+from .monespanrm import MOneSpanrfrDataset, monespanrfr_collate, MOneSpanrcDataset, monespanrc_collate
 from .mspansrm import MSpansrfrDataset, mspansrfr_collate
+from .monespansrm import MOneSpansrfrDataset, monespansrfr_collate
 from .mlm_wwm import MlmWWMDataset, mlm_wwm_collate
 from .melm_wwm import MelmWWMDataset, melm_wwm_collate
 from .vfom import VFOMDataset, vfom_collate
@@ -27,3 +29,4 @@ from .harditm import HardItmDataset, harditm_collate
 from .prompt_mask import PromptMaskDataset, prompt_mask_collate, CrossModalPromptMaskDataset
 from .prompt_nsp import PromptNSPDataset, prompt_nsp_collate
 from .flexprompt_mask import FlexPromptMaskDataset, flexprompt_mask_collate, CrossModalFlexPromptMaskDataset
+from .flexpromptmiss_mask import FlexPromptMissMaskDataset, flexpromptmiss_mask_collate

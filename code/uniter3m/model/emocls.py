@@ -13,12 +13,13 @@ import torch
 from horovod import torch as hvd
 from torch import nn
 from torch.nn import CrossEntropyLoss
+from torch.nn import functional as F
 from apex.normalization.fused_layer_norm import FusedLayerNorm as LayerNorm
 from sklearn.metrics import accuracy_score, recall_score, f1_score, confusion_matrix
 from code.uniter3m.model.model import UniterPreTrainedModel, UniterModel
 from code.uniter3m.model.pretrain import EmoClassification
 ## from uniter
-from code.uniter.model.layer import GELU
+from code.uniter.model.layer import GELU, BertOnlyMLMHead
 from code.uniter.utils.misc import NoOp
 
 class UniterForEmoRecognition(UniterPreTrainedModel):
@@ -62,8 +63,7 @@ class UniterForEmoRecognition(UniterPreTrainedModel):
 class UniterForEmoRecognitionPrompt(UniterPreTrainedModel):
     """ Finetune UNITER for Emotion Recognition based Prompt Method
     """
-    def __init__(self, config, img_dim, speech_dim, cls_num, frozen_en_layers, \
-                        use_visual, use_speech, use_emolare=False):
+    def __init__(self, config, img_dim, speech_dim, use_visual, use_speech, use_emolare=False):
         '''
         cls_type: "emocls" is similar with  https://github.com/brightmart/roberta_zh/blob/master/run_classifier.py#L478
         and "vqa" is similar with official-uniter/model/vqa.py 
@@ -72,18 +72,24 @@ class UniterForEmoRecognitionPrompt(UniterPreTrainedModel):
         self.uniter = UniterModel(config, img_dim, speech_dim, use_visual, use_speech)
         ## for paraphrase loss
         self.use_emolare = use_emolare
-        self.frozen_en_layers = frozen_en_layers
+        self.cls = BertOnlyMLMHead(
+            config, self.uniter.embeddings.word_embeddings.weight)
         self.apply(self.init_weights)
+
+    def _compute_masked_hidden(self, hidden, mask):
+        """ get only the masked region (don't compute unnecessary hiddens) """
+        mask = mask.unsqueeze(-1).expand_as(hidden)
+        hidden_masked = hidden[mask].contiguous().view(-1, hidden.size(-1))
+        return hidden_masked
 
     def forward(self, batch, compute_loss=True):
         '''
         if compute_loss is true, the function will return the loss = (1)
-        else the the function will return the logits = (batch, cls_num)
         '''
         batch = defaultdict(lambda: None, batch)
-        sequence_output = self.uniter(batch, use_emolare_input=self.use_emolare, frozen_en_layers=self.frozen_en_layers,
-                                      output_all_encoded_layers=False)
+        sequence_output = self.uniter(batch, use_emolare_input=self.use_emolare, output_all_encoded_layers=False)
         input_ids = batch['input_ids']
+        txt_labels = batch['txt_labels']
         sequence_output = sequence_output[:, :input_ids.size(1), :]
         masked_output = self._compute_masked_hidden(sequence_output,
                                                     txt_labels != -1)
@@ -95,7 +101,6 @@ class UniterForEmoRecognitionPrompt(UniterPreTrainedModel):
             # print('[Debug] in MLM and lmloss {}'.format(masked_lm_loss.shape)) # all validate token loss torch.Size([35])
             return masked_lm_loss
         return prediction_scores
-       
 
 @torch.no_grad()
 def evaluation(model, loader):
@@ -154,26 +159,20 @@ def evaluation_miss_conditions(model, val_dataloaders):
 @torch.no_grad()
 def evaluation_prompt(model, val_loader):
     # 计算 wa, uar, f1
-    LOGGER.info(f"start running prompt-based evaluation...")
+    model.eval()
+    print(f"start running prompt-based evaluation...")
     val_loss = 0
     total_preds = []
     total_labels = []
-    st = time()
     for i, batch in enumerate(val_loader):
-        scores = model(batch, task=task, compute_loss=False)
+        scores = model(batch, compute_loss=False)
         labels = batch['txt_labels']
         labels = labels[labels != -1]
-        loss = F.cross_entropy(scores, labels, reduction='sum')
-        val_loss += loss.item()
         temp_preds = scores.argmax(axis=1)
-        # print(temp_preds.shape, labels.shape)
         total_preds.append(temp_preds.detach().cpu().numpy())
         total_labels.append(labels.detach().cpu().numpy())
-    val_loss = sum(all_gather_list(val_loss))
-    tot_time = time()-st
     total_preds = np.concatenate(total_preds)
     total_labels = np.concatenate(total_labels)   
-    val_loss /= len(total_labels)
     # print(total_preds.shape, total_labels.shape)
     val_log = evaluation_metric(total_preds, total_labels)
     val_log['loss'] = val_loss

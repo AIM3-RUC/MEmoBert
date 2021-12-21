@@ -1594,6 +1594,123 @@ corpus_name_L='MSP'
 #     done
 # done
 
+##### case3:text + speech + visual + wwm -itm -- mask_prob: s=0.1 v0.1
+# for seed in 1234 4321 5678
+# do
+#     for lr in 5e-5
+#     do
+#         for cvNo in $(seq 1 12)
+#         do
+#         num_train_steps=1500
+#         valid_steps=100
+#         train_batch_size=32
+#         inf_batch_size=32
+#         frozens=0
+#         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
+#                 --cvNo ${cvNo} --use_text --use_speech --use_visual \
+#                 --seed ${seed} \
+#                 --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#                 --corpus_name ${corpus_name} --cls_num 4 \
+#                 --config config/downstream/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_sentiword.json \
+#                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_mrm_msrm_maskprobv.01s.01_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
+#                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
+#                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
+#                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-5tasks_wwm_mrm_msrm_maskprobv.01s.01-lr${lr}_train${num_train_steps}_trnval_seed${seed}
+#         done
+#     done
+# done
+
+##### case3:text + speech + visual + wwm -itm -- mask_prob: s=0.2 v0.2
+# for seed in 1234 4321 5678
+# do
+#     for lr in 5e-5
+#     do
+#         for cvNo in $(seq 1 12)
+#         do
+#         num_train_steps=1500
+#         valid_steps=100
+#         train_batch_size=32
+#         inf_batch_size=32
+#         frozens=0
+#         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
+#                 --cvNo ${cvNo} --use_text --use_speech --use_visual \
+#                 --seed ${seed} \
+#                 --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#                 --corpus_name ${corpus_name} --cls_num 4 \
+#                 --config config/downstream/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_sentiword.json \
+#                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_mrm_msrm_maskprobv.2s.2_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
+#                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
+#                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
+#                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-5tasks_wwm_mrm_msrm_maskprobv.2s.2-lr${lr}_train${num_train_steps}_trnval_seed${seed}
+#         done
+#     done
+# done
+
+##### case3:text + speech + visual + wwm -itm -- mask_prob: s=0.4 v0.4
+# for seed in 1234 4321 5678
+# do
+#     for lr in 5e-5
+#     do
+#         for cvNo in $(seq 1 12)
+#         do
+#         num_train_steps=1500
+#         valid_steps=100
+#         train_batch_size=32
+#         inf_batch_size=32
+#         frozens=0
+#         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
+#                 --cvNo ${cvNo} --use_text --use_speech --use_visual \
+#                 --seed ${seed} \
+#                 --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#                 --corpus_name ${corpus_name} --cls_num 4 \
+#                 --config config/downstream/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_sentiword.json \
+#                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_mrm_msrm_maskprobv.4s.4_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
+#                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
+#                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
+#                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-5tasks_wwm_mrm_msrm_maskprobv.4s.4-lr${lr}_train${num_train_steps}_trnval_seed${seed}
+#         done
+#     done
+# done
+
+
+##### case3:text + speech + visual + wwm -itm -- mask_prob: s=0.3 v0.3
+# for seed in 5678
+# do
+#     for lr in 5e-5
+#     do
+#         for cvNo in $(seq 1 12)
+#         do
+#         num_train_steps=1500
+#         valid_steps=100
+#         train_batch_size=32
+#         inf_batch_size=32
+#         frozens=0
+#         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
+#                 --cvNo ${cvNo} --use_text --use_speech --use_visual \
+#                 --seed ${seed} \
+#                 --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#                 --corpus_name ${corpus_name} --cls_num 4 \
+#                 --config config/downstream/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_sentiword.json \
+#                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_mrm_msrm_maskprobv.3s.3_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
+#                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
+#                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
+#                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-5tasks_wwm_mrm_msrm_maskprobv.3s.3-lr${lr}_train${num_train_steps}_trnval_seed${seed}
+#         done
+#     done
+# done
+
 ##### case3:text + speech + visual + wwm -itm -- mask_prob: s=0.5 v0.5
 # for seed in 42 1234 4321 5678
 # do
@@ -1623,12 +1740,157 @@ corpus_name_L='MSP'
 #     done
 # done
 
+##### case1:text + speech + visual + wwm -itm -- mask_prob: s=0.6v0.6
+# for seed in 1234 4321 5678
+# do
+#         for lr in 5e-5
+#         do
+#                 for cvNo in $(seq 1 12)
+#                 do
+#                 num_train_steps=1500
+#                 valid_steps=100
+#                 train_batch_size=32
+#                 inf_batch_size=32
+#                 frozens=0
+#                 CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
+#                         --cvNo ${cvNo} --use_text --use_speech --use_visual \
+#                         --seed ${seed} \
+#                         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#                         --corpus_name ${corpus_name} --cls_num 4 \
+#                         --config config/downstream/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_sentiword.json \
+#                         --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_mrm_msrm_maskprobv.6s.6_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
+#                         --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
+#                         --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
+#                         --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+#                         --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
+#                         --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
+#                         --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-5tasks_wwm_mrm_msrm_maskprobv.6s.6-lr${lr}_train${num_train_steps}_trnval_seed${seed}
+#                 done
+#         done
+# done
+
+##### case1:text + speech + visual + wwm -itm -- mask_prob: s=0.7 v0.7
+# for seed in 1234 4321 5678
+# do
+#         for lr in 5e-5
+#         do
+#                 for cvNo in $(seq 1 12)
+#                 do
+#                 num_train_steps=1500
+#                 valid_steps=100
+#                 train_batch_size=32
+#                 inf_batch_size=32
+#                 frozens=0
+#                 CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
+#                         --cvNo ${cvNo} --use_text --use_speech --use_visual \
+#                         --seed ${seed} \
+#                         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#                         --corpus_name ${corpus_name} --cls_num 4 \
+#                         --config config/downstream/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_sentiword.json \
+#                         --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_mrm_msrm_maskprobv.7s.7_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
+#                         --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
+#                         --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
+#                         --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+#                         --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
+#                         --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
+#                         --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-5tasks_wwm_mrm_msrm_maskprobv.7s.7-lr${lr}_train${num_train_steps}_trnval_seed${seed}
+#                 done
+#         done
+# done
+
+##### case1:text + speech + visual + wwm -itm -- mask_prob: s=0.8 v0.8
+# for seed in 1234 4321 5678
+# do
+#         for lr in 5e-5
+#         do
+#                 for cvNo in $(seq 1 12)
+#                 do
+#                 num_train_steps=1500
+#                 valid_steps=100
+#                 train_batch_size=32
+#                 inf_batch_size=32
+#                 frozens=0
+#                 CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
+#                         --cvNo ${cvNo} --use_text --use_speech --use_visual \
+#                         --seed ${seed} \
+#                         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#                         --corpus_name ${corpus_name} --cls_num 4 \
+#                         --config config/downstream/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_sentiword.json \
+#                         --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_mrm_msrm_maskprobv.8s.8_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
+#                         --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
+#                         --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
+#                         --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+#                         --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
+#                         --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
+#                         --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-5tasks_wwm_mrm_msrm_maskprobv.8s.8-lr${lr}_train${num_train_steps}_trnval_seed${seed}
+#                 done
+#         done
+# done
+
+##### case1:text + speech + visual + wwm -itm -- mask_prob: s=0.9 v0.9
+# for seed in 1234 4321 5678
+# do
+#         for lr in 5e-5
+#         do
+#                 for cvNo in $(seq 1 12)
+#                 do
+#                 num_train_steps=1500
+#                 valid_steps=100
+#                 train_batch_size=32
+#                 inf_batch_size=32
+#                 frozens=0
+#                 CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
+#                         --cvNo ${cvNo} --use_text --use_speech --use_visual \
+#                         --seed ${seed} \
+#                         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#                         --corpus_name ${corpus_name} --cls_num 4 \
+#                         --config config/downstream/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_sentiword.json \
+#                         --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_mrm_msrm_maskprobv.9s.9_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
+#                         --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
+#                         --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
+#                         --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+#                         --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
+#                         --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
+#                         --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-5tasks_wwm_mrm_msrm_maskprobv.9s.9-lr${lr}_train${num_train_steps}_trnval_seed${seed}
+#                 done
+#         done
+# done
+
+### step 4000 
+# for seed in 1234 4321 5678
+# do
+#     for lr in 5e-5
+#     do
+#         for cvNo in $(seq 1 12)
+#         do
+#         num_train_steps=1500
+#         valid_steps=100
+#         train_batch_size=32
+#         inf_batch_size=32
+#         frozens=0
+#         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python train_emo.py \
+#                 --cvNo ${cvNo} --use_text --use_speech --use_visual \
+#                 --seed ${seed} \
+#                 --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#                 --corpus_name ${corpus_name} --cls_num 4 \
+#                 --config config/downstream/train-emo-${corpus_name}-openface_wav2vec-base-2gpu-emo_sentiword.json \
+#                 --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_mrm_msrm_maskprobv.1s.1_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
+#                 --frozen_en_layers ${frozens} --cls_dropout ${dropout} --cls_type vqa --postfix none \
+#                 --learning_rate ${lr} --lr_sched_type 'linear' --warmup_steps 0 --patience 5  \
+#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+#                 --train_batch_size ${train_batch_size} --inf_batch_size ${inf_batch_size} \
+#                 --num_train_steps ${num_train_steps} --valid_steps ${valid_steps}  \
+#                 --output_dir /data7/emobert/exp/evaluation/${corpus_name_L}/finetune/nomask-movies-v1v2v3-base-uniter3m_speechwav2vec_5tasks_wwm_mrm_msrm_maskprobv.1s.1_noitm_lr5e5_train4w-lr${lr}_train${num_train_steps}_trnval_seed${seed}
+#         done
+#     done
+# done
+
 
 ################# Part15: whole modality masking  ################################################### 
 # nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_mrm_msrm_maskprobv.1s.1_noitm_lr5e5_bs800/ckpt/model_step_60000.pt 
 # nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_mrm_msrm_maskprobv.1s.1t.1_noitm_lr5e5_bs800/ckpt/model_step_60000.pt 
 
-### 
+### step 6000 
 # for seed in 1234 4321 5678
 # do
 #     for lr in 5e-5
