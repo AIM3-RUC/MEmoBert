@@ -383,6 +383,28 @@ export PYTHONPATH=/data7/MEmoBert
 ## case13: speech + visual + text running on wwm + onespan - itm -- Use masked span ration 10% 20% 30% 40% 50% (一整个连续的区域)
 # CUDA_VISIBLE_DEVICES=6 horovodrun -np 1 python pretrain.py \
 #         --cvNo 0 --n_workers 4 --use_visual --use_speech \
+#         --mask_speech_len_ratio 0.1 --mask_visual_len_ratio 0.1 \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks_wwm_onespan_noitm.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --learning_rate 5e-05 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 768 \
+#         --train_batch_size 160 --val_batch_size 160 \
+#         --num_train_steps 40000 --warmup_steps 4000 --valid_steps 10000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_onespans.1v.1_noitm_lr5e5_bs800
+
+# CUDA_VISIBLE_DEVICES=5 horovodrun -np 1 python pretrain.py \
+#         --cvNo 0 --n_workers 4 --use_visual --use_speech \
+#         --mask_speech_len_ratio 0.2 --mask_visual_len_ratio 0.2 \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks_wwm_onespan_noitm.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --learning_rate 5e-05 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 768 \
+#         --train_batch_size 160 --val_batch_size 160 \
+#         --num_train_steps 40000 --warmup_steps 4000 --valid_steps 10000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_onespans.2v.2_noitm_lr5e5_bs800
+
+# CUDA_VISIBLE_DEVICES=6 horovodrun -np 1 python pretrain.py \
+#         --cvNo 0 --n_workers 4 --use_visual --use_speech \
 #         --mask_speech_len_ratio 0.3 --mask_visual_len_ratio 0.3 \
 #         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks_wwm_onespan_noitm.json \
 #         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
@@ -403,7 +425,7 @@ export PYTHONPATH=/data7/MEmoBert
 #         --num_train_steps 40000 --warmup_steps 4000 --valid_steps 10000 \
 #         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_onespans.4v.4_noitm_lr5e5_bs800
 
-# CUDA_VISIBLE_DEVICES=5 horovodrun -np 1 python pretrain.py \
+# CUDA_VISIBLE_DEVICES=4 horovodrun -np 1 python pretrain.py \
 #         --cvNo 0 --n_workers 4 --use_visual --use_speech \
 #         --mask_speech_len_ratio 0.5 --mask_visual_len_ratio 0.5 \
 #         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks_wwm_onespan_noitm.json \
