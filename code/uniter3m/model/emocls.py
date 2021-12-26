@@ -8,6 +8,7 @@ from collections import defaultdict
 from tqdm import tqdm
 import numpy as np
 import collections
+import random
 
 import torch
 from horovod import torch as hvd
@@ -159,6 +160,7 @@ def evaluation_miss_conditions(model, val_dataloaders):
 @torch.no_grad()
 def evaluation_prompt(model, val_loader):
     # 计算 wa, uar, f1
+    # Bug 预测的词不属于4个类别
     model.eval()
     print(f"start running prompt-based evaluation...")
     val_loss = 0
@@ -172,8 +174,18 @@ def evaluation_prompt(model, val_loader):
         total_preds.append(temp_preds.detach().cpu().numpy())
         total_labels.append(labels.detach().cpu().numpy())
     total_preds = np.concatenate(total_preds)
-    total_labels = np.concatenate(total_labels)   
-    # print(total_preds.shape, total_labels.shape)
+    total_labels = np.concatenate(total_labels)
+    candidate_list = [8699, 4963, 6517, 3407]
+    # post process, 直接去掉还是替换为一个错误的结果？统计recall值的话，可以进行替换操作。
+    for i in range(len(total_preds)):
+        if total_preds[i] not in candidate_list:
+            true_label = total_labels[i]
+            error_list = candidate_list.copy()
+            error_list.remove(true_label)
+            total_preds[i] = random.sample(error_list, 1)[0]
+    assert len(total_preds) == len(total_labels)
+    # print(set(total_preds), total_preds)
+    # print(set(total_labels), total_labels)
     val_log = evaluation_metric(total_preds, total_labels)
     val_log['loss'] = val_loss
     return val_log
@@ -184,4 +196,4 @@ def evaluation_metric(total_pred, total_label):
     wf1 = f1_score(total_label, total_pred, average='weighted')
     f1 = f1_score(total_label, total_pred, average='macro')
     cm = confusion_matrix(total_label, total_pred)
-    return {'WA': acc, 'WF1': wf1, 'UA': uar,  'F1': f1}
+    return {'WA': acc, 'WF1': wf1, 'UA': uar,  'F1': f1, 'cm': cm}

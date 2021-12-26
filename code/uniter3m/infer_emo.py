@@ -15,7 +15,9 @@ from torch.utils.data import DataLoader, ConcatDataset
 from horovod import torch as hvd
 
 from code.uniter3m.data import (PrefetchLoader, TxtTokLmdb, ImageLmdbGroup, SpeechLmdbGroup, 
-                                    EmoClsDataset, emocls_collate, PromptMaskDataset, prompt_mask_collate)
+                                    EmoClsDataset, emocls_collate, 
+                                    PromptMaskDataset, prompt_mask_collate,
+                                    FlexPromptMaskDataset, flexprompt_mask_collate)
 from code.uniter3m.model.emocls import UniterForEmoRecognition, UniterForEmoRecognitionPrompt, evaluation, evaluation_prompt
 from code.uniter3m.utils.logger import LOGGER, TB_LOGGER, add_log_to_file
 from code.uniter3m.utils.distributed import (all_reduce_and_rescale_tensors, broadcast_tensors)
@@ -76,7 +78,10 @@ def main(opts):
         test_speech_db = eval_all_speech_dbs[opts.test_speech_db]
     else:
         test_speech_db = None
-    if 'prompt' in opts.output_dir:
+    if 'flexprompt' in opts.output_dir:
+        test_dataset = FlexPromptMaskDataset(test_txt_db, test_img_db, test_speech_db, prompt_type=opts.prompt_type)
+        test_dataloader = build_dataloader(test_dataset, flexprompt_mask_collate, False, opts)
+    elif 'prompt' in opts.output_dir:
         test_dataset = PromptMaskDataset(test_txt_db, test_img_db, test_speech_db)
         test_dataloader = build_dataloader(test_dataset, prompt_mask_collate, False, opts)
     else:
@@ -203,6 +208,7 @@ if __name__ == "__main__":
     parser.add_argument("--use_visual", action='store_true',  help='use visual branch')
     parser.add_argument("--use_text", action='store_true',  help='use text branch')
     parser.add_argument("--use_emolare", action='store_true',  help='use label aware as input of text branch')
+    parser.add_argument("--prompt_type",  default='iam', type=str)
 
     # training parameters
     parser.add_argument("--train_batch_size", default=128, type=int,

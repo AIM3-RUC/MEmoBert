@@ -581,12 +581,12 @@ do
                             --prompt_type iam --seed ${seed} \
                             --config config/downstream/pretrain-task-${corpus_name}-base-2gpu_cm_mask_prompt_onlylva_part${partration}.json \
                             --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
-                            --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_mrm_msrm_maskprobv.5s.5_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
+                            --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_onespans.5v.5_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
                             --learning_rate ${lr} --lr_sched_type 'linear'  --gradient_accumulation_steps 1 \
                             --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
                             --train_batch_size ${train_batch_size} --val_batch_size ${inf_batch_size} \
                             --num_train_steps ${num_train_steps} --warmup_steps ${valid_steps} --valid_steps ${valid_steps} \
-                            --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}-basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_mmrm_msrm_maskprobv.5s.5_noitm-cm_mask_prompt_onlylva_lr${lr}_trnval_part${partration}_seed${seed}/${cvNo}
+                            --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}-basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_onespans.5v.5_noitm-cm_mask_prompt_onlylva_lr${lr}_trnval_part${partration}_seed${seed}/${cvNo}
             done
         done
 done
@@ -607,12 +607,12 @@ do
                             --prompt_type iam --seed ${seed} \
                             --config config/downstream/pretrain-task-${corpus_name}-base-2gpu_cm_mask_prompt_onlylva_part${partration}.json \
                             --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
-                            --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_mrm_msrm_maskprobv.5s.5_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
+                            --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_onespans.5v.5_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
                             --learning_rate ${lr} --lr_sched_type 'linear'  --gradient_accumulation_steps 1 \
                             --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
                             --train_batch_size ${train_batch_size} --val_batch_size ${inf_batch_size} \
                             --num_train_steps ${num_train_steps} --warmup_steps ${valid_steps} --valid_steps ${valid_steps} \
-                            --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}-basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_mmrm_msrm_maskprobv.5s.5_noitm-cm_mask_prompt_onlylva_lr${lr}_trnval_part${partration}_seed${seed}/${cvNo}
+                            --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}-basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_onespans.5v.5_noitm-cm_mask_prompt_onlylva_lr${lr}_trnval_part${partration}_seed${seed}/${cvNo}
             done
         done
 done
@@ -633,12 +633,12 @@ do
                             --prompt_type iam --seed ${seed} \
                             --config config/downstream/pretrain-task-${corpus_name}-base-2gpu_cm_mask_prompt_onlylva_part${partration}.json \
                             --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
-                            --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_mrm_msrm_maskprobv.5s.5_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
+                            --checkpoint /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_onespans.5v.5_noitm_lr5e5_bs800/ckpt/model_step_40000.pt \
                             --learning_rate ${lr} --lr_sched_type 'linear'  --gradient_accumulation_steps 1 \
                             --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
                             --train_batch_size ${train_batch_size} --val_batch_size ${inf_batch_size} \
                             --num_train_steps ${num_train_steps} --warmup_steps ${valid_steps} --valid_steps ${valid_steps} \
-                            --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}-basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_mmrm_msrm_maskprobv.5s.5_noitm-cm_mask_prompt_onlylva_lr${lr}_trnval_part${partration}_seed${seed}/${cvNo}
+                            --output_dir /data7/emobert/exp/prompt_pretrain/${corpus_name}-basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_onespans.5v.5_noitm-cm_mask_prompt_onlylva_lr${lr}_trnval_part${partration}_seed${seed}/${cvNo}
             done
         done
 done

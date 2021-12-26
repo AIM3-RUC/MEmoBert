@@ -145,31 +145,87 @@ dropout=0.1
 
 ################# Part4.1: MEmoBERT+Prompt infer (source IEMOCAP and Target MSP )###################################################
 # 需要重新构建inference代码或者用训练的代码
-# source_corpus_name='iemocap'
-# source_corpus_name_L='IEMOCAP'
-# target_corpus_name='msp'
-# target_corpus_name_L='MSP'
-# for cvNo in $(seq 1 10)
-# do
-#         inf_batch_size=32
-#         checkpoint_dir=/data7/MEmoBert/emobert/exp/prompt_pretrain/
-#         CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python infer_emo.py \
-#                 --cvNo ${cvNo} --use_text --use_visual --use_speech \
-#                 --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
-#                 --cls_num 4 \
-#                 --config config/infer_test_config/infer-emo-${target_corpus_name}-openface_wav2vec-base-2gpu-promptiam.json \
-#                 --checkpoint ${checkpoint_dir}/${source_corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt_lr5e-5_run3_trnval/${cvNo}/ckpt/ \
-#                 --cls_type vqa --postfix none \
-#                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
-#                 --inf_batch_size ${inf_batch_size} \
-#                 --output_dir /data7/emobert/exp/evaluation/${target_corpus_name_L}/inference/nomask-source-uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt_lr5e-5_run3_trnval
-# done
+source_corpus_name='iemocap'
+source_corpus_name_L='IEMOCAP'
+target_corpus_name='msp'
+target_corpus_name_L='MSP'
+
+for cvNo in $(seq 1 10)
+do
+        inf_batch_size=32
+        checkpoint_dir=/data7/MEmoBert/emobert/exp/prompt_pretrain/
+        CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python infer_emo.py \
+                --cvNo ${cvNo} --use_text --use_visual --use_speech \
+                --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+                --cls_num 4 \
+                --config config/infer_test_config/infer-emo-${target_corpus_name}-openface_wav2vec-base-2gpu-promptiam.json \
+                --checkpoint ${checkpoint_dir}/${source_corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt_lr3e-5_run3_trnval/${cvNo}/ckpt/ \
+                --cls_type vqa --postfix none \
+                --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+                --inf_batch_size ${inf_batch_size} \
+                --output_dir /data7/emobert/exp/evaluation/${target_corpus_name_L}/inference/nomask-source-uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt_lr3e-5_run3_trnval
+done
+
+### icassp-onlylva
+for cvNo in $(seq 1 10)
+do
+        inf_batch_size=32
+        checkpoint_dir=/data7/MEmoBert/emobert/exp/prompt_pretrain/
+        CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python infer_emo.py \
+                --cvNo ${cvNo} --use_text --use_visual --use_speech \
+                --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+                --cls_num 4 \
+                --config config/infer_test_config/infer-emo-${target_corpus_name}-openface_wav2vec-base-2gpu-promptiam.json \
+                --checkpoint ${checkpoint_dir}/${source_corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_promptiam_icassp_onlylva_lr3e-5_seed5678/${cvNo}/ckpt/ \
+                --cls_type vqa --postfix none \
+                --max_txt_len 20 --IMG_DIM 342 --Speech_DIM 768 \
+                --inf_batch_size ${inf_batch_size} \
+                --output_dir /data7/emobert/exp/evaluation/${target_corpus_name_L}/inference/nomask-source-uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_promptiam_icassp_onlylva_lr3e-5_seed5678_trnval
+done
+
+## flexpromptiam-icassp-onlylva
+for cvNo in $(seq 1 10)
+do
+        inf_batch_size=32
+        checkpoint_dir=/data7/MEmoBert/emobert/exp/prompt_pretrain/
+        CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python infer_emo.py \
+                --cvNo ${cvNo} --use_text --use_visual --use_speech \
+                --prompt_type 'iam' \
+                --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+                --cls_num 4 \
+                --config config/infer_test_config/infer-emo-${target_corpus_name}-openface_wav2vec-base-2gpu-flexpromptiam.json \
+                --checkpoint ${checkpoint_dir}/${source_corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_flexpromptiam_onlylva_lr3e-5_trn2500_trnval_seed5678/${cvNo}/ckpt/ \
+                --cls_type vqa --postfix none \
+                --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+                --inf_batch_size ${inf_batch_size} \
+                --output_dir /data7/emobert/exp/evaluation/${target_corpus_name_L}/inference/nomask-source-uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_flexpromptiam_onlylva_lr3e-5_seed5678_trnval
+done
+
+## flexpromptsoftprompt5-icassp-onlylva
+for cvNo in $(seq 1 10)
+do
+        inf_batch_size=32
+        checkpoint_dir=/data7/MEmoBert/emobert/exp/prompt_pretrain/
+        CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python infer_emo.py \
+                --cvNo ${cvNo} --use_text --use_visual --use_speech \
+                --prompt_type 'softprompt5' \
+                --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+                --cls_num 4 \
+                --config config/infer_test_config/infer-emo-${target_corpus_name}-openface_wav2vec-base-2gpu-flexpromptiam.json \
+                --checkpoint ${checkpoint_dir}/${source_corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_flexpromptsoftprompt5_onlylva_lr3e-5_trn2500_trnval_seed5678/${cvNo}/ckpt/ \
+                --cls_type vqa --postfix none \
+                --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+                --inf_batch_size ${inf_batch_size} \
+                --output_dir /data7/emobert/exp/evaluation/${target_corpus_name_L}/inference/nomask-source-uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_flexpromptsoftprompt5_onlylva_lr3e-5_seed5678_trnval
+done
+
 
 ################# Part4.2: MEmoBERT+Prompt infer (source MSP and Target IEMOCAP)################################################### 
 source_corpus_name='msp'
 source_corpus_name_L='MSP'
 target_corpus_name='iemocap'
 target_corpus_name_L='IEMOCAP'
+
 for cvNo in $(seq 1 12)
 do
         inf_batch_size=32
@@ -179,9 +235,62 @@ do
                 --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
                 --cls_num 4 \
                 --config config/infer_test_config/infer-emo-${target_corpus_name}-openface_wav2vec-base-2gpu-promptiam.json \
-                --checkpoint ${checkpoint_dir}/${source_corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt_lr5e-5_run1_trnval/${cvNo}/ckpt/ \
+                --checkpoint ${checkpoint_dir}/${source_corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt_lr3e-5_run3_trnval//${cvNo}/ckpt/ \
                 --cls_type vqa --postfix none \
                 --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
                 --inf_batch_size ${inf_batch_size} \
-                --output_dir /data7/emobert/exp/evaluation/${target_corpus_name_L}/inference/nomask-source-nomask-uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt_lr5e-5_run1_trnval
+                --output_dir /data7/emobert/exp/evaluation/${target_corpus_name_L}/inference/nomask-source-nomask-uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_prompt_lr3e-5_run3_trnval
+done
+
+## icassp-onlylva
+for cvNo in $(seq 1 12)
+do
+        inf_batch_size=32
+        checkpoint_dir=/data7/MEmoBert/emobert/exp/prompt_pretrain/
+        CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python infer_emo.py \
+                --cvNo ${cvNo} --use_text --use_visual --use_speech \
+                --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+                --cls_num 4 \
+                --config config/infer_test_config/infer-emo-${target_corpus_name}-openface_wav2vec-base-2gpu-promptiam.json \
+                --checkpoint ${checkpoint_dir}/${source_corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_promptiam_icassp_onlylva_lr3e-5_seed42/${cvNo}/ckpt/ \
+                --cls_type vqa --postfix none \
+                --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+                --inf_batch_size ${inf_batch_size} \
+                --output_dir /data7/emobert/exp/evaluation/${target_corpus_name_L}/inference/nomask-source-uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_promptiam_icassp_onlylva_lr3e-5_seed42_trnval
+done
+
+## flexpromptiam-icassp-onlylva
+for cvNo in $(seq 1 12)
+do
+        inf_batch_size=32
+        checkpoint_dir=/data7/MEmoBert/emobert/exp/prompt_pretrain/
+        CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python infer_emo.py \
+                --cvNo ${cvNo} --use_text --use_visual --use_speech \
+                --prompt_type 'iam' \
+                --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+                --cls_num 4 \
+                --config config/infer_test_config/infer-emo-${target_corpus_name}-openface_wav2vec-base-2gpu-flexpromptiam.json \
+                --checkpoint ${checkpoint_dir}/${source_corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_flexpromptiam_onlylva_lr3e-5_trn2000_trnval_seed5678/${cvNo}/ckpt/ \
+                --cls_type vqa --postfix none \
+                --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+                --inf_batch_size ${inf_batch_size} \
+                --output_dir /data7/emobert/exp/evaluation/${target_corpus_name_L}/inference/nomask-source-uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_flexpromptiam_onlylva_lr3e-5_seed5678_trnval
+done
+
+## flexpromptsoftprompt5-icassp-onlylva
+for cvNo in $(seq 1 12)
+do
+        inf_batch_size=32
+        checkpoint_dir=/data7/MEmoBert/emobert/exp/prompt_pretrain/
+        CUDA_VISIBLE_DEVICES=${gpu_id} horovodrun -np 1 python infer_emo.py \
+                --cvNo ${cvNo} --use_text --use_visual --use_speech \
+                --prompt_type 'softprompt5' \
+                --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+                --cls_num 4 \
+                --config config/infer_test_config/infer-emo-${target_corpus_name}-openface_wav2vec-base-2gpu-flexpromptiam.json \
+                --checkpoint ${checkpoint_dir}/${source_corpus_name}_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_flexpromptsoftprompt5_onlylva_lr3e-5_trn2000_trnval_seed5678/${cvNo}/ckpt/ \
+                --cls_type vqa --postfix none \
+                --max_txt_len 120 --IMG_DIM 342 --Speech_DIM 768 \
+                --inf_batch_size ${inf_batch_size} \
+                --output_dir /data7/emobert/exp/evaluation/${target_corpus_name_L}/inference/nomask-source-uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_flexpromptsoftprompt5_onlylva_lr3e-5_seed5678_trnval
 done

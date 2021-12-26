@@ -350,14 +350,14 @@ def get_final_results_format(all_tst_results):
 
 if __name__ == '__main__':
     root_dir = '/data7/emobert/exp/prompt_pretrain'
-    output_name = 'msp_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_promptiam_icassp_onlylva_lr3e-5_seed{}'
+    output_name = 'iemocap-basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_onespans.5v.5_noitm-cm_mask_prompt_onlylva_lr3e-5_trnval_part0.4_seed{}'
     type_eval = 'UA'
-    for seed in [42]:
+    for seed in [1234, 4321, 5678]:
         result_dir = os.path.join(root_dir, output_name.format(seed))
         # result_path = os.path.join(result_dir, 'result_miss6.csv')
         result_path = os.path.join(result_dir, 'result_lva.csv')
         all_tst_results = []
-        for cvNo in range(1, 13):
+        for cvNo in range(1, 11):
             log_dir = os.path.join(result_dir, str(cvNo), 'log')
             if 'onlycm' in output_name:
                 test_log, best_step = get_latest_onlycm_result(log_dir)

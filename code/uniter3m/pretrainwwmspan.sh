@@ -435,3 +435,84 @@ export PYTHONPATH=/data7/MEmoBert
 #         --train_batch_size 160 --val_batch_size 160 \
 #         --num_train_steps 40000 --warmup_steps 4000 --valid_steps 10000 \
 #         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_onespans.5v.5_noitm_lr5e5_bs800
+
+# CUDA_VISIBLE_DEVICES=4 horovodrun -np 1 python pretrain.py \
+#         --cvNo 0 --n_workers 4 --use_visual --use_speech \
+#         --mask_speech_len_ratio 0.6 --mask_visual_len_ratio 0.6 \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks_wwm_onespan_noitm.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --learning_rate 5e-05 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 768 \
+#         --train_batch_size 160 --val_batch_size 160 \
+#         --num_train_steps 40000 --warmup_steps 4000 --valid_steps 10000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_onespans.6v.6_noitm_lr5e5_bs800
+
+# CUDA_VISIBLE_DEVICES=5 horovodrun -np 1 python pretrain.py \
+#         --cvNo 0 --n_workers 4 --use_visual --use_speech \
+#         --mask_speech_len_ratio 0.7 --mask_visual_len_ratio 0.7 \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks_wwm_onespan_noitm.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --learning_rate 5e-05 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 768 \
+#         --train_batch_size 160 --val_batch_size 160 \
+#         --num_train_steps 40000 --warmup_steps 4000 --valid_steps 10000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_onespans.7v.7_noitm_lr5e5_bs800
+
+# CUDA_VISIBLE_DEVICES=7 horovodrun -np 1 python pretrain.py \
+#         --cvNo 0 --n_workers 4 --use_visual --use_speech \
+#         --mask_speech_len_ratio 0.8 --mask_visual_len_ratio 0.8 \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks_wwm_onespan_noitm.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --learning_rate 5e-05 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 768 \
+#         --train_batch_size 160 --val_batch_size 160 \
+#         --num_train_steps 40000 --warmup_steps 4000 --valid_steps 10000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_onespans.8v.8_noitm_lr5e5_bs800
+
+
+# CUDA_VISIBLE_DEVICES=4 horovodrun -np 1 python pretrain.py \
+#         --cvNo 0 --n_workers 4 --use_visual --use_speech \
+#         --mask_speech_len_ratio 0.9 --mask_visual_len_ratio 0.9 \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks_wwm_onespan_noitm.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --learning_rate 5e-05 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 768 \
+#         --train_batch_size 160 --val_batch_size 160 \
+#         --num_train_steps 40000 --warmup_steps 4000 --valid_steps 10000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_onespans.9v.9_noitm_lr5e5_bs800
+
+# # # ## case5: speech + visual + text running on wwm + span - itm -- more text masking
+# CUDA_VISIBLE_DEVICES=5 horovodrun -np 1 python pretrain.py \
+#         --cvNo 0 --n_workers 4 --use_visual --use_speech \
+#         --mlm_prob 0.3 \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks_wwm_span_noitm.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --learning_rate 5e-05 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 768 \
+#         --train_batch_size 160 --val_batch_size 160 \
+#         --num_train_steps 40000 --warmup_steps 4000 --valid_steps 10000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_span_noitm_t.3_lr5e5_bs800
+
+# # # ## case5: speech + visual + text running on wwm + span - itm -- more text and AV masking
+# CUDA_VISIBLE_DEVICES=5 horovodrun -np 1 python pretrain.py \
+#         --cvNo 0 --n_workers 4 --use_visual --use_speech \
+#         --mlm_prob 0.5 --mask_speech_len_ratio 0.8 --mask_visual_len_ratio 0.8 \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks_wwm_onespan_noitm.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --learning_rate 5e-05 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 768 \
+#         --train_batch_size 160 --val_batch_size 160 \
+#         --num_train_steps 40000 --warmup_steps 4000 --valid_steps 10000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_onespans.5v.5_noitm_t.5_lr5e5_bs800
+
+# # # # ## case5: speech + visual + text running on wwm + span - itm -- more text and AV masking
+# CUDA_VISIBLE_DEVICES=6 horovodrun -np 1 python pretrain.py \
+#         --cvNo 0 --n_workers 4 --use_visual --use_speech \
+#         --mlm_prob 0.3 --mask_speech_len_ratio 0.5 --mask_visual_len_ratio 0.5 \
+#         --config config/pretrain-movies-v1v2v3-base-2gpu_speechwav2vec_5tasks_wwm_onespan_noitm.json \
+#         --model_config config/uniter-base-emoword_nomultitask_difftype_weaklabelSoft.json \
+#         --learning_rate 5e-05 --lr_sched_type 'linear' --gradient_accumulation_steps 4 \
+#         --IMG_DIM 342 --Speech_DIM 768 \
+#         --train_batch_size 160 --val_batch_size 160 \
+#         --num_train_steps 40000 --warmup_steps 4000 --valid_steps 10000 \
+#         --output_dir /data7/emobert/exp/pretrain/nomask_movies_v1v2v3_uniter3m_speechwav2vec_5tasks_wwm_onespans.5v.5_noitm_t.3_lr5e5_bs800
