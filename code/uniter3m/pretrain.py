@@ -1495,8 +1495,8 @@ def validate_prompt_mask(model, val_loader, task='promptmask'):
             error_list = candidate_list.copy()
             error_list.remove(true_label)
             total_preds[i] = random.sample(error_list, 1)[0]
-    assert len(total_preds) == len(total_labels)
-    assert len(set(total_preds)) == len(set(total_labels))
+    assert len(set(total_preds)) <= len(candidate_list) 
+    assert len(set(total_labels)) <= len(candidate_list) 
     val_loss /= len(total_labels)
     # print(total_preds.shape, total_labels.shape)
     val_log = evaluation_metric(total_preds, total_labels)

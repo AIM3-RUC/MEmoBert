@@ -135,7 +135,7 @@ def get_latest_onlylva_result(path):
     current_setname_index =  max_ua_index
     result_line = lines[current_setname_index + 3]
     WA, UAR = get_wa_ua_from_line(result_line)
-    test_log['lva'] = [WA, UAR]
+    test_log['onlylva'] = [WA, UAR]
     if len(test_log) == 0:
         print('error of {}'.format(log_path))
     return test_log, best_step
@@ -260,16 +260,16 @@ def get_all_6miss_cases_result(path):
 
 def get_current_step_reuslt(current_step_index, lines):
     test_log = collections.OrderedDict()
-    lav_index = current_step_index + 1
-    if 'val_l_mask_av task' in lines[lav_index] or 'val_l_mask_va task' in lines[lav_index]:
+    lva_index = current_step_index + 1
+    if 'val_l_mask_av task' in lines[lva_index] or 'val_l_mask_va task' in lines[lva_index]:
         # 如果包含val集合的话，那么过滤掉val部分的结果，只看test的结果
-        lav_index = lav_index + 35
-    assert 'tst_l_mask_av task' in lines[lav_index] or 'tst_l_mask_va task' in lines[lav_index]
-    result_line = lines[lav_index + 3]
+        lva_index = lva_index + 35
+    assert 'tst_l_mask_av task' in lines[lva_index] or 'tst_l_mask_va task' in lines[lva_index]
+    result_line = lines[lva_index + 3]
     WA, UAR = get_wa_ua_from_line(result_line)
     test_log['lva'] = [WA, UAR]
     # for tst_l_mask_v task
-    lv_index = lav_index + 3 + 2
+    lv_index = lva_index + 3 + 2
     assert 'tst_l_mask_v task' in lines[lv_index]
     result_line =  lines[lv_index + 3]
     WA, UAR = get_wa_ua_from_line(result_line)
@@ -321,7 +321,7 @@ def get_above_best_step(max_ua_index, lines):
 def clean_other_ckpts(ckpt_dir, store_epoch):
     # model_step_number.pt
     for checkpoint in os.listdir(ckpt_dir):
-        if not checkpoint.endswith('_{}.pt'.format(store_epoch)):
+        if not checkpoint.endswith('_{}.pt'.format(store_epoch)) :
             os.remove(os.path.join(ckpt_dir, checkpoint))
 
 def get_final_results_format(all_tst_results):
@@ -350,12 +350,11 @@ def get_final_results_format(all_tst_results):
 
 if __name__ == '__main__':
     root_dir = '/data7/emobert/exp/prompt_pretrain'
-    output_name = 'iemocap-basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_onespans.5v.5_noitm-cm_mask_prompt_onlylva_lr3e-5_trnval_part0.4_seed{}'
+    output_name = 'iemocap_basedon-movies_v1v2v3_uniter3m_visual_wav2vec_text_5tasks_wwm_span_noitm_step4w-cm_mask_promptiam_icassp_onlylva_lr3e-5_seed{}'
     type_eval = 'UA'
-    for seed in [1234, 4321, 5678]:
+    for seed in [42, 1234, 4321, 5678]:
         result_dir = os.path.join(root_dir, output_name.format(seed))
-        # result_path = os.path.join(result_dir, 'result_miss6.csv')
-        result_path = os.path.join(result_dir, 'result_lva.csv')
+        result_path = os.path.join(result_dir, 'result.csv')
         all_tst_results = []
         for cvNo in range(1, 11):
             log_dir = os.path.join(result_dir, str(cvNo), 'log')
@@ -378,9 +377,16 @@ if __name__ == '__main__':
                     template = 'tst_mask_a'
                 test_log, best_step = get_latest_onlypart_result(log_dir, template)
             elif '7cases' in output_name:
-                test_log, best_step = get_all_6miss_cases_result(log_dir)
+                # 同时保存按照 miss6 选的结果 以及 按照 lva 模型选的结果
+                # 保存的是 lva 的结果，主要是想用于 cross-corpus 的实验
+                result_path = os.path.join(result_dir, 'result_7cases.csv')
+                miss_test_log, miss_best_step = get_all_6miss_cases_result(log_dir)
+                onlylva_test_log, onlylva_best_step = get_latest_onlylva_result(log_dir)
+                test_log = {}
+                test_log.update(onlylva_test_log)
+                test_log.update(miss_test_log)
+                best_step = onlylva_best_step
             else:
-                # test_log, best_step = get_all_6miss_cases_result(log_dir)
                 test_log, best_step = get_latest_onlylva_result(log_dir)
             all_tst_results.append(test_log)
             # clean other ckpkts 
