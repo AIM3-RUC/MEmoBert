@@ -55,7 +55,7 @@
     ],
     "val_datasets": [
         {
-            "name": "msp_tst_l_mask_av",
+            "name": "msp_tst_l_mask_va",
             "db": [
                 "/data7/emobert/exp/evaluation/MSP/txt_db/{}/tst_wwm_nrcemolex_prompt_mask_iam.db"
             ],

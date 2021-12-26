@@ -1485,7 +1485,18 @@ def validate_prompt_mask(model, val_loader, task='promptmask'):
     val_loss = sum(all_gather_list(val_loss))
     tot_time = time()-st
     total_preds = np.concatenate(total_preds)
-    total_labels = np.concatenate(total_labels)   
+    total_labels = np.concatenate(total_labels)
+    # ZJM: 2021.12.27 solved a bug of prompt evaluation
+    candidate_list = [8699, 4963, 6517, 3407]
+    # post process the prediction, 直接去掉还是替换为一个错误的结果？统计recall值的话，可以进行替换操作。
+    for i in range(len(total_preds)):
+        if total_preds[i] not in candidate_list:
+            true_label = total_labels[i]
+            error_list = candidate_list.copy()
+            error_list.remove(true_label)
+            total_preds[i] = random.sample(error_list, 1)[0]
+    assert len(total_preds) == len(total_labels)
+    assert len(set(total_preds)) == len(set(total_labels))
     val_loss /= len(total_labels)
     # print(total_preds.shape, total_labels.shape)
     val_log = evaluation_metric(total_preds, total_labels)

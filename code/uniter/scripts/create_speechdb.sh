@@ -25,8 +25,8 @@ set -e
 # output_dir=/data7/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/
 # img_dir=/data7/emobert/exp/evaluation/MSP/feature/wav2vec_rawwav_npzs/
 # output_dir=/data7/emobert/exp/evaluation/MSP/feature/wav2vec_rawwav_db/
-img_dir=/data7/emobert/exp/evaluation/MSP/feature/wav2vec_cnn_npzs_3mean/
-output_dir=/data7/emobert/exp/evaluation/MSP/feature/wav2vec_cnn_db_3mean/
+# img_dir=/data7/emobert/exp/evaluation/MSP/feature/wav2vec_cnn_npzs_3mean/
+# output_dir=/data7/emobert/exp/evaluation/MSP/feature/wav2vec_cnn_db_3mean/
 # img_dir=/data7/emobert/exp/evaluation/MELD/feature/norm_comparE_npzs_5mean/
 # output_dir=/data7/emobert/exp/evaluation/MELD/feature/norm_comparE_db_5mean/
 # img_dir=/data7/emobert/exp/evaluation/MELD/feature/wav2vec_asr_npzs_3mean/

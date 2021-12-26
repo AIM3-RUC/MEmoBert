@@ -184,8 +184,7 @@ def evaluation_prompt(model, val_loader):
             error_list.remove(true_label)
             total_preds[i] = random.sample(error_list, 1)[0]
     assert len(total_preds) == len(total_labels)
-    # print(set(total_preds), total_preds)
-    # print(set(total_labels), total_labels)
+    assert len(set(total_preds)) == len(set(total_labels))
     val_log = evaluation_metric(total_preds, total_labels)
     val_log['loss'] = val_loss
     return val_log
@@ -196,4 +195,4 @@ def evaluation_metric(total_pred, total_label):
     wf1 = f1_score(total_label, total_pred, average='weighted')
     f1 = f1_score(total_label, total_pred, average='macro')
     cm = confusion_matrix(total_label, total_pred)
-    return {'WA': acc, 'WF1': wf1, 'UA': uar,  'F1': f1, 'cm': cm}
+    return {'WA': acc, 'WF1': wf1, 'UA': uar,  'F1': f1}
