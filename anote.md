@@ -431,7 +431,7 @@ MSP: UA=0.97278
 经过一些实验发现，目前的ITM任务去掉，效果反而更好。但是应该还有改进的空间。
 
 ## <分析6> 采用prompt的mask机制尝试一下 --Done
-[Bug] 老版本的 from pytorch_pretrained_bert import BertTokenizer 不能获取 [MASK] 整个词。
+[Bug] 老版本的 from pytorch_pretrained_bert import BertTokenizer
 toker = AutoTokenizer.from_pretrained('/data2/zjm/tools/LMs/bert_base_en')
 toker2 = BertTokenizer.from_pretrained('/data2/zjm/tools/LMs/bert_base_en')
 >>> toker2.tokenize('I am [MASK].')

@@ -1,0 +1,54 @@
+{
+    "compressed_db": false,
+    "checkpoint": "/data7/emobert/exp/pretrain/xxx",
+    "model_config": "config/uniter-base.json",
+    "output_dir": "/data7/emobert/exp/finetune/xxx",
+    "max_txt_len": 30,
+    "conf_th": 0.1,
+    "max_bb": 36,
+    "min_bb": 10,
+    "num_bb": 36,
+    "IMG_DIM": 342,
+    "train_batch_size": 64,
+    "inf_batch_size": 64,
+    "cls_num": 7,
+    "cls_dropout": 0.3,
+    "frozen_en_layers": 11,
+    "patience": 2,
+    "gradient_accumulation_steps": 1,
+    "learning_rate": 2e-05,
+    "valid_steps": 100,
+    "num_train_steps": 1000,
+    "warmup_steps": 100,
+    "optim": "adamw",
+    "betas": [
+        0.9,
+        0.98
+    ],
+    "dropout": 0.1,
+    "weight_decay": 0.01,
+    "grad_norm": 5.0,
+    "seed": 42,
+    "full_val": true,
+    "fp16": true,
+    "n_workers": 2,
+    "pin_mem": true,
+    "train_txt_dbs": [
+        "/data7/emobert/exp/evaluation/MSP/txt_db/{}/trn_emowords_sentiword_emocls_part0.1.db",
+        "/data7/emobert/exp/evaluation/MSP/txt_db/{}/val_emowords_sentiword_emocls_part0.1.db"
+    ],
+    "train_img_dbs": [
+        "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/feat_th0.0_max36_min10",
+        "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/feat_th0.0_max36_min10"
+    ],
+    "train_speech_dbs": [
+        "/data7/MEmoBert/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10",
+        "/data7/MEmoBert/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10"
+    ],
+    "val_txt_db": "/data7/emobert/exp/evaluation/MSP/txt_db/{}/tst_emowords_sentiword.db",
+    "val_img_db": "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/feat_th0.0_max36_min10",
+    "val_speech_db": "/data7/MEmoBert/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10",
+    "test_txt_db": "/data7/emobert/exp/evaluation/MSP/txt_db/{}/tst_emowords_sentiword.db",
+    "test_img_db": "/data7/emobert/exp/evaluation/MSP/feature/denseface_openface_msp_mean_std_torch/img_db/fc/feat_th0.0_max36_min10",
+    "test_speech_db": "/data7/MEmoBert/emobert/exp/evaluation/MSP/feature/wav2vec_db_3mean/feat_th1.0_max64_min10"
+}
